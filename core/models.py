@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.db.models import Sum
+from django.utils import timezone
 import datetime
 
 # --- Base de Personas ---
@@ -60,10 +61,25 @@ class DatosFiscales(models.Model):
         return f"Datos Fiscales de {self.paciente}"
 
 class Especialidad(models.Model):
-    nombre = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.nombre
+    nombre = models.CharField(max_length=100)
+    # NUEVO: Jerarquía de especialidades
+    especialidades_incluidas = models.ManyToManyField(
+        'self',
+        blank=True,
+        symmetrical=False,
+        help_text="Especialidades cuyos servicios también puede realizar"
+    )
+    
+    def servicios_disponibles(self):
+        """Obtener todos los servicios que puede realizar esta especialidad"""
+        # Servicios propios
+        servicios = self.servicio_set.filter(activo=True)
+        
+        # Servicios de especialidades incluidas
+        for esp_incluida in self.especialidades_incluidas.all():
+            servicios = servicios.union(esp_incluida.servicio_set.filter(activo=True))
+        
+        return servicios.distinct()
 
 class PerfilDentista(PersonaBase):
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil_dentista')
@@ -74,19 +90,33 @@ class PerfilDentista(PersonaBase):
 
 class Servicio(models.Model):
     nombre = models.CharField(max_length=200)
-    descripcion = models.TextField(blank=True, null=True)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    descripcion = models.TextField(blank=True)
+    precio = models.DecimalField(max_digits=8, decimal_places=2)
+    duracion_minutos = models.PositiveIntegerField(
+        default=30,
+        help_text="Duración estimada en minutos"
+    )
     activo = models.BooleanField(default=True)
-    especialidad = models.ForeignKey(Especialidad, on_delete=models.SET_NULL, null=True, blank=True, related_name='servicios')
-    insumos = models.ManyToManyField('Insumo', through='ServicioInsumo', blank=True)
-
+    especialidad = models.ForeignKey(
+        'Especialidad', 
+        on_delete=models.CASCADE,
+        help_text="Especialidad requerida para realizar este servicio"
+    )
+    
     def __str__(self):
-        if self.especialidad:
-            return f"{self.nombre} ({self.especialidad.nombre}) - ${self.precio}"
-        return f"{self.nombre} - ${self.precio}"
+        return f"{self.nombre} ({self.especialidad.nombre})"
+    
+    class Meta:
+        ordering = ['especialidad', 'nombre']
+
 
 class Pago(models.Model):
-    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='pagos')
+    paciente = models.ForeignKey(
+        Paciente, 
+        on_delete=models.CASCADE, 
+        null=True,
+        blank=True,
+        related_name='pagos')
     cita = models.ForeignKey('Cita', on_delete=models.SET_NULL, null=True, blank=True, related_name='pagos')
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_pago = models.DateTimeField(auto_now_add=True)
@@ -154,16 +184,44 @@ class ServicioInsumo(models.Model):
         return f"{self.servicio.nombre} consume {self.cantidad} de {self.insumo.nombre}"
 
 class Compra(models.Model):
-    ESTADOS_COMPRA = [('PENDIENTE', 'Pendiente de Recibir'), ('RECIBIDA', 'Recibida'), ('CANCELADA', 'Cancelada')]
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.PROTECT)
-    fecha_compra = models.DateField(default=datetime.date.today)
+    ESTADOS_COMPRA = [
+        ('PENDIENTE', 'Pendiente'),
+        ('RECIBIDA', 'Recibida'),
+        ('CANCELADA', 'Cancelada'),
+    ]
+    
+    TIPOS_COMPRA = [
+        ('EXTERNA', 'Compra Externa'),
+        ('INTERNA', 'Transferencia Interna'),
+        ('AJUSTE', 'Ajuste de Inventario'),
+    ]
+    
+    # PROVEEDOR AHORA OPCIONAL
+    proveedor = models.ForeignKey(
+        Proveedor, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Opcional para compras internas"
+    )
+    
+    tipo_compra = models.CharField(
+        max_length=10, 
+        choices=TIPOS_COMPRA, 
+        default='EXTERNA'
+    )
+    
+    fecha_compra = models.DateTimeField(default=timezone.now)
     estado = models.CharField(max_length=10, choices=ESTADOS_COMPRA, default='PENDIENTE')
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    factura_adjunta = models.FileField(upload_to='facturas_compras/', blank=True, null=True, verbose_name="Factura (PDF/Imagen)")
-
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    factura_adjunta = models.FileField(upload_to='facturas/', blank=True, null=True)
+    notas = models.TextField(blank=True)
+    
     def __str__(self):
-        return f"Compra a {self.proveedor.nombre} el {self.fecha_compra}"
-
+        if self.proveedor:
+            return f"Compra a {self.proveedor.nombre} - {self.fecha_compra.strftime('%d/%m/%Y')}"
+        else:
+            return f"Compra {self.get_tipo_compra_display()} - {self.fecha_compra.strftime('%d/%m/%Y')}"
 class DetalleCompra(models.Model):
     compra = models.ForeignKey(Compra, on_delete=models.CASCADE, related_name='detalles')
     insumo = models.ForeignKey(Insumo, on_delete=models.PROTECT)
@@ -176,21 +234,65 @@ class DetalleCompra(models.Model):
 # --- Modelos de Gestión Clínica ---
 
 class Cita(models.Model):
-    ESTADOS_CITA = [('PRO', 'Programada'), ('CON', 'Confirmada'), ('ATN', 'Atendida (Pend. Pago)'), ('CAN', 'Cancelada'), ('COM', 'Completada'), ('NSP', 'No se presentó')]
-    cliente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas', null=True)
-    dentista = models.ForeignKey(PerfilDentista, on_delete=models.SET_NULL, null=True, blank=True, related_name='citas')
-    unidad_dental = models.ForeignKey(UnidadDental, on_delete=models.SET_NULL, null=True, blank=True, help_text="Unidad donde se realiza la cita.")
+    ESTADOS_CITA = [
+        ('PRO', 'Programada'),
+        ('CON', 'Confirmada'),
+        ('ATN', 'Atendida'),
+        ('COM', 'Completada'),
+        ('CAN', 'Cancelada'),
+    ]
+    
+    cliente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    dentista = models.ForeignKey(PerfilDentista, on_delete=models.CASCADE)
+    unidad_dental = models.ForeignKey(UnidadDental, on_delete=models.CASCADE)
     fecha_hora = models.DateTimeField()
-    motivo = models.CharField(max_length=255)
+    
+    # SERVICIOS PLANEADOS (al agendar)
+    servicios_planeados = models.ManyToManyField(
+        'Servicio',
+        related_name='citas_planeadas',
+        blank=True,
+        help_text="Servicios que se planea realizar"
+    )
+    
+    # SERVICIOS REALIZADOS (al finalizar cita) - CAMPO EXISTENTE
+    servicios_realizados = models.ManyToManyField(
+        'Servicio', 
+        related_name='citas_realizadas',
+        blank=True,
+        help_text="Servicios que realmente se realizaron"
+    )
+    
+    motivo = models.TextField(
+        max_length=500, 
+        blank=True,
+        help_text="Síntomas específicos o notas adicionales"
+    )
+    
     estado = models.CharField(max_length=3, choices=ESTADOS_CITA, default='PRO')
-    notas = models.TextField(blank=True, null=True)
-    creado_en = models.DateTimeField(auto_now_add=True)
-    servicios_realizados = models.ManyToManyField(Servicio, blank=True)
+    notas = models.TextField(blank=True)
     requiere_factura = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Cita de {self.cliente} el {self.fecha_hora.strftime('%Y-%m-%d %H:%M')}"
-
+    creado_en = models.DateTimeField(auto_now_add=True)
+    
+    @property
+    def costo_estimado(self):
+        return sum(servicio.precio for servicio in self.servicios_planeados.all())
+    
+    @property
+    def costo_real(self):
+        return sum(servicio.precio for servicio in self.servicios_realizados.all())
+    
+    @property
+    def duracion_estimada(self):
+        return sum(servicio.duracion_minutos for servicio in self.servicios_planeados.all())
+    
+    @property
+    def total_pagado(self):
+        return self.pagos.aggregate(total=models.Sum('monto'))['total'] or 0
+    
+    @property
+    def saldo_pendiente(self):
+        return self.costo_real - self.total_pagado
 class Diagnostico(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
     color_hex = models.CharField(max_length=7, default='#FFFFFF', help_text="Color de fondo por defecto para este diagnóstico.")

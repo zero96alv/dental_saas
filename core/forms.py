@@ -39,37 +39,114 @@ class PerfilDentistaForm(forms.ModelForm):
         fields = ['telefono', 'especialidades', 'activo']
         widgets = {'especialidades': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'})}
 
+# En forms.py - REEMPLAZAR CitaForm existente
 class CitaForm(forms.ModelForm):
     class Meta:
         model = models.Cita
-        fields = ['cliente', 'dentista', 'unidad_dental', 'fecha_hora', 'motivo', 'estado']
-        widgets = {'fecha_hora': forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M')}
-
+        fields = [
+            'cliente', 'dentista', 'unidad_dental', 'fecha_hora', 
+            'servicios_planeados', 'motivo'
+        ]
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'type': 'datetime-local', 
+                'class': 'form-control'
+            }),
+            'servicios_planeados': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
+            }),
+            'motivo': forms.Textarea(attrs={
+                'rows': 3, 
+                'class': 'form-control',
+                'placeholder': 'Síntomas, observaciones adicionales...'
+            })
+        }
+    
     def __init__(self, *args, **kwargs):
+        # Pasar el usuario actual para filtrar dentistas por especialidad
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Configuracion básica
         self.fields['cliente'].queryset = models.Paciente.objects.order_by('apellido', 'nombre')
-        self.fields['dentista'].queryset = models.PerfilDentista.objects.filter(activo=True).order_by('apellido', 'nombre')
+        self.fields['dentista'].queryset = models.PerfilDentista.objects.filter(activo=True)
         self.fields['unidad_dental'].queryset = models.UnidadDental.objects.all()
         
+        # FILTRAR SERVICIOS POR ESPECIALIDAD DEL DENTISTA
+        if self.instance.pk and self.instance.dentista:
+            # Si estamos editando y ya hay dentista seleccionado
+            dentista = self.instance.dentista
+            servicios_disponibles = self._get_servicios_para_dentista(dentista)
+            self.fields['servicios_planeados'].queryset = servicios_disponibles
+        else:
+            # Si es nuevo, mostrar todos los servicios activos
+            self.fields['servicios_planeados'].queryset = models.Servicio.objects.filter(activo=True)
+        
+        # Estilos CSS
         for field_name, field in self.fields.items():
-            field.widget.attrs['class'] = 'form-control'
-
+            if field_name != 'servicios_planeados':  # Excepto checkboxes
+                field.widget.attrs['class'] = 'form-control'
+        
+        # Labels personalizados
+        self.fields['servicios_planeados'].label = "Servicios Planeados"
+        self.fields['motivo'].label = "Síntomas / Observaciones"
+        self.fields['motivo'].required = False
+    
+    def _get_servicios_para_dentista(self, dentista):
+        """Obtener servicios que puede realizar el dentista según sus especialidades"""
+        servicios = models.Servicio.objects.none()
+        
+        for especialidad in dentista.especialidades.all():
+            # Servicios de la especialidad + servicios de especialidades incluidas
+            servicios = servicios.union(especialidad.servicios_disponibles())
+        
+        return servicios.filter(activo=True).distinct()
+    
     def clean(self):
         cleaned_data = super().clean()
         fecha_hora = cleaned_data.get("fecha_hora")
         dentista = cleaned_data.get("dentista")
-
+        servicios_planeados = cleaned_data.get("servicios_planeados")
+        
         if fecha_hora and dentista:
-            hora_fin = fecha_hora + timedelta(minutes=30)
-            citas_en_conflicto = models.Cita.objects.filter(
-                dentista=dentista,
-                fecha_hora__lt=hora_fin,
-                fecha_hora__gte=fecha_hora
+            # Validar que el dentista puede realizar los servicios seleccionados
+            if servicios_planeados:
+                servicios_dentista = self._get_servicios_para_dentista(dentista)
+                servicios_invalidos = []
+                
+                for servicio in servicios_planeados:
+                    if servicio not in servicios_dentista:
+                        servicios_invalidos.append(servicio.nombre)
+                
+                if servicios_invalidos:
+                    raise ValidationError(
+                        f"El Dr. {dentista} no puede realizar estos servicios: {', '.join(servicios_invalidos)}"
+                    )
+            
+            # Calcular duración total estimada
+            duracion_total = sum(
+                s.duracion_minutos for s in servicios_planeados or []
             )
-            if self.instance and self.instance.pk:
-                citas_en_conflicto = citas_en_conflicto.exclude(pk=self.instance.pk)
-            if citas_en_conflicto.exists():
-                raise ValidationError(f"El dentista {dentista} ya tiene una cita programada en este horario.")
+            
+            if duracion_total > 0:
+                hora_fin = fecha_hora + timedelta(minutes=duracion_total)
+                
+                # Verificar conflictos de horario (incluyendo tiempo estimado)
+                citas_en_conflicto = models.Cita.objects.filter(
+                    dentista=dentista,
+                    fecha_hora__lt=hora_fin,
+                    fecha_hora__gte=fecha_hora
+                ).exclude(estado='CAN')  # No considerar canceladas
+                
+                if self.instance.pk:
+                    citas_en_conflicto = citas_en_conflicto.exclude(pk=self.instance.pk)
+                
+                if citas_en_conflicto.exists():
+                    raise ValidationError(
+                        f"El dentista {dentista} ya tiene una cita en este horario. "
+                        f"Duración estimada: {duracion_total} minutos (hasta {hora_fin.strftime('%H:%M')})."
+                    )
+        
         return cleaned_data
 
 class PagoForm(forms.ModelForm):
@@ -85,19 +162,42 @@ class PagoForm(forms.ModelForm):
             else:
                 field.widget.attrs.update({'class': 'form-control'})
 
+# En forms.py - REEMPLAZAR CompraForm existente
 class CompraForm(forms.ModelForm):
     class Meta:
         model = models.Compra
-        fields = ['proveedor', 'fecha_compra', 'estado', 'total', 'factura_adjunta']
-        widgets = {'fecha_compra': forms.DateInput(attrs={'type': 'date'})}
-
+        fields = ['proveedor', 'tipo_compra', 'fecha_compra', 'estado', 'total', 'factura_adjunta', 'notas']
+        widgets = {
+            'fecha_compra': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'})
+        }
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['total'].widget.attrs['readonly'] = True
         self.fields['total'].widget.attrs['class'] = 'form-control'
+        
+        # Hacer proveedor opcional según el tipo
+        self.fields['proveedor'].required = False
         self.fields['proveedor'].widget.attrs['class'] = 'form-select'
+        self.fields['tipo_compra'].widget.attrs['class'] = 'form-select'
         self.fields['fecha_compra'].widget.attrs['class'] = 'form-control'
         self.fields['estado'].widget.attrs['class'] = 'form-select'
+        
+        # Labels personalizados
+        self.fields['proveedor'].help_text = "Opcional para compras internas o ajustes de inventario"
+        self.fields['tipo_compra'].label = "Tipo de Movimiento"
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        proveedor = cleaned_data.get('proveedor')
+        tipo_compra = cleaned_data.get('tipo_compra')
+        
+        # Validar que compras externas tengan proveedor
+        if tipo_compra == 'EXTERNA' and not proveedor:
+            raise ValidationError("Las compras externas requieren un proveedor.")
+        
+        return cleaned_data
 
 DetalleCompraFormSet = inlineformset_factory(
     models.Compra, 
@@ -174,17 +274,62 @@ class ReporteServiciosForm(forms.Form):
         label="Filtrar por Dentista"
     )
 
+# En forms.py - REEMPLAZAR FinalizarCitaForm existente
+# En forms.py - REEMPLAZAR FinalizarCitaForm existente
 class FinalizarCitaForm(forms.ModelForm):
+    confirmar_finalizacion = forms.BooleanField(
+        required=True,
+        label="Confirmo que he completado la atención del paciente",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    
     class Meta:
         model = models.Cita
-        fields = ['servicios_realizados']
-        widgets = {'servicios_realizados': forms.CheckboxSelectMultiple}
-
+        fields = ['servicios_realizados', 'notas', 'confirmar_finalizacion']
+        widgets = {
+            'servicios_realizados': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
+            }),
+            'notas': forms.Textarea(attrs={
+                'rows': 4, 
+                'class': 'form-control',
+                'placeholder': 'Notas sobre el tratamiento realizado...'
+            })
+        }
+    
     def __init__(self, *args, **kwargs):
+        self.dentista = kwargs.pop('dentista', None)
         super().__init__(*args, **kwargs)
-        self.fields['servicios_realizados'].queryset = models.Servicio.objects.filter(activo=True)
-        self.fields['servicios_realizados'].help_text = "Seleccione los servicios que se realizaron durante la consulta."
-
+        
+        # Solo mostrar servicios que el dentista puede realizar
+        if self.dentista and self.instance.pk:
+            servicios_disponibles = self._get_servicios_para_dentista(self.dentista)
+            self.fields['servicios_realizados'].queryset = servicios_disponibles
+            
+            # Sugerir los servicios planeados como preseleccionados
+            if not self.instance.servicios_realizados.exists():
+                self.initial['servicios_realizados'] = self.instance.servicios_planeados.all()
+        else:
+            self.fields['servicios_realizados'].queryset = models.Servicio.objects.filter(activo=True)
+        
+        # Labels y help text
+        self.fields['servicios_realizados'].label = "Servicios Realmente Realizados"
+        self.fields['servicios_realizados'].help_text = "Seleccione solo los servicios que efectivamente se realizaron"
+        self.fields['notas'].label = "Notas del Tratamiento"
+        self.fields['notas'].required = False
+    
+    def _get_servicios_para_dentista(self, dentista):
+        """Obtener servicios que puede realizar el dentista"""
+        servicios = models.Servicio.objects.none()
+        for especialidad in dentista.especialidades.all():
+            servicios = servicios.union(especialidad.servicios_disponibles())
+        return servicios.filter(activo=True).distinct()
+    
+    def clean_servicios_realizados(self):
+        servicios = self.cleaned_data.get('servicios_realizados')
+        if not servicios:
+            raise ValidationError("Debe seleccionar al menos un servicio realizado.")
+        return servicios
 class PacientePlanPagoForm(forms.ModelForm):
     class Meta:
         model = models.Paciente

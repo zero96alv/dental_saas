@@ -1,111 +1,327 @@
-{% extends "core/base.html" %}
+{% extends 'core/base.html' %}
+{% load static %}
 
-{% block title %}Listado de Citas{% endblock %}
+{% block title %}Gestión de Citas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge-estado {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+    .badge-PRO { background-color: #ffc107; color: #000; }
+    .badge-CON { background-color: #17a2b8; color: #fff; }
+    .badge-ATN { background-color: #28a745; color: #fff; }
+    .badge-COM { background-color: #6c757d; color: #fff; }
+    .badge-CAN { background-color: #dc3545; color: #fff; }
+    
+    .cita-card {
+        border-left: 5px solid;
+        transition: transform 0.2s;
+    }
+    .cita-card:hover { transform: translateY(-2px); }
+    .cita-PRO { border-left-color: #ffc107; }
+    .cita-CON { border-left-color: #17a2b8; }
+    .cita-ATN { border-left-color: #28a745; }
+    .cita-COM { border-left-color: #6c757d; }
+    .cita-CAN { border-left-color: #dc3545; }
+    
+    .stats-card { border-radius: 10px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-calendar-event-fill me-2"></i> Listado de Citas</h2>
-        <a href="{% url 'core:agenda' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle-fill me-1"></i> Agendar Nueva Cita
-        </a>
-    </div>
-
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Fecha y Hora</th>
-                            <th scope="col">Paciente</th>
-                            <th scope="col">Dentista</th>
-                            <th scope="col">Motivo</th>
-                            <th scope="col">Estado</th>
-                            <th scope="col">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for cita in citas %}
-                        <tr>
-                            <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                <a href="{% url 'core:paciente_detail' cita.paciente.pk %}">
-                                    {{ cita.paciente.nombre }} {{ cita.paciente.apellido }}
-                                </a>
-                            </td>
-                            <td>{{ cita.dentista.nombre|default:"No asignado" }}</td>
-                            <td>{{ cita.motivo }}</td>
-                            <td>
-                                <span class="badge 
-                                    {% if cita.estado == 'PRO' %}bg-primary
-                                    {% elif cita.estado == 'CON' %}bg-success
-                                    {% elif cita.estado == 'CAN' %}bg-danger
-                                    {% elif cita.estado == 'COM' %}bg-secondary
-                                    {% endif %}">
-                                    {{ cita.get_estado_display }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="#" class="btn btn-sm btn-info" title="Ver Detalles">
-                                    <i class="bi bi-eye-fill"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-warning" title="Editar Cita">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">No hay citas registradas.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            {% if is_paginated %}
-            <nav aria-label="Paginación">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
-                        </li>
-                    {% endif %}
-
-                    {% for i in paginator.page_range %}
-                        {% if page_obj.number == i %}
-                            <li class="page-item active" aria-current="page">
-                                <a class="page-link" href="#">{{ i }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ i }}">{{ i }}</a>
-                            </li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Siguiente">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    {% else %}
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
+<div class="container-fluid">
+    <!-- Header y Estadísticas -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0">
+                <i class="bi bi-calendar-day me-2"></i>Gestión de Citas
+            </h1>
+            <p class="text-muted mb-0">Total: {{ stats.total }} citas</p>
+        </div>
+        <div>
+            <a href="{% url 'core:agenda' %}" class="btn btn-primary">
+                <i class="bi bi-calendar-plus me-1"></i>Agendar Nueva Cita
+            </a>
         </div>
     </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card stats-card text-center border-warning">
+                <div class="card-body py-2">
+                    <small class="text-muted">Programadas</small>
+                    <h4 class="mb-0 text-warning">{{ stats.programadas }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center border-info">
+                <div class="card-body py-2">
+                    <small class="text-muted">Confirmadas</small>
+                    <h4 class="mb-0 text-info">{{ stats.confirmadas }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center border-success">
+                <div class="card-body py-2">
+                    <small class="text-muted">Atendidas</small>
+                    <h4 class="mb-0 text-success">{{ stats.atendidas }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center border-secondary">
+                <div class="card-body py-2">
+                    <small class="text-muted">Completadas</small>
+                    <h4 class="mb-0 text-secondary">{{ stats.completadas }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center border-danger">
+                <div class="card-body py-2">
+                    <small class="text-muted">Canceladas</small>
+                    <h4 class="mb-0 text-danger">{{ stats.canceladas }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel me-1"></i>Filtros
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- Estado -->
+                <div class="col-md-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        {% for codigo, nombre in estados %}
+                            <option value="{{ codigo }}" 
+                                {% if filtros_actuales.estado == codigo %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Dentista (solo para admin/recepción) -->
+                {% if puede_filtrar_dentista %}
+                <div class="col-md-3">
+                    <label class="form-label">Dentista</label>
+                    <select name="dentista" class="form-select">
+                        <option value="">Todos los dentistas</option>
+                        {% for dentista in dentistas %}
+                            <option value="{{ dentista.id }}" 
+                                {% if filtros_actuales.dentista == dentista.id|stringformat:"s" %}selected{% endif %}>
+                                Dr. {{ dentista.nombre }} {{ dentista.apellido }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Fecha -->
+                <div class="col-md-3">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" name="fecha" value="{{ filtros_actuales.fecha }}" class="form-control">
+                </div>
+
+                <!-- Paciente -->
+                <div class="col-md-3">
+                    <label class="form-label">Paciente</label>
+                    <input type="text" name="paciente" value="{{ filtros_actuales.paciente }}" 
+                           placeholder="Nombre del paciente..." class="form-control">
+                </div>
+
+                <!-- Botones -->
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'core:cita_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Citas -->
+    <div class="row">
+        {% for cita in citas %}
+        <div class="col-12 mb-3">
+            <div class="card cita-card cita-{{ cita.estado }}">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <!-- Info Principal -->
+                        <div class="col-md-4">
+                            <h5 class="card-title mb-1">
+                                <i class="bi bi-person-circle me-1"></i>
+                                {{ cita.cliente.nombre }} {{ cita.cliente.apellido }}
+                            </h5>
+                            <p class="text-muted mb-1">
+                                <i class="bi bi-calendar2 me-1"></i>
+                                {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                                {% if cita.duracion_estimada_calc > 0 %}
+                                    <small class="text-muted">({{ cita.duracion_estimada_calc }} min)</small>
+                                {% endif %}
+                            </p>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-person-badge me-1"></i>
+                                Dr. {{ cita.dentista.nombre }} {{ cita.dentista.apellido }}
+                            </p>
+                        </div>
+
+                        <!-- Servicios -->
+                        <div class="col-md-4">
+                            {% if cita.servicios_planeados.all %}
+                                <small class="text-muted">Servicios Planeados:</small>
+                                <ul class="list-unstyled mb-2">
+                                    {% for servicio in cita.servicios_planeados.all %}
+                                        <li><small>• {{ servicio.nombre }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if cita.servicios_realizados.all %}
+                                <small class="text-success">Servicios Realizados:</small>
+                                <ul class="list-unstyled mb-0">
+                                    {% for servicio in cita.servicios_realizados.all %}
+                                        <li><small>✓ {{ servicio.nombre }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if cita.motivo %}
+                                <small class="text-muted">{{ cita.motivo|truncatechars:50 }}</small>
+                            {% endif %}
+                        </div>
+
+                        <!-- Costos y Estado -->
+                        <div class="col-md-2 text-center">
+                            <span class="badge badge-estado badge-{{ cita.estado }}">
+                                {% for codigo, nombre in estados %}
+                                    {% if codigo == cita.estado %}{{ nombre }}{% endif %}
+                                {% endfor %}
+                            </span>
+
+                            {% if cita.costo_estimado_calc > 0 %}
+                                <p class="mb-1 mt-2">
+                                    <small class="text-muted">Estimado:</small><br>
+                                    <strong>${{ cita.costo_estimado_calc|floatformat:2 }}</strong>
+                                </p>
+                            {% endif %}
+
+                            {% if cita.costo_real_calc > 0 %}
+                                <p class="mb-1">
+                                    <small class="text-muted">Total:</small><br>
+                                    <strong>${{ cita.costo_real_calc|floatformat:2 }}</strong>
+                                </p>
+                                {% if cita.saldo_pendiente_calc > 0 %}
+                                    <p class="mb-0">
+                                        <small class="text-danger">Pendiente:</small><br>
+                                        <strong class="text-danger">${{ cita.saldo_pendiente_calc|floatformat:2 }}</strong>
+                                    </p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="col-md-2 text-end">
+                            <div class="btn-group-vertical" role="group">
+                                {% if cita.estado == 'PRO' and user.groups.all.0.name == 'Recepcionista' %}
+                                    <a href="{% url 'core:cita_cambiar_estado' cita.pk %}" 
+                                       class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-check-circle me-1"></i>Confirmar
+                                    </a>
+                                {% elif cita.estado == 'CON' and user.groups.all.0.name == 'Dentista' %}
+                                    <a href="{% url 'core:cita_finalizar' cita.pk %}" 
+                                       class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-clipboard-check me-1"></i>Finalizar
+                                    </a>
+                                {% elif cita.estado == 'ATN' and user.groups.all.0.name in 'Recepcionista,Administrador' %}
+                                    <a href="{% url 'core:procesar_pago' cita.pk %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-cash me-1"></i>Cobrar
+                                    </a>
+                                {% endif %}
+
+                                {% if user.groups.all.0.name == 'Administrador' %}
+                                    <a href="{% url 'core:cita_cambiar_estado' cita.pk %}" 
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-gear me-1"></i>Editar Estado
+                                    </a>
+                                {% endif %}
+
+                                <a href="{% url 'core:paciente_detail' cita.cliente.pk %}" 
+                                   class="btn btn-sm btn-outline-dark">
+                                    <i class="bi bi-person me-1"></i>Ver Paciente
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                    <h4 class="text-muted mt-3">No hay citas que mostrar</h4>
+                    <p class="text-muted">Intenta cambiar los filtros o agenda una nueva cita.</p>
+                    <a href="{% url 'core:agenda' %}" class="btn btn-primary">
+                        <i class="bi bi-calendar-plus me-1"></i>Agendar Nueva Cita
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav aria-label="Paginación de citas" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

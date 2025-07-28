@@ -6,6 +6,8 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+# Al inicio del archivo views.py, agrega esta línea:
+from django.db.models import Count, Sum, F, Q  # ← Agrega F aquí
 import json
 from django.views.generic import (
     ListView,
@@ -53,7 +55,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-
+        
         if hasattr(user, 'paciente_perfil'):
             paciente = user.paciente_perfil
             context['paciente'] = paciente
@@ -61,10 +63,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 cliente=paciente, 
                 fecha_hora__gte=timezone.now()
             ).order_by('fecha_hora')
-            context['saldo_total_pendiente'] = models.Cita.objects.filter(
-                cliente=paciente, 
-                saldo_pendiente__gt=0
-            ).aggregate(total=Sum('saldo_pendiente'))['total'] or 0
+            context['saldo_total_pendiente'] = paciente.saldo_global or 0
             return context
 
         periodo = self.request.GET.get('periodo', 'hoy')
@@ -87,13 +86,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             start_date = today
             end_date = today
             context['periodo_seleccionado'] = 'Hoy'
-
+            
         context['periodo_param'] = periodo
         
         citas_periodo = models.Cita.objects.all()
         pagos_periodo = models.Pago.objects.all()
         pacientes_periodo = models.Paciente.objects.all()
-
+        
         if start_date:
             citas_periodo = citas_periodo.filter(fecha_hora__date__gte=start_date, fecha_hora__date__lte=end_date)
             pagos_periodo = pagos_periodo.filter(fecha_pago__date__gte=start_date, fecha_pago__date__lte=end_date)
@@ -101,33 +100,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context['citas_total_periodo'] = citas_periodo.count()
         context['citas_pendientes_periodo'] = citas_periodo.filter(estado__in=['PRO', 'CON']).count()
-
+        
         if user.groups.filter(name='Administrador').exists() or user.is_superuser:
             context['ingresos_periodo'] = pagos_periodo.aggregate(total=Sum('monto'))['total'] or 0
-            context['total_saldos_pendientes'] = models.Cita.objects.filter(estado__in=['ATN', 'COM'], saldo_pendiente__gt=0).aggregate(total=Sum('saldo_pendiente'))['total'] or 0
+            
+            # USAR SALDO_GLOBAL DE PACIENTES
+            context['total_saldos_pendientes'] = models.Paciente.objects.filter(
+                saldo_global__gt=0
+            ).aggregate(total=Sum('saldo_global'))['total'] or 0
             
             from datetime import date
             alert_date = date.today()
             proximos_30_dias = alert_date + timedelta(days=30)
-            context['stocks_bajos'] = models.Insumo.objects.filter(stock__lte=models.F('stock_minimo'))
+            context['stocks_bajos'] = models.Insumo.objects.filter(stock__lte=F('stock_minimo'))
             context['insumos_caducados'] = models.LoteInsumo.objects.filter(fecha_caducidad__lt=alert_date).order_by('fecha_caducidad')
             context['insumos_proximos_a_caducar'] = models.LoteInsumo.objects.filter(
                 fecha_caducidad__gte=alert_date,
                 fecha_caducidad__lte=proximos_30_dias
             ).order_by('fecha_caducidad')
-
+            
         if user.groups.filter(name='Dentista').exists():
             perfil = get_object_or_404(models.PerfilDentista, usuario=user)
             citas_dentista_periodo = citas_periodo.filter(dentista=perfil)
             context['citas_dentista_periodo'] = citas_dentista_periodo.count()
             context['pacientes_atendidos_periodo'] = citas_dentista_periodo.filter(estado__in=['ATN', 'COM']).count()
-
+            
         if user.groups.filter(name='Recepcionista').exists():
             context['citas_por_confirmar_periodo'] = citas_periodo.filter(estado='PRO').count()
             context['pacientes_nuevos_periodo'] = pacientes_periodo.count()
             
         return context
-
 class UsuarioListView(ListView):
     model = User
     template_name = 'core/usuario_list.html'
@@ -340,10 +342,12 @@ class EspecialidadDeleteView(DeleteView):
         messages.success(self.request, f"Especialidad '{self.object.nombre}' eliminada con éxito.")
         return super().form_valid(form)
 
-class PagoCreateView(ListView):
-    mode=models.Pago
-    template_name='core/pago_form.html'
-    success_url= reverse_lazy('core:pago_list')
+# REEMPLAZA tu PagoCreateView existente por:
+class PagoCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = models.Pago  # ← Corregido: era 'mode'
+    form_class = forms.PagoForm  # ✅ Este formulario existe
+    template_name = 'core/pago_form.html'
+    success_url = reverse_lazy('core:pago_list')
     success_message = "Pago creado exitosamente."
     
 class PagoListView(ListView):
@@ -518,15 +522,159 @@ class AgendaView(TemplateView):
         context['dentistas'] = models.PerfilDentista.objects.filter(activo=True)
         return context
 
-class CitaListView(ListView):
+class CitaListView(LoginRequiredMixin, ListView):
     model = models.Cita
     template_name = 'core/cita_list.html'
     context_object_name = 'citas'
-    paginate_by = 15
-
+    paginate_by = 20
+    
     def get_queryset(self):
-        return models.Cita.objects.select_related('cliente', 'dentista').order_by('-fecha_hora')
-
+        queryset = models.Cita.objects.select_related(
+            'cliente', 'dentista', 'unidad_dental'
+        ).prefetch_related(
+            'servicios_planeados', 'servicios_realizados', 'pagos'
+        ).order_by('-fecha_hora')
+        
+        user = self.request.user
+        
+        # FILTRO POR ROL: Si es dentista, solo ver sus citas
+        if user.groups.filter(name='Dentista').exists():
+            try:
+                perfil_dentista = models.PerfilDentista.objects.get(usuario=user)
+                queryset = queryset.filter(dentista=perfil_dentista)
+            except models.PerfilDentista.DoesNotExist:
+                messages.warning(self.request, 'No tienes un perfil de dentista asignado.')
+                queryset = queryset.none()
+        
+        # FILTROS ADICIONALES
+        estado = self.request.GET.get('estado')
+        if estado:
+            queryset = queryset.filter(estado=estado)
+        
+        dentista_id = self.request.GET.get('dentista')
+        if dentista_id and user.groups.filter(name__in=['Administrador', 'Recepcionista']).exists():
+            queryset = queryset.filter(dentista_id=dentista_id)
+        
+        fecha = self.request.GET.get('fecha')
+        if fecha:
+            queryset = queryset.filter(fecha_hora__date=fecha)
+        
+        # Filtro por paciente
+        paciente = self.request.GET.get('paciente')
+        if paciente:
+            queryset = queryset.filter(
+                models.Q(cliente__nombre__icontains=paciente) |
+                models.Q(cliente__apellido__icontains=paciente)
+            )
+            
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Estados disponibles
+        context['estados'] = [
+            ('PRO', 'Programada'),
+            ('CON', 'Confirmada'),
+            ('ATN', 'Atendida'),
+            ('COM', 'Completada'),
+            ('CAN', 'Cancelada'),
+        ]
+        
+        # Solo admin y recepción pueden filtrar por dentista
+        context['puede_filtrar_dentista'] = user.groups.filter(
+            name__in=['Administrador', 'Recepcionista']
+        ).exists()
+        
+        if context['puede_filtrar_dentista']:
+            context['dentistas'] = models.PerfilDentista.objects.filter(activo=True)
+        
+        # Estadísticas del queryset filtrado
+        queryset = self.get_queryset()
+        context['stats'] = {
+            'programadas': queryset.filter(estado='PRO').count(),
+            'confirmadas': queryset.filter(estado='CON').count(),
+            'atendidas': queryset.filter(estado='ATN').count(),
+            'completadas': queryset.filter(estado='COM').count(),
+            'canceladas': queryset.filter(estado='CAN').count(),
+            'total': queryset.count(),
+        }
+        
+        # Añadir datos calculados a cada cita
+        for cita in context['citas']:
+            # Calcular costos
+            cita.costo_estimado_calc = sum(s.precio for s in cita.servicios_planeados.all())
+            cita.costo_real_calc = sum(s.precio for s in cita.servicios_realizados.all()) 
+            cita.total_pagado_calc = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
+            cita.saldo_pendiente_calc = cita.costo_real_calc - cita.total_pagado_calc
+            
+            # Calcular duración estimada  
+            cita.duracion_estimada_calc = sum(s.duracion_minutos for s in cita.servicios_planeados.all())
+        
+        # Filtros aplicados (para mantener en los links de paginación)
+        context['filtros_actuales'] = {
+            'estado': self.request.GET.get('estado', ''),
+            'dentista': self.request.GET.get('dentista', ''),
+            'fecha': self.request.GET.get('fecha', ''),
+            'paciente': self.request.GET.get('paciente', ''),
+        }
+        
+        return context
+    
+class CambiarEstadoCitaView(LoginRequiredMixin, UpdateView):
+    model = models.Cita
+    template_name = 'core/cita_cambiar_estado.html'
+    fields = ['estado', 'notas']
+    success_url = reverse_lazy('core:cita_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Estados permitidos según rol
+        user = self.request.user
+        cita = self.object
+        
+        if user.groups.filter(name='Recepcionista').exists():
+            # Recepción puede: Programada → Confirmada, Confirma → Cancelada
+            if cita.estado == 'PRO':
+                context['estados_permitidos'] = [('CON', 'Confirmada'), ('CAN', 'Cancelada')]
+            elif cita.estado == 'CON':
+                context['estados_permitidos'] = [('CAN', 'Cancelada')]
+            else:
+                context['estados_permitidos'] = []
+                
+        elif user.groups.filter(name='Dentista').exists():
+            # Dentista puede: Confirmada → Atendida (a través de "Finalizar Cita")
+            context['estados_permitidos'] = []  # Usan vista especial
+            
+        else:  # Administrador
+            # Admin puede todo
+            context['estados_permitidos'] = [
+                ('PRO', 'Programada'),
+                ('CON', 'Confirmada'), 
+                ('ATN', 'Atendida'),
+                ('COM', 'Completada'),
+                ('CAN', 'Cancelada'),
+            ]
+        
+        return context
+    
+    def form_valid(self, form):
+        cita = form.save()
+        
+        # Mensajes personalizados
+        estado_msgs = {
+            'CON': f'Cita de {cita.cliente} confirmada para {cita.fecha_hora.strftime("%d/%m/%Y %H:%M")}',
+            'CAN': f'Cita de {cita.cliente} cancelada',
+            'ATN': f'Cita de {cita.cliente} marcada como atendida',
+            'COM': f'Cita de {cita.cliente} completada',
+        }
+        
+        if cita.estado in estado_msgs:
+            messages.success(self.request, estado_msgs[cita.estado])
+        
+        return super().form_valid(form)
 class CitasPendientesPagoListView(LoginRequiredMixin, ListView):
     model = models.Cita
     template_name = 'core/citas_pendientes_pago.html'
@@ -853,13 +1001,14 @@ def reporte_ingresos_api(request):
     return JsonResponse(data)
 
 def reporte_saldos_api(request):
-    saldos = models.Cita.objects.filter(estado='COM', saldo_pendiente__gt=0).values(
-        'cliente__nombre', 'cliente__apellido'
-    ).annotate(total_saldo=Sum('saldo_pendiente')).order_by('-total_saldo')[:10]
+    # USAR SALDO_GLOBAL DE PACIENTES
+    saldos = models.Paciente.objects.filter(
+        saldo_global__gt=0
+    ).values('nombre', 'apellido', 'saldo_global').order_by('-saldo_global')[:10]
     
     data = {
-        'labels': [f"{item['cliente__nombre']} {item['cliente__apellido']}" for item in saldos],
-        'values': [float(item['total_saldo']) for item in saldos]
+        'labels': [f"{item['nombre']} {item['apellido']}" for item in saldos],
+        'values': [float(item['saldo_global']) for item in saldos]
     }
     return JsonResponse(data)
 
@@ -935,7 +1084,7 @@ def _generar_recibo_carta(response, pago):
     story.append(Spacer(1, 12))
     story.append(Paragraph(f"<b>Total Servicios:</b> ${total_servicios:,.2f}", styles['Right']))
     story.append(Paragraph(f"<b>Monto Pagado ({pago.metodo_pago}):</b> ${pago.monto:,.2f}", styles['Right']))
-    story.append(Paragraph(f"<b>Saldo Pendiente de la Cita:</b> ${pago.cita.saldo_pendiente:,.2f}", styles['Right']))
+    story.append(Paragraph(f"<b>Saldo Pendiente del paciente:</b> ${pago.cita.cliente.saldo_global:,.2f}", styles['Right']))
 
     doc.build(story)
 
@@ -1155,14 +1304,22 @@ def exportar_ingresos_excel(request):
 def exportar_saldos_excel(request):
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="reporte_saldos.xlsx"'
+    
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = 'Saldos Pendientes'
+    
     headers = ['Paciente', 'Saldo Pendiente']
     worksheet.append(headers)
-    citas = models.Cita.objects.filter(estado='COM', saldo_pendiente__gt=0).select_related('cliente')
-    for cita in citas:
-        worksheet.append([str(cita.cliente), cita.saldo_pendiente])
+    
+    # USAR SALDO_GLOBAL DE PACIENTES
+    pacientes = models.Paciente.objects.filter(saldo_global__gt=0).order_by('-saldo_global')
+    for paciente in pacientes:
+        worksheet.append([
+            f"{paciente.nombre} {paciente.apellido}", 
+            float(paciente.saldo_global)
+        ])
+    
     workbook.save(response)
     return response
 
@@ -1345,11 +1502,143 @@ class ReporteIngresosPorDentistaView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(fecha_pago__date__lte=fecha_fin)
         
         return queryset
+# REEMPLAZA la clase ReporteIngresosView existente por:
 class ReporteIngresosView(LoginRequiredMixin, ListView):
-    model = models.Pago.objects.select_related() 
-
+    model = models.Pago
+    template_name = 'core/reportes/reporte_ingresos.html'
+    context_object_name = 'pagos'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = models.Pago.objects.select_related('cita__cliente').order_by('-fecha_pago')
+        form = forms.ReporteIngresosForm(self.request.GET)
+        if form.is_valid():
+            fecha_inicio = form.cleaned_data.get('fecha_inicio')
+            fecha_fin = form.cleaned_data.get('fecha_fin')
+            if fecha_inicio:
+                queryset = queryset.filter(fecha_pago__date__gte=fecha_inicio)
+            if fecha_fin:
+                queryset = queryset.filter(fecha_pago__date__lte=fecha_fin)
+        return queryset
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = forms.ReporteIngresosDentistaForm(self.request.GET or None)
+        context['form'] = forms.ReporteIngresosForm(self.request.GET or None)
         context['total_ingresos'] = self.get_queryset().aggregate(total=Sum('monto'))['total'] or 0
         return context
+# ==================== VISTAS FALTANTES ====================
+
+# --- PROVEEDORES ---
+class ProveedorListView(LoginRequiredMixin, ListView):
+    model = models.Proveedor
+    template_name = 'core/proveedor_list.html'
+    context_object_name = 'proveedores'
+    paginate_by = 15
+
+class ProveedorCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = models.Proveedor
+    template_name = 'core/proveedor_form.html'
+    fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
+    success_url = reverse_lazy('core:proveedor_list')
+    success_message = "Proveedor '%(nombre)s' creado con éxito."
+
+class ProveedorUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = models.Proveedor
+    template_name = 'core/proveedor_form.html'
+    fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
+    success_url = reverse_lazy('core:proveedor_list')
+    success_message = "Proveedor '%(nombre)s' actualizado con éxito."
+
+class ProveedorDeleteView(LoginRequiredMixin, DeleteView):
+    model = models.Proveedor
+    template_name = 'core/proveedor_confirm_delete.html'
+    success_url = reverse_lazy('core:proveedor_list')
+    context_object_name = 'proveedor'
+    
+    def form_valid(self, form):
+        messages.success(self.request, f"Proveedor '{self.object.nombre}' eliminado con éxito.")
+        return super().form_valid(form)
+
+# --- INSUMOS ---
+class InsumoListView(LoginRequiredMixin, ListView):
+    model = models.Insumo
+    template_name = 'core/insumo_list.html'
+    context_object_name = 'insumos'
+    paginate_by = 15
+
+class InsumoCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = models.Insumo
+    template_name = 'core/insumo_form.html'
+    fields = ['nombre', 'descripcion', 'unidad_medida', 'stock_minimo', 'precio_unitario']
+    success_url = reverse_lazy('core:insumo_list')
+    success_message = "Insumo '%(nombre)s' creado con éxito."
+
+class InsumoUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = models.Insumo
+    template_name = 'core/insumo_form.html'
+    fields = ['nombre', 'descripcion', 'unidad_medida', 'stock_minimo', 'precio_unitario']
+    success_url = reverse_lazy('core:insumo_list')
+    success_message = "Insumo '%(nombre)s' actualizado con éxito."
+
+class InsumoDeleteView(LoginRequiredMixin, DeleteView):
+    model = models.Insumo
+    template_name = 'core/insumo_confirm_delete.html'
+    success_url = reverse_lazy('core:insumo_list')
+    context_object_name = 'insumo'
+    
+    def form_valid(self, form):
+        messages.success(self.request, f"Insumo '{self.object.nombre}' eliminado con éxito.")
+        return super().form_valid(form)
+
+# --- PAGOS ---
+class RegistrarPagoView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = models.Pago
+    form_class = forms.PagoForm
+    template_name = 'core/pago_registrar.html'
+    success_url = reverse_lazy('core:pago_list')
+    success_message = "Pago registrado con éxito."
+    
+    def get_initial(self):
+        initial = super().get_initial()
+        if 'paciente_id' in self.kwargs:
+            paciente = get_object_or_404(models.Paciente, pk=self.kwargs['paciente_id'])
+            initial['cliente'] = paciente
+        elif 'cita_id' in self.kwargs:
+            cita = get_object_or_404(models.Cita, pk=self.kwargs['cita_id'])
+            initial['cita'] = cita
+        return initial
+
+class ProcesarPagoView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = models.Cita
+    form_class = forms.FinalizarCitaForm  # ✅ Este formulario SÍ existe
+    template_name = 'core/cita_procesar_pago.html'
+    success_url = reverse_lazy('core:citas_pendientes_pago')
+    success_message = "Pago procesado con éxito."
+
+# --- REPORTES ---
+class ReporteSaldosView(LoginRequiredMixin, ListView):
+    model = models.Cita
+    template_name = 'core/reportes/reporte_saldos.html'
+    context_object_name = 'citas_con_saldo'
+    
+    def get_queryset(self):
+        return models.Cita.objects.filter(
+            saldo_pendiente__gt=0
+        ).select_related('cliente').order_by('-saldo_pendiente')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['total_saldos'] = self.get_queryset().aggregate(
+            total=Sum('saldo_pendiente')
+        )['total'] or 0
+        return context
+
+class ReporteFacturacionView(LoginRequiredMixin, ListView):
+    model = models.Cita
+    template_name = 'core/reportes/reporte_facturacion.html'
+    context_object_name = 'citas_facturacion'
+    
+    def get_queryset(self):
+        return models.Cita.objects.filter(
+            requiere_factura=True
+        ).select_related('cliente').order_by('-fecha_hora')
