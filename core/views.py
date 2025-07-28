@@ -340,6 +340,12 @@ class EspecialidadDeleteView(DeleteView):
         messages.success(self.request, f"Especialidad '{self.object.nombre}' eliminada con éxito.")
         return super().form_valid(form)
 
+class PagoCreateView(ListView):
+    mode=models.Pago
+    template_name='core/pago_form.html'
+    success_url= reverse_lazy('core:pago_list')
+    success_message = "Pago creado exitosamente."
+    
 class PagoListView(ListView):
     model = models.Pago
     template_name = 'core/pago_list.html'
@@ -1125,7 +1131,7 @@ def exportar_ingresos_excel(request):
     form = forms.ReporteIngresosForm(request.GET or None)
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos.xlsx"'
-    workbook = Workbook()
+    workbook = Workbook(ListView)
     worksheet = workbook.active
     worksheet.title = 'Ingresos'
     headers = ['Fecha de Pago', 'Paciente', 'Cita', 'Método de Pago', 'Monto']
@@ -1339,6 +1345,8 @@ class ReporteIngresosPorDentistaView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(fecha_pago__date__lte=fecha_fin)
         
         return queryset
+class ReporteIngresosView(LoginRequiredMixin, ListView):
+    model models.Pago.objects.select_related() 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
