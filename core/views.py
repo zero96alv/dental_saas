@@ -1131,7 +1131,7 @@ def exportar_ingresos_excel(request):
     form = forms.ReporteIngresosForm(request.GET or None)
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="reporte_ingresos.xlsx"'
-    workbook = Workbook(ListView)
+    workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = 'Ingresos'
     headers = ['Fecha de Pago', 'Paciente', 'Cita', 'Método de Pago', 'Monto']
@@ -1346,7 +1346,7 @@ class ReporteIngresosPorDentistaView(LoginRequiredMixin, ListView):
         
         return queryset
 class ReporteIngresosView(LoginRequiredMixin, ListView):
-    model models.Pago.objects.select_related() 
+    model = models.Pago.objects.select_related() 
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

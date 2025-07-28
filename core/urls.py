@@ -67,7 +67,7 @@ urlpatterns = [
     path('agenda/', AgendaView.as_view(), name='agenda'),
     path('citas/', CitaListView.as_view(), name='cita_list'),
     path('citas/pendientes/', CitasPendientesPagoListView.as_view(), name='citas_pendientes_pago'),
-    path('citas/<int:pk>/procesar-pago/', ProcesarPagoView.as_view(), name='procesar_pago'),
+    #path('citas/<int:pk>/procesar-pago/', ProcesarPagoView.as_view(), name='procesar_pago'),
     path('citas/<int:pk>/finalizar/', FinalizarCitaView.as_view(), name='cita_finalizar'),
     
     path('pacientes/', PacienteListView.as_view(), name='paciente_list'),
