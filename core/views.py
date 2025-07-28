@@ -1020,44 +1020,48 @@ class ReciboPagoView(LoginRequiredMixin, DetailView):
 def generar_recibo_pdf(request, pk):
     pago = get_object_or_404(models.Pago, pk=pk)
     formato = request.GET.get('formato', 'carta')
+    
     response = HttpResponse(content_type='application/pdf')
     filename = f"recibo_{pago.id}_{formato}.pdf"
     response['Content-Disposition'] = f'inline; filename="{filename}"'
-
+    
     if formato == 'ticket':
         width, height = 80 * mm, 200 * mm
-        _generar_recibo_ticket(response, pago, width, height)
+        _generar_recibo_ticket(response, pago, width, height, request)  # ← Pasar request
     else:
-        _generar_recibo_carta(response, pago)
+        _generar_recibo_carta(response, pago, request)  # ← Pasar request
     
     return response
 
-def _generar_recibo_carta(response, pago):
+def _generar_recibo_carta(response, pago, request):  # ← Agregar request
     doc = SimpleDocTemplate(response, pagesize=letter)
     styles = getSampleStyleSheet()
     story = []
-
-    if pago.cita.cliente.tenant.logo:
+    
+    # OBTENER TENANT DESDE REQUEST
+    tenant = request.tenant
+    
+    if tenant.logo:
         try:
-            logo = Image(pago.cita.cliente.tenant.logo.path, width=50, height=50)
+            logo = Image(tenant.logo.path, width=50, height=50)
             logo.hAlign = 'LEFT'
             story.append(logo)
         except Exception:
-            story.append(Paragraph(f"<h1>{pago.cita.cliente.tenant.nombre}</h1>", styles['h1']))
+            story.append(Paragraph(f"<h1>{tenant.nombre}</h1>", styles['h1']))
     else:
-        story.append(Paragraph(f"<h1>{pago.cita.cliente.tenant.nombre}</h1>", styles['h1']))
-
+        story.append(Paragraph(f"<h1>{tenant.nombre}</h1>", styles['h1']))
+        
     story.append(Spacer(1, 12))
     story.append(Paragraph(f"<b>Recibo de Pago #{pago.id}</b>", styles['h2']))
     story.append(Paragraph(f"Fecha: {pago.fecha_pago.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
     story.append(Spacer(1, 24))
-
     story.append(Paragraph("<b>Paciente:</b>", styles['h4']))
     story.append(Paragraph(f"{pago.cita.cliente.nombre} {pago.cita.cliente.apellido}", styles['Normal']))
+    
     if pago.cita.cliente.email:
         story.append(Paragraph(f"{pago.cita.cliente.email}", styles['Normal']))
+        
     story.append(Spacer(1, 24))
-
     story.append(Paragraph("<b>Detalles del Pago:</b>", styles['h4']))
     
     data = [['Descripción', 'Monto']]
@@ -1065,7 +1069,7 @@ def _generar_recibo_carta(response, pago):
     for servicio in pago.cita.servicios_realizados.all():
         data.append([servicio.nombre, f"${servicio.precio:,.2f}"])
         total_servicios += servicio.precio
-
+        
     style = TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.grey),
         ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
@@ -1084,11 +1088,13 @@ def _generar_recibo_carta(response, pago):
     story.append(Spacer(1, 12))
     story.append(Paragraph(f"<b>Total Servicios:</b> ${total_servicios:,.2f}", styles['Right']))
     story.append(Paragraph(f"<b>Monto Pagado ({pago.metodo_pago}):</b> ${pago.monto:,.2f}", styles['Right']))
-    story.append(Paragraph(f"<b>Saldo Pendiente del paciente:</b> ${pago.cita.cliente.saldo_global:,.2f}", styles['Right']))
-
+    # USAR SALDO_GLOBAL DEL PACIENTE
+    story.append(Paragraph(f"<b>Saldo Pendiente del Paciente:</b> ${pago.cita.cliente.saldo_global:,.2f}", styles['Right']))
+    
     doc.build(story)
 
-def _generar_recibo_ticket(response, pago, width, height):
+
+def _generar_recibo_ticket(response, pago, width, height, request):  # ← Agregar request
     from reportlab.pdfgen import canvas
     
     c = canvas.Canvas(response, pagesize=(width, height))
@@ -1096,18 +1102,20 @@ def _generar_recibo_ticket(response, pago, width, height):
     x_pos = 3 * mm
     y_pos = height - (10 * mm)
     line_height = 5 * mm
-
-    if pago.cita.cliente.tenant.logo:
+    
+    # OBTENER TENANT DESDE REQUEST
+    tenant = request.tenant
+    
+    if tenant.logo:
         try:
-            c.drawImage(pago.cita.cliente.tenant.logo.path, x_pos, y_pos - 10*mm, width=20*mm, height=20*mm, preserveAspectRatio=True)
+            c.drawImage(tenant.logo.path, x_pos, y_pos - 10*mm, width=20*mm, height=20*mm, preserveAspectRatio=True)
             y_pos -= 25 * mm
         except Exception:
             pass
     
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(x_pos, y_pos, pago.cita.cliente.tenant.nombre)
+    c.drawString(x_pos, y_pos, tenant.nombre)
     y_pos -= line_height * 2
-
     c.setFont("Helvetica", 9)
     c.drawString(x_pos, y_pos, f"Recibo de Pago #{pago.id}")
     y_pos -= line_height
@@ -1116,21 +1124,19 @@ def _generar_recibo_ticket(response, pago, width, height):
     
     c.drawString(x_pos, y_pos, f"Paciente: {pago.cita.cliente}")
     y_pos -= line_height * 2
-
     c.line(x_pos, y_pos, width - x_pos, y_pos)
     y_pos -= line_height
-
     c.setFont("Helvetica-Bold", 9)
     c.drawString(x_pos, y_pos, "Servicios:")
     y_pos -= line_height
     c.setFont("Helvetica", 8)
+    
     total_servicios = 0
     for servicio in pago.cita.servicios_realizados.all():
         c.drawString(x_pos + 2*mm, y_pos, f"- {servicio.nombre}")
         c.drawRightString(width - x_pos, y_pos, f"${servicio.precio:,.2f}")
         total_servicios += servicio.precio
         y_pos -= line_height
-
     y_pos -= line_height
     
     c.setFont("Helvetica-Bold", 9)
@@ -1138,12 +1144,11 @@ def _generar_recibo_ticket(response, pago, width, height):
     y_pos -= line_height
     c.drawRightString(width - x_pos, y_pos, f"Pagado: ${pago.monto:,.2f}")
     y_pos -= line_height
-    c.drawRightString(width - x_pos, y_pos, f"Saldo: ${pago.cita.saldo_pendiente:,.2f}")
+    # USAR SALDO_GLOBAL DEL PACIENTE
+    c.drawRightString(width - x_pos, y_pos, f"Saldo: ${pago.cita.cliente.saldo_global:,.2f}")
     y_pos -= line_height * 2
-
     c.setFont("Helvetica-Oblique", 8)
     c.drawCentredString(width / 2, y_pos, "Gracias por su preferencia")
-
     c.showPage()
     c.save()
 

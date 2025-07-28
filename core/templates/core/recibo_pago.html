@@ -1,5 +1,4 @@
 {% extends "core/base.html" %}
-{% load math_filters %}
 
 {% block title %}Recibo de Pago #{{ pago.id }}{% endblock %}
 
@@ -8,16 +7,18 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Recibo de Pago</h2>
         <div class="btn-group">
-            <a href="{% url 'core:pago_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Volver a Pagos</a>
-            <a href="{% url 'core:generar_recibo_pdf' pk=pago.pk %}?formato=carta" class="btn btn-danger" target="_blank">
+            <a href="{% url 'core:pago_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Pagos
+            </a>
+            <a href="{% url 'core:generar_recibo_pdf' pago.pk %}?formato=carta" class="btn btn-danger" target="_blank">
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF (Carta)
             </a>
-            <a href="{% url 'core:generar_recibo_pdf' pk=pago.pk %}?formato=ticket" class="btn btn-dark" target="_blank">
+            <a href="{% url 'core:generar_recibo_pdf' pago.pk %}?formato=ticket" class="btn btn-dark" target="_blank">
                 <i class="bi bi-receipt-cutoff me-1"></i> PDF (Ticket)
             </a>
         </div>
     </div>
-
+    
     <div class="card">
         <div class="card-body">
             <div class="row mb-4 align-items-center">
@@ -34,16 +35,16 @@
                     <p class="mb-0"><strong>Método:</strong> {{ pago.metodo_pago }}</p>
                 </div>
             </div>
-
+            
             <hr>
-
+            
             <div class="row mb-4">
                 <div class="col-12">
                     <h5>Paciente:</h5>
                     <p class="mb-0">{{ pago.cita.cliente }}</p>
                 </div>
             </div>
-
+            
             <h5>Detalles de la Cita Asociada (ID: {{ pago.cita.id }})</h5>
             <table class="table table-bordered">
                 <thead class="table-light">
@@ -65,27 +66,25 @@
                     {% endfor %}
                 </tbody>
                 <tfoot>
-                    {% with total_servicios=pago.cita.servicios_realizados.all|sum:"precio" %}
                     <tr>
                         <th class="text-end">Total Servicios:</th>
                         <th class="text-end">${{ total_servicios|floatformat:2 }}</th>
                     </tr>
                     <tr>
                         <td class="text-end">Total Pagado (incluyendo este pago):</td>
-                        <td class="text-end">${{ pago.cita.pagos.all|sum:"monto"|floatformat:2 }}</td>
+                        <td class="text-end">${{ total_pagado_cita|floatformat:2 }}</td>
                     </tr>
                     <tr class="table-success">
                         <th class="text-end">Monto de Este Recibo:</th>
                         <th class="text-end fw-bold">${{ pago.monto|floatformat:2 }}</th>
                     </tr>
                     <tr class="table-danger">
-                        <th class="text-end">Saldo Pendiente Restante:</th>
-                        <th class="text-end fw-bold">${{ pago.cita.saldo_pendiente|floatformat:2 }}</th>
+                        <th class="text-end">Saldo Pendiente del Paciente:</th>
+                        <th class="text-end fw-bold">${{ saldo_pendiente_paciente|floatformat:2 }}</th>
                     </tr>
-                    {% endwith %}
                 </tfoot>
             </table>
-
+            
             <div class="text-center mt-4">
                 <p class="text-muted">Gracias por su pago.</p>
             </div>
