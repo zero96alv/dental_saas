@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+
+{% block title %}Reporte de Ingresos por Dentista{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-file-earmark-person-fill me-2"></i> Reporte de Ingresos por Dentista</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="id_dentista" class="form-label">Dentista</label>
+                    {{ form.dentista }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_fecha_inicio" class="form-label">Fecha de Inicio</label>
+                    {{ form.fecha_inicio }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_fecha_fin" class="form-label">Fecha de Fin</label>
+                    {{ form.fecha_fin }}
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h4>Resultados</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha de Cobro</th>
+                            <th>Paciente</th>
+                            <th>Dentista</th>
+                            <th>Servicios de la Cita</th>
+                            <th class="text-end">Monto Cobrado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pago in pagos %}
+                        <tr>
+                            <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
+                            <td>{{ pago.paciente }}</td>
+                            <td>{{ pago.cita.dentista|default:"N/A" }}</td>
+                            <td>
+                                {% for servicio in pago.cita.servicios_realizados.all %}
+                                    - {{ servicio.nombre }} <br>
+                                {% empty %}
+                                    Abono general
+                                {% endfor %}
+                            </td>
+                            <td class="text-end">${{ pago.monto|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay pagos que coincidan con los filtros.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-dark">
+                            <td colspan="4" class="text-end fw-bold">Total de Ingresos Filtrados:</td>
+                            <td class="text-end fw-bold">${{ total_ingresos|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

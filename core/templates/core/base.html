@@ -1,0 +1,171 @@
+{% load static %}
+{% load custom_tags %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DentalSys{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="manifest" href="{% static 'core/manifest.json' %}">
+    <style>
+        body {
+            padding-top: 70px; /* Ajuste para el navbar fijo */
+        }
+        .alert-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            width: 350px;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'core:dashboard' %}">
+                {% if request.tenant.logo %}
+                    <img src="{{ request.tenant.logo.url }}" alt="{{ request.tenant.nombre }} Logo" height="30" class="d-inline-block align-top">
+                {% else %}
+                    <i class="bi bi-heart-pulse-fill"></i> {{ request.tenant.nombre }}
+                {% endif %}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if user.is_authenticated %}
+                        
+                        {% if user|has_group:"Paciente" %}
+                            <!-- Menú para Pacientes -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:dashboard' %}"><i class="bi bi-house-door-fill me-1"></i> Mi Portal</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:portal_pagos' %}"><i class="bi bi-cash-coin me-1"></i> Mis Pagos</a>
+                            </li>
+                        {% else %}
+                            <!-- Menú para Personal de la Clínica -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:dashboard' %}"><i class="bi bi-grid-1x2-fill me-1"></i> Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:agenda' %}"><i class="bi bi-calendar-week me-1"></i> Agenda</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:paciente_list' %}"><i class="bi bi-people-fill me-1"></i> Pacientes</a>
+                            </li>
+
+                            {% if user|has_group:"Administrador,Recepcionista" %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:citas_pendientes_pago' %}"><i class="bi bi-hourglass-split me-1"></i> Pendientes de Pago</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:pago_list' %}"><i class="bi bi-cash-coin me-1"></i> Pagos</a>
+                            </li>
+                            {% endif %}
+
+                            {% if user|has_group:"Administrador" %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="inventarioDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-box-seam me-1"></i> Inventario
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="inventarioDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'core:insumo_list' %}">Insumos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:compra_list' %}">Compras</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:proveedor_list' %}">Proveedores</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="reportesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-graph-up-arrow me-1"></i> Reportes
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="reportesDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'core:reporte_ingresos' %}">Ingresos Generales</a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:reporte_saldos' %}">Saldos Pendientes</a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:reporte_facturacion' %}">Facturación</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'core:reporte_servicios_vendidos' %}">Servicios Más Vendidos</a></li>
+                                <li><a class="dropdown-item" href="{% url 'core:reporte_ingresos_dentista' %}">Ingresos por Dentista</a></li>
+                            </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'core:dashboard_cofepris' %}"><i class="bi bi-shield-check me-1"></i> Cumplimiento</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="configDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-gear-fill me-1"></i> Configuración
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="configDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'core:service_list' %}">Servicios</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:usuario_list' %}">Usuarios</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:especialidad_list' %}">Especialidades</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:diagnostico_list' %}">Diagnósticos</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'core:pregunta_list' %}">Cuestionario de Historial</a></li>
+                                </ul>
+                            </li>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#">Mi Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}">Cerrar Sesión</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid my-4">
+        <div class="alert-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register("{% static 'core/serviceworker.js' %}")
+            .then(function(registration) {
+                console.log('Service Worker registrado con éxito:', registration);
+            })
+            .catch(function(error) {
+                console.log('Error al registrar el Service Worker:', error);
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

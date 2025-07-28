@@ -1,0 +1,214 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Historial de {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    #odontograma-svg .diente path {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+    }
+    #odontograma-svg .diente:hover path {
+        stroke: #0d6efd;
+        stroke-width: 3;
+    }
+    #odontograma-svg .numero-diente {
+        font-size: 14px;
+        font-family: Arial, sans-serif;
+        fill: #343a40;
+        text-anchor: middle;
+        pointer-events: none;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Historial Clínico de {{ paciente.nombre }} {{ paciente.apellido }}</h1>
+        <a href="{% url 'core:paciente_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver a Pacientes</a>
+    </div>
+    <hr>
+
+    <div class="row">
+        <div class="col-12">
+            <div id="odontograma-container" class="text-center">
+                {% include "core/partials/odontograma_arc_svg.html" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h2>Historial de Eventos</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Registrado por</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historial-table-body">
+                        {% for evento in paciente.historial_clinico.all %}
+                        <tr>
+                            <td>{{ evento.fecha_evento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ evento.descripcion_evento }}</td>
+                            <td>{{ evento.registrado_por.get_full_name|default:evento.registrado_por.usuario.username|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr id="no-history-row">
+                            <td colspan="3" class="text-center">No hay eventos en el historial.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal para Actualizar Diente -->
+<div class="modal fade" id="dienteModal" tabindex="-1" aria-labelledby="dienteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dienteModalLabel">Actualizar Diente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="dienteForm">
+            <input type="hidden" id="dienteFdiNum" name="diente_fdi_num">
+            <div class="mb-3">
+                <label for="diagnosticoSelect" class="form-label">Nuevo Diagnóstico</label>
+                <select class="form-select" id="diagnosticoSelect" name="diagnostico_id" required></select>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="saveDienteButton">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const odontogramaApiUrl = `{% url 'core:odontograma_api_get' paciente.pk %}`;
+    const odontogramaUpdateApiUrl = `{% url 'core:odontograma_api_update' paciente.pk %}`;
+    const diagnosticosApiUrl = `{% url 'core:diagnostico_api_list' %}`;
+
+    const dienteModalEl = document.getElementById('dienteModal');
+    const dienteModal = new bootstrap.Modal(dienteModalEl);
+    const dienteModalLabel = document.getElementById('dienteModalLabel');
+    const diagnosticoSelect = document.getElementById('diagnosticoSelect');
+    const dienteFdiNumInput = document.getElementById('dienteFdiNum');
+    const saveDienteButton = document.getElementById('saveDienteButton');
+    const historialTableBody = document.getElementById("historial-table-body");
+
+    let diagnosticos = [];
+    let odontogramaData = {};
+
+    // --- INICIALIZACIÓN ---
+    try {
+        const response = await fetch(diagnosticosApiUrl);
+        diagnosticos = await response.json();
+        diagnosticos.forEach(diag => {
+            diagnosticoSelect.add(new Option(diag.nombre, diag.id));
+        });
+    } catch (error) {
+        console.error('Error al cargar los diagnósticos:', error);
+        return;
+    }
+
+    async function cargarOdontograma() {
+        try {
+            const response = await fetch(odontogramaApiUrl);
+            odontogramaData = await response.json();
+            actualizarVisualizacionSVG();
+        } catch (error) {
+            console.error('Error al cargar el odontograma:', error);
+        }
+    }
+
+    // --- ACTUALIZACIÓN DE UI ---
+    function actualizarVisualizacionSVG() {
+        for (const [dienteNum, estado] of Object.entries(odontogramaData)) {
+            const el = document.getElementById(`diente-${dienteNum}`);
+            if (el) {
+                const colorFondo = estado.color_seleccionado || estado.diagnostico_color;
+                el.querySelector('path').style.fill = colorFondo;
+            }
+        }
+    }
+
+    function agregarFilaHistorial(descripcion) {
+        const noHistoryRow = document.getElementById('no-history-row');
+        if (noHistoryRow) noHistoryRow.remove();
+        const newRow = historialTableBody.insertRow(0);
+        const userFullName = "{{ request.user.get_full_name|default:request.user.username }}";
+        newRow.innerHTML = `<td>Ahora</td><td>${descripcion}</td><td>${userFullName}</td>`;
+    }
+
+    // --- MANEJO DE INTERACCIÓN ---
+    document.querySelectorAll('.diente').forEach(el => {
+        el.addEventListener('click', function() {
+            const fdiNum = this.id.split('-')[1];
+            const visualNumEl = this.querySelector('.numero-diente');
+            const visualNum = visualNumEl ? visualNumEl.textContent : '?';
+
+            dienteFdiNumInput.value = fdiNum;
+            dienteModalLabel.textContent = `Actualizar Diente #${visualNum} (FDI: ${fdiNum})`;
+            
+            if (odontogramaData[fdiNum]) {
+                diagnosticoSelect.value = odontogramaData[fdiNum].diagnostico_id;
+            } else {
+                const sano = diagnosticos.find(d => d.nombre === 'SANO');
+                if (sano) diagnosticoSelect.value = sano.id;
+            }
+            
+            dienteModal.show();
+        });
+    });
+
+    saveDienteButton.addEventListener('click', async function() {
+        const fdiNum = dienteFdiNumInput.value;
+        const diagnosticoId = diagnosticoSelect.value;
+        await guardarDiagnostico(fdiNum, diagnosticoId);
+    });
+
+    // --- LÓGICA DE API ---
+    async function guardarDiagnostico(numeroDiente, diagnosticoId) {
+        try {
+            const response = await fetch(odontogramaUpdateApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ 
+                    numero_diente: numeroDiente, 
+                    diagnostico_id: diagnosticoId,
+                })
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                dienteModal.hide();
+                await cargarOdontograma();
+                const diagnosticoSeleccionado = diagnosticos.find(d => d.id == diagnosticoId);
+                const descripcion = `Se actualizó el diagnóstico a '${diagnosticoSeleccionado.nombre}' para el diente ${numeroDiente}.`;
+                agregarFilaHistorial(descripcion);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error al actualizar el diente:', error);
+        }
+    }
+
+    await cargarOdontograma();
+});
+</script>
+{% endblock %}

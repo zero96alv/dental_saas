@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Detalle de {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
+
+{% block content %}
+    <h1>Detalle de {{ paciente.nombre }} {{ paciente.apellido }}</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Nombre:</strong> {{ paciente.nombre }}</p>
+            <p><strong>Apellido:</strong> {{ paciente.apellido }}</p>
+            <p><strong>Email:</strong> {{ paciente.email }}</p>
+            <p><strong>Teléfono:</strong> {{ paciente.telefono }}</p>
+            <p><strong>Fecha de Nacimiento:</strong> {{ paciente.fecha_nacimiento }}</p>
+            <p><strong>Dirección:</strong> {{ paciente.direccion|default:"No especificada" }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+    <div class="card-header">
+        <h4>Información Financiera</h4>
+    </div>
+    <div class="card-body">
+        <h5>Saldo Global Pendiente: <span class="text-danger">${{ paciente.saldo_global|floatformat:2 }}</span></h5>
+        <p class="text-muted">Este es el monto total que el paciente debe en la clínica.</p>
+        <a href="{% url 'core:pago_create_paciente' paciente.pk %}" class="btn btn-success">
+            <i class="bi bi-plus-circle-fill me-1"></i> Registrar Abono
+        </a>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{% url 'core:paciente_history' paciente.pk %}" class="btn btn-primary">Ver Historial y Odontograma</a>
+    <a href="{% url 'core:paciente_cuestionario' paciente.pk %}" class="btn btn-info">Cuestionario de Historial</a>
+    <a href="{% url 'core:paciente_edit' paciente.pk %}" class="btn btn-warning">Editar Datos</a>
+    {% if not paciente.usuario %}
+        <a href="{% url 'core:paciente_invitar' paciente.pk %}" class="btn btn-success">Invitar a Portal</a>
+    {% else %}
+        <button class="btn btn-outline-success" disabled>Acceso al Portal Activado</button>
+    {% endif %}
+    <a href="{% url 'core:paciente_delete' paciente.pk %}" class="btn btn-danger">Eliminar</a>
+    <a href="{% url 'core:paciente_list' %}" class="btn btn-secondary">Volver a la lista</a>
+</div>
+{% endblock %}

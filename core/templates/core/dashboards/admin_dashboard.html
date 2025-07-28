@@ -1,0 +1,128 @@
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard del Administrador{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Encabezado y Filtros de Período -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <div>
+            <h1 class="mb-0">Dashboard del Administrador</h1>
+            <p class="lead text-muted">Resumen de la clínica para el período: <strong>{{ periodo_seleccionado }}</strong></p>
+        </div>
+        <div class="btn-group" role="group" aria-label="Filtro de período">
+            <a href="?periodo=hoy" class="btn {% if periodo_param == 'hoy' %}btn-primary{% else %}btn-outline-primary{% endif %}">Hoy</a>
+            <a href="?periodo=semana" class="btn {% if periodo_param == 'semana' %}btn-primary{% else %}btn-outline-primary{% endif %}">Semana</a>
+            <a href="?periodo=mes" class="btn {% if periodo_param == 'mes' %}btn-primary{% else %}btn-outline-primary{% endif %}">Mes</a>
+            <a href="?periodo=historico" class="btn {% if periodo_param == 'historico' %}btn-primary{% else %}btn-outline-primary{% endif %}">Histórico</a>
+        </div>
+    </div>
+
+    <!-- KPIs Principales -->
+    <div class="row">
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Ingresos del Período</h5>
+                            <p class="fs-4 fw-bold">${{ ingresos_periodo|floatformat:2 }}</p>
+                        </div>
+                        <i class="bi bi-cash-coin fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Citas del Período</h5>
+                            <p class="fs-4 fw-bold">{{ citas_total_periodo }}</p>
+                        </div>
+                        <i class="bi bi-calendar-day fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Insumos con Stock Bajo</h5>
+                            <p class="fs-4 fw-bold">{{ stocks_bajos.count }}</p>
+                        </div>
+                        <i class="bi bi-exclamation-triangle-fill fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card text-white bg-danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Saldos Pendientes Totales</h5>
+                            <p class="fs-4 fw-bold">${{ total_saldos_pendientes|floatformat:2 }}</p>
+                        </div>
+                        <i class="bi bi-receipt fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos Directos -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Accesos Directos</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'core:agenda' %}" class="btn btn-outline-primary m-1"><i class="bi bi-calendar-week me-1"></i> Ir a la Agenda</a>
+                    <a href="{% url 'core:paciente_list' %}" class="btn btn-outline-secondary m-1"><i class="bi bi-people-fill me-1"></i> Ver Pacientes</a>
+                    <a href="{% url 'core:pago_list' %}" class="btn btn-outline-success m-1"><i class="bi bi-cash-coin me-1"></i> Ver Pagos</a>
+                    <a href="{% url 'core:insumo_list' %}" class="btn btn-outline-dark m-1"><i class="bi bi-box-seam me-1"></i> Ver Inventario</a>
+                    <a href="{% url 'core:usuario_list' %}" class="btn btn-outline-info m-1"><i class="bi bi-person-badge me-1"></i> Gestionar Personal</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas de Inventario (No dependen del período) -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i> Alertas de Inventario</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in stocks_bajos %}
+                            <li class="list-group-item list-group-item-warning">
+                                <strong>Stock Bajo:</strong> {{ item.nombre }}. (Quedan: {{ item.stock }})
+                            </li>
+                        {% endfor %}
+                        {% for lote in insumos_proximos_a_caducar %}
+                            <li class="list-group-item list-group-item-warning">
+                                <strong>Próximo a Caducar:</strong> {{ lote.insumo.nombre }} (Lote: {{ lote.numero_lote }}) caduca el {{ lote.fecha_caducidad|date:"d/m/Y" }} en {{ lote.unidad_dental.nombre }}.
+                            </li>
+                        {% endfor %}
+                        {% for lote in insumos_caducados %}
+                            <li class="list-group-item list-group-item-danger">
+                                <strong>¡CADUCADO!:</strong> {{ lote.insumo.nombre }} (Lote: {{ lote.numero_lote }}) caducó el {{ lote.fecha_caducidad|date:"d/m/Y" }} en {{ lote.unidad_dental.nombre }}.
+                            </li>
+                        {% endfor %}
+                        {% if not stocks_bajos and not insumos_proximos_a_caducar and not insumos_caducados %}
+                            <li class="list-group-item">No hay alertas de inventario.</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

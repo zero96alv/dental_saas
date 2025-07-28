@@ -1,0 +1,22 @@
+<svg id="odontograma-svg" width="100%" viewBox="0 0 920 400" xmlns="http://www.w3.org/2000/svg" style="background-color: #f8f9fa; border-radius: 8px; font-family: Arial, sans-serif;">
+
+    <!-- MAXILAR SUPERIOR -->
+    <g id="maxilar-superior">
+        {% for diente in dientes_superiores %}
+            <g class="diente" id="diente-{{ diente.fdi }}" transform="translate({{ diente.x }}, {{ diente.y }}) rotate({{ diente.rotacion }})">
+                {% include "core/partials/odontograma_tooth_icon.html" %}
+                <text class="numero-diente" y="-40" x="0">{{ diente.visual }}</text>
+            </g>
+        {% endfor %}
+    </g>
+
+    <!-- MAXILAR INFERIOR -->
+    <g id="maxilar-inferior">
+        {% for diente in dientes_inferiores %}
+            <g class="diente" id="diente-{{ diente.fdi }}" transform="translate({{ diente.x }}, {{ diente.y }}) rotate({{ diente.rotacion }})">
+                {% include "core/partials/odontograma_tooth_icon.html" %}
+                <text class="numero-diente" y="48" x="0" transform="rotate(180)">{{ diente.visual }}</text>
+            </g>
+        {% endfor %}
+    </g>
+</svg>

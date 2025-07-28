@@ -1,0 +1,97 @@
+{% extends "core/base.html" %}
+
+{% block title %}Listado de Pagos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-cash-coin me-2"></i> Listado de Pagos</h2>
+        <a href="{% url 'core:pago_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle-fill me-1"></i> Registrar Nuevo Pago
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Cita</th>
+                            <th scope="col">Paciente</th>
+                            <th scope="col">Monto</th>
+                            <th scope="col">Método</th>
+                            <th scope="col" class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pago in pagos %}
+                        <tr>
+                            <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <a href="#"> <!-- Enlace a Cita Detail View -->
+                                    Cita #{{ pago.cita.id }} del {{ pago.cita.fecha_hora|date:"d/m/Y" }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if pago.cita.paciente %}
+                                    <a href="{% url 'core:paciente_detail' pago.cita.paciente.pk %}">
+                                        {{ pago.cita.paciente }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Paciente no asignado</span>
+                                {% endif %}
+                            </td>
+                            <td>${{ pago.monto|floatformat:2 }}</td>
+                            <td>{{ pago.metodo_pago }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'core:recibo_pago' pago.pk %}" class="btn btn-sm btn-info" title="Ver Recibo">
+                                    <i class="bi bi-receipt"></i>
+                                </a>
+                                <a href="{% url 'core:pago_edit' pago.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <a href="{% url 'core:pago_delete' pago.pk %}" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No hay pagos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_paginated %}
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">&laquo;</a></li>
+                    {% endif %}
+                    
+                    {% for i in paginator.page_range %}
+                        {% if page_obj.number == i %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">&raquo;</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

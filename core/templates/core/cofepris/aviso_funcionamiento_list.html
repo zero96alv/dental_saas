@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block title %}Aviso de Funcionamiento{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Aviso de Funcionamiento</h2>
+        {% if not avisos %}
+            <a href="{% url 'core:aviso_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Registrar Aviso
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if avisos %}
+                {% for aviso in avisos %}
+                    <p><strong>Responsable Sanitario:</strong> {{ aviso.responsable_sanitario }}</p>
+                    <p><strong>Cédula Profesional:</strong> {{ aviso.cedula_profesional }}</p>
+                    <p><strong>Fecha de Presentación:</strong> {{ aviso.fecha_presentacion|date:"d/m/Y" }}</p>
+                    <p><strong>Fecha de Vencimiento:</strong> {{ aviso.fecha_vencimiento|date:"d/m/Y"|default:"N/A" }}</p>
+                    <p>
+                        <strong>Certificado:</strong> 
+                        {% if aviso.certificado_pdf %}
+                            <a href="{{ aviso.certificado_pdf.url }}" target="_blank">Ver Documento</a>
+                        {% else %}
+                            No adjunto.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'core:aviso_edit' aviso.pk %}" class="btn btn-warning">Editar Aviso</a>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">No hay un Aviso de Funcionamiento registrado para esta clínica.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

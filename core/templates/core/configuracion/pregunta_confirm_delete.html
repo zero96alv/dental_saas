@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+
+{% block title %}Confirmar Eliminación{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4>Confirmar Eliminación de Pregunta</h4>
+                </div>
+                <div class="card-body">
+                    <p>¿Estás seguro de que quieres eliminar la pregunta?</p>
+                    <h4 class="text-center">"{{ pregunta.texto }}"</h4>
+                    <p class="text-danger"><strong>¡Atención!</strong> Esta acción es irreversible y eliminará la pregunta para todos los pacientes.</p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'core:pregunta_list' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

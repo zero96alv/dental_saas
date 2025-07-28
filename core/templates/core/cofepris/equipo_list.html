@@ -1,0 +1,50 @@
+{% extends "core/base.html" %}
+
+{% block title %}Gestión de Equipos Médicos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Gestión de Equipos Médicos</h2>
+        <a href="{% url 'core:equipo_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Registrar Equipo
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Unidad de Trabajo</th>
+                            <th>Registro Sanitario</th>
+                            <th>Próxima Calibración</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equipo in equipos %}
+                        <tr>
+                            <td>{{ equipo.nombre }}</td>
+                            <td>{{ equipo.unidad_trabajo }}</td>
+                            <td>{{ equipo.registro_sanitario|default:"N/A" }}</td>
+                            <td>{{ equipo.fecha_vencimiento_calibracion|date:"d/m/Y" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'core:equipo_edit' equipo.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                                <a href="{% url 'core:equipo_delete' equipo.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No hay equipos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

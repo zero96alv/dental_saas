@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo de Pago #{{ pago.id }}</title>
+    <style>
+        body { font-family: sans-serif; font-size: 12px; }
+        h1 { color: #333; }
+        .recibo-container { padding: 20px; }
+        .text-end { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        tfoot th, tfoot td { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="recibo-container">
+        <h1>Recibo de Pago</h1>
+        <p><strong>Recibo #:</strong> {{ pago.id }}</p>
+        <p><strong>Fecha:</strong> {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
+        <p><strong>Paciente:</strong> {{ pago.cita.cliente }}</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Servicios</th>
+                    <th class="text-end">Costo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for servicio in pago.cita.servicios_realizados.all %}
+                <tr>
+                    <td>{{ servicio.nombre }}</td>
+                    <td class="text-end">${{ servicio.precio|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-end"><strong>Total Servicios:</strong></td>
+                    <td class="text-end">${{ pago.cita.servicios_realizados.all.total_precio|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="text-end"><strong>Monto Pagado:</strong></td>
+                    <td class="text-end">${{ pago.monto|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td class="text-end"><strong>Saldo Restante:</strong></td>
+                    <td class="text-end">${{ pago.cita.saldo_pendiente|floatformat:2 }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</body>
+</html>

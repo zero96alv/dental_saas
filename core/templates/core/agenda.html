@@ -1,0 +1,196 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Agenda de Citas{% endblock %}
+
+{% block content %}
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label for="dentistaFilter" class="form-label">Filtrar por Dentista:</label>
+            <select id="dentistaFilter" class="form-select">
+                <option value="">Todos los Dentistas</option>
+                {% for dentista in dentistas %}
+                    <option value="{{ dentista.pk }}">{{ dentista }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div id='calendar'></div>
+
+    <!-- Modal para Añadir/Editar Cita -->
+    <div class="modal fade" id="citaModal" tabindex="-1" aria-labelledby="citaModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="citaModalLabel">Nueva Cita</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="citaForm">
+                <input type="hidden" id="citaId" name="cita_id">
+                {% csrf_token %}
+                {{ cita_form.as_p }}
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-info me-auto" id="finalizeCitaButton" style="display: none;">Finalizar Consulta</button>
+            <button type="button" class="btn btn-danger" id="deleteCitaButton" style="display: none;">Eliminar</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="button" class="btn btn-primary" id="saveCitaButton">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        const citaModal = new bootstrap.Modal(document.getElementById('citaModal'));
+        const citaForm = document.getElementById('citaForm');
+        const citaModalLabel = document.getElementById('citaModalLabel');
+        const saveCitaButton = document.getElementById('saveCitaButton');
+        const deleteCitaButton = document.getElementById('deleteCitaButton');
+        const finalizeCitaButton = document.getElementById('finalizeCitaButton');
+        const citaIdInput = document.getElementById('citaId');
+        const dentistaFilter = document.getElementById('dentistaFilter');
+
+        let eventsUrl = "{% url 'core:agenda_events' %}";
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          locale: 'es', // Poner el calendario en español
+          initialView: 'timeGridWeek',
+          slotMinTime: '08:00:00',
+          slotMaxTime: '20:00:00',
+          headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+          },
+          buttonText: { // Traducir los botones
+              today:    'Hoy',
+              month:    'Mes',
+              week:     'Semana',
+              day:      'Día'
+          },
+          timeZone: 'America/Mexico_City',
+          events: eventsUrl,
+          selectable: true,
+          
+          select: function(info) {
+            citaForm.reset();
+            citaIdInput.value = '';
+            citaModalLabel.innerText = 'Nueva Cita';
+            saveCitaButton.innerText = 'Guardar Cita';
+            deleteCitaButton.style.display = 'none';
+
+            const startDate = new Date(info.startStr);
+            const formattedDate = startDate.getFullYear() + '-' + 
+                                  ('0' + (startDate.getMonth() + 1)).slice(-2) + '-' + 
+                                  ('0' + startDate.getDate()).slice(-2) + 'T' + 
+                                  ('0' + startDate.getHours()).slice(-2) + ':' + 
+                                  ('0' + startDate.getMinutes()).slice(-2);
+            citaForm.querySelector('#id_fecha_hora').value = formattedDate;
+            citaModal.show();
+          },
+
+          eventClick: function(info) {
+            const citaId = info.event.id;
+            const detailApiUrl = `/dashboard/api/citas/${citaId}/`;
+
+            fetch(detailApiUrl)
+              .then(response => response.json())
+              .then(data => {
+                if (data.status === 'error') {
+                  alert(data.message);
+                  return;
+                }
+                
+                citaForm.reset();
+                citaIdInput.value = citaId;
+                citaForm.querySelector('#id_paciente').value = data.paciente;
+                citaForm.querySelector('#id_dentista').value = data.dentista;
+                citaForm.querySelector('#id_fecha_hora').value = data.fecha_hora;
+                citaForm.querySelector('#id_motivo').value = data.motivo;
+                citaForm.querySelector('#id_estado').value = data.estado;
+
+                citaModalLabel.innerText = 'Editar Cita';
+                saveCitaButton.innerText = 'Actualizar';
+                deleteCitaButton.style.display = 'block';
+                finalizeCitaButton.style.display = 'block';
+                citaModal.show();
+              })
+              .catch(error => console.error('Error:', error));
+          }
+        });
+        calendar.render();
+
+        finalizeCitaButton.addEventListener('click', function() {
+            const citaId = citaIdInput.value;
+            if (citaId) {
+                window.location.href = `/dashboard/citas/${citaId}/finalizar/`;
+            }
+        });
+
+        saveCitaButton.addEventListener('click', function() {
+            const citaId = citaIdInput.value;
+            const isUpdate = citaId !== '';
+            const url = isUpdate ? `/dashboard/api/citas/${citaId}/update/` : "{% url 'core:cita_create_api' %}";
+            const formData = new FormData(citaForm);
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    citaModal.hide();
+                    calendar.refetchEvents();
+                } else {
+                    alert('Error: ' + JSON.stringify(data.errors));
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        deleteCitaButton.addEventListener('click', function() {
+            const citaId = citaIdInput.value;
+            if (!citaId || !confirm('¿Estás seguro de que quieres eliminar esta cita?')) {
+                return;
+            }
+            
+            const url = `/dashboard/api/citas/${citaId}/delete/`;
+            const csrfToken = citaForm.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    citaModal.hide();
+                    calendar.refetchEvents();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        dentistaFilter.addEventListener('change', function() {
+            const dentistaId = this.value;
+            if (dentistaId) {
+                calendar.setOption('events', `${eventsUrl}?dentista_id=${dentistaId}`);
+            } else {
+                calendar.setOption('events', eventsUrl);
+            }
+        });
+      });
+    </script>
+{% endblock %}

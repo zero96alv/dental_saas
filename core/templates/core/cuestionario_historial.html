@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Cuestionario de Historial Clínico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Cuestionario de Historial Clínico</h2>
+    <p class="lead">Paciente: <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong></p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        
+        <div class="card">
+            <div class="card-body">
+                {% for form in formset %}
+                    <div class="mb-4">
+                        {{ form.as_p }}
+                    </div>
+                    <hr>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Guardar Cuestionario</button>
+            <a href="{% url 'core:paciente_detail' paciente.pk %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

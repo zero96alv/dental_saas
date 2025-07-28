@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Catálogo de Servicios{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Catálogo de Servicios</h1>
+        <a href="{% url 'core:service_create' %}" class="btn btn-primary">Añadir Servicio</a>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Activo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for servicio in servicios %}
+            <tr>
+                <td>{{ servicio.nombre }}</td>
+                <td>${{ servicio.precio|floatformat:2 }}</td>
+                <td>{% if servicio.activo %}Sí{% else %}No{% endif %}</td>
+                <td>
+                    <a href="{% url 'core:service_edit' servicio.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                    <a href="{% url 'core:service_delete' servicio.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">No hay servicios registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard de Cumplimiento COFEPRIS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Dashboard de Cumplimiento (COFEPRIS)</h1>
+
+    <!-- Zona de Alertas -->
+    {% if aviso_vencimiento or equipos_proximos_a_vencer %}
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">¡Alertas de Vencimiento!</h4>
+        <ul class="mb-0">
+            {% if aviso_vencimiento %}
+                <li>El Aviso de Funcionamiento vence el <strong>{{ aviso_vencimiento.fecha_vencimiento|date:"d/m/Y" }}</strong>.</li>
+            {% endif %}
+            {% for equipo in equipos_proximos_a_vencer %}
+                <li>La calibración del equipo <strong>{{ equipo.nombre }}</strong> en <strong>{{ equipo.unidad_trabajo.nombre }}</strong> vence el <strong>{{ equipo.fecha_vencimiento_calibracion|date:"d/m/Y" }}</strong>.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Tarjeta de Aviso de Funcionamiento -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Aviso de Funcionamiento</h5>
+                </div>
+                <div class="card-body">
+                    <p>Gestione el documento legal más importante de la clínica.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'core:aviso_list' %}" class="btn btn-primary">Gestionar Aviso</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Equipos Médicos -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Equipos Médicos</h5>
+                </div>
+                <div class="card-body">
+                    <p>Controle los registros sanitarios y fechas de calibración.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'core:equipo_list' %}" class="btn btn-primary">Gestionar Equipos</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Residuos (RPBI) -->
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Residuos Peligrosos (RPBI)</h5>
+                </div>
+                <div class="card-body">
+                    <p>Lleve un registro de los manifiestos de recolección.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'core:residuos_list' %}" class="btn btn-primary">Gestionar Residuos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

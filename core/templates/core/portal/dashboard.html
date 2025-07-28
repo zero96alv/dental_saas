@@ -1,0 +1,45 @@
+{% extends "core/base.html" %}
+
+{% block title %}Portal del Paciente{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Bienvenido a tu Portal, {{ paciente.nombre }}</h1>
+    <p class="lead">Aquí puedes consultar la información sobre tus citas y pagos.</p>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Próximas Citas</h4>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for cita in proximas_citas %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <strong>{{ cita.fecha_hora|date:"d/m/Y" }}</strong> a las {{ cita.fecha_hora|time:"H:i" }}
+                            <br>
+                            <small class="text-muted">{{ cita.motivo }}</small>
+                        </a>
+                    {% empty %}
+                        <div class="list-group-item">No tienes próximas citas programadas.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Resumen Financiero</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Saldo Pendiente Total</h5>
+                    <p class="fs-3 {% if saldo_total_pendiente > 0 %}text-danger{% else %}text-success{% endif %}">
+                        ${{ saldo_total_pendiente|floatformat:2 }}
+                    </p>
+                    <a href="{% url 'core:portal_pagos' %}" class="btn btn-primary">Ver Historial de Pagos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

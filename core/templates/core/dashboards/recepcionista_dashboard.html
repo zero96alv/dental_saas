@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard de Recepción{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard de Recepción</h1>
+    <p>Bienvenido, {{ user.first_name }}.</p>
+    
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Agenda</h5>
+                    <p class="card-text">Gestionar, agendar y confirmar citas.</p>
+                    <a href="{% url 'core:agenda' %}" class="btn btn-primary">Ir a la Agenda</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Pacientes</h5>
+                    <p class="card-text">Registrar nuevos pacientes y actualizar datos.</p>
+                    <a href="{% url 'core:paciente_list' %}" class="btn btn-primary">Ver Pacientes</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Pagos</h5>
+                    <p class="card-text">Registrar y consultar pagos de citas.</p>
+                    <a href="{% url 'core:pago_list' %}" class="btn btn-primary">Ver Pagos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

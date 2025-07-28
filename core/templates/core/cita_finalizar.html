@@ -1,0 +1,53 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Finalizar Consulta{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Finalizar Consulta</h2>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">Cita de: {{ cita.cliente }}</h4>
+            <p class="card-text">
+                <strong>Fecha/Hora:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }} <br>
+                <strong>Motivo:</strong> {{ cita.motivo }}
+            </p>
+            <hr>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-8">
+                        <fieldset>
+                            <legend class="h5">Servicios Realizados</legend>
+                            <div class="mb-3">
+                                {{ form.servicios_realizados|as_crispy_field }}
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div class="col-md-4">
+                        <fieldset>
+                            <legend class="h5">Opciones de Pago</legend>
+                            <div class="mb-3">
+                                {{ paciente_form.apto_para_plan_de_pago|as_crispy_field }}
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="d-flex justify-content-end">
+                    <a href="{% url 'core:agenda' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send-check-fill me-1"></i> Enviar a Caja
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

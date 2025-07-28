@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard del Dentista{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Dashboard del Dentista</h1>
+    <p>Bienvenido, Dr(a). {{ user.last_name }}.</p>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Agenda</h5>
+                    <p class="card-text">Ver y gestionar tus citas programadas.</p>
+                    <a href="{% url 'core:agenda' %}" class="btn btn-primary">Ir a mi Agenda</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Pacientes</h5>
+                    <p class="card-text">Consultar el historial clínico de los pacientes.</p>
+                    <a href="{% url 'core:paciente_list' %}" class="btn btn-primary">Ver Pacientes</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
