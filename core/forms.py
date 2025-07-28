@@ -52,8 +52,9 @@ class CitaForm(forms.ModelForm):
                 'type': 'datetime-local', 
                 'class': 'form-control'
             }),
-            'servicios_planeados': forms.CheckboxSelectMultiple(attrs={
-                'class': 'form-check-input'
+            'servicios_planeados': forms.SelectMultiple(attrs={
+                'class': 'form-control select2',  # Clase para Select2
+                'multiple': 'multiple'
             }),
             'motivo': forms.Textarea(attrs={
                 'rows': 3, 
