@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     DashboardView,
     PacienteListView, PacienteDetailView, PacienteCreateView, PacienteUpdateView, PacienteDeleteView,
+    SaldosPendientesListView,RegistrarPagoPacienteView,
     ServicioListView, ServicioCreateView, ServicioUpdateView, ServicioDeleteView,
     UsuarioListView, UsuarioCreateView, UsuarioUpdateView,
     EspecialidadListView, EspecialidadCreateView, EspecialidadUpdateView, EspecialidadDeleteView,
@@ -9,7 +10,8 @@ from .views import (
     ProveedorListView, ProveedorCreateView, ProveedorUpdateView, ProveedorDeleteView,
     InsumoListView, InsumoCreateView, InsumoUpdateView, InsumoDeleteView,
     CompraListView, CompraCreateView, CompraUpdateView, CompraDeleteView, RecibirCompraView,
-    AgendaView, CitaListView, CitasPendientesPagoListView, FinalizarCitaView, 
+    AgendaView, CitaListView, CitasPendientesPagoListView, FinalizarCitaView,
+    CitaDetailView, 
     CambiarEstadoCitaView,
     ProcesarPagoView, RegistrarPagoView, ReciboPagoView,  # ← AGREGADOS AQUÍ
     HistorialPacienteView, HistorialClinicoCreateView,
@@ -70,6 +72,7 @@ urlpatterns = [
     path('citas/', CitaListView.as_view(), name='cita_list'),
     path('citas/<int:pk>/estado/', CambiarEstadoCitaView.as_view(), name='cita_cambiar_estado'), 
     path('citas/<int:pk>/finalizar/', FinalizarCitaView.as_view(), name='cita_finalizar'),
+    path('citas/<int:pk>/', CitaDetailView.as_view(), name='cita_detail'),
     
     path('pacientes/', PacienteListView.as_view(), name='paciente_list'),
     path('pacientes/new/', PacienteCreateView.as_view(), name='paciente_create'),
@@ -80,6 +83,8 @@ urlpatterns = [
     path('pacientes/<int:pk>/invitar/', InvitarPacienteView.as_view(), name='paciente_invitar'),
     path('pacientes/<int:pk>/cuestionario/', CuestionarioHistorialView.as_view(), name='paciente_cuestionario'),
     path('pacientes/<int:cliente_id>/history/add/', HistorialClinicoCreateView.as_view(), name='historial_create'),
+    path('saldos-pendientes/', SaldosPendientesListView.as_view(), name='saldos_pendientes'),
+    path('pacientes/<int:paciente_id>/registrar-pago/', RegistrarPagoPacienteView.as_view(), name='registrar_pago_paciente'),
 
     path('services/', ServicioListView.as_view(), name='service_list'),
     path('services/new/', ServicioCreateView.as_view(), name='service_create'),

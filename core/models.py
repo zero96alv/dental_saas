@@ -39,7 +39,7 @@ class Paciente(PersonaBase):
 
     def actualizar_saldo_global(self):
         from decimal import Decimal
-        total_cargos = self.citas.filter(estado__in=['ATN', 'COM']).aggregate(
+        total_cargos = self.cita_set.filter(estado__in=['ATN', 'COM']).aggregate(
             total=Sum('servicios_realizados__precio')
         )['total'] or Decimal('0.00')
         
@@ -49,16 +49,19 @@ class Paciente(PersonaBase):
         
         self.saldo_global = total_cargos - total_pagos
         self.save()
-
 class DatosFiscales(models.Model):
-    paciente = models.OneToOneField(Paciente, on_delete=models.CASCADE, related_name='datos_fiscales')
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
     rfc = models.CharField(max_length=13)
     razon_social = models.CharField(max_length=255)
     domicilio_fiscal = models.TextField()
-    uso_cfdi = models.CharField(max_length=50, default='Gastos en General')
-
-    def __str__(self):
-        return f"Datos Fiscales de {self.paciente}"
+    uso_cfdi = models.CharField(max_length=3, choices=[
+        ('G01', 'Adquisición de mercancías'),
+        ('G03', 'Gastos en general'),
+        ('I04', 'Equipo de computo y accesorios'),
+        ('D01', 'Honorarios médicos, dentales y gastos hospitalarios.'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Especialidad(models.Model):
     nombre = models.CharField(max_length=100)
@@ -146,7 +149,6 @@ class Proveedor(models.Model):
 
     def __str__(self):
         return self.nombre
-
 class Insumo(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
@@ -155,6 +157,8 @@ class Insumo(models.Model):
     stock_minimo = models.PositiveIntegerField(default=10, help_text="Nivel de stock global para generar alertas.")
     requiere_lote_caducidad = models.BooleanField(default=False, help_text="Marcar si este insumo necesita seguimiento por lote y caducidad (COFEPRIS).")
     registro_sanitario = models.CharField(max_length=100, blank=True, null=True, help_text="Registro COFEPRIS del insumo, si aplica.")
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio unitario del insumo.")
+    unidad_medida = models.CharField(max_length=50, blank=True, help_text="Unidad de medida del insumo (ej. pieza, litro, kg).")
 
     def __str__(self):
         return self.nombre

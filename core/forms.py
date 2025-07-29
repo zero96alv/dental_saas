@@ -151,17 +151,29 @@ class CitaForm(forms.ModelForm):
         return cleaned_data
 
 class PagoForm(forms.ModelForm):
+    desea_factura = forms.BooleanField(
+        label="¿Desea facturar este pago?",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
     class Meta:
         model = models.Pago
-        fields = ['cita', 'monto', 'metodo_pago']
+        fields = ['cita', 'monto', 'metodo_pago', 'desea_factura']
+        widgets = {
+            'cita': forms.HiddenInput(),  # La cita se pasa por URL
+            'monto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'metodo_pago': forms.Select(attrs={'class': 'form-select'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            if isinstance(field.widget, forms.Select):
-                field.widget.attrs.update({'class': 'form-select'})
-            else:
-                field.widget.attrs.update({'class': 'form-control'})
+        self.fields['metodo_pago'].choices = [
+            ('EFECTIVO', 'Efectivo'),
+            ('TARJETA', 'Tarjeta'),
+            ('TRANSFERENCIA', 'Transferencia'),
+        ]
 
 # En forms.py - REEMPLAZAR CompraForm existente
 class CompraForm(forms.ModelForm):
@@ -351,8 +363,12 @@ class DatosFiscalesForm(forms.ModelForm):
                 ('G03', 'Gastos en general'),
                 ('I04', 'Equipo de computo y accesorios'),
                 ('D01', 'Honorarios médicos, dentales y gastos hospitalarios.'),
-            ]
+            ],
+            attrs={'class': 'form-select'}
         )
+        for field_name, field in self.fields.items():
+            if field_name != 'uso_cfdi':
+                field.widget.attrs.update({'class': 'form-control'})
 
 class AvisoFuncionamientoForm(forms.ModelForm):
     class Meta:

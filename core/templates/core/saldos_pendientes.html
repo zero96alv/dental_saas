@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-cash-coin me-2"></i>Saldos Pendientes por Paciente</h2>
+
+    <!-- Filtro por paciente -->
+    <form method="GET" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="paciente" class="form-control" placeholder="Buscar por nombre del paciente" value="{{ request.GET.paciente }}">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+        </div>
+    </form>
+
+    <!-- Tabla de pacientes -->
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Dentista</th>
+                        <th class="text-end">Saldo Pendiente</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paciente in pacientes %}
+                    <tr>
+                        <td>{{ paciente.nombre }}</td>
+                        <td>{{ paciente.dentista.nombre }}</td>
+                        <td class="text-end">${{ paciente.saldo_global|floatformat:2 }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'core:registrar_pago_paciente' paciente_id=paciente.id %}" class="btn btn-sm btn-success">Procesar Pago</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">No hay pacientes con saldos pendientes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

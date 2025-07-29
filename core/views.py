@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
 from django.db import models
 from django.db.models import Count, Sum
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -681,8 +681,14 @@ class CitasPendientesPagoListView(LoginRequiredMixin, ListView):
     context_object_name = 'citas'
 
     def get_queryset(self):
-        return models.Cita.objects.filter(estado='ATN').select_related('cliente', 'dentista').order_by('fecha_hora')
-
+        # Obtener pacientes con saldo_global > 0
+        pacientes_con_saldo = models.Paciente.objects.filter(saldo_global__gt=0).values_list('id', flat=True)
+        # Filtrar citas con estado='ATN' y cliente en pacientes_con_saldo
+        return models.Cita.objects.filter(
+            estado='ATN',
+            cliente__id__in=pacientes_con_saldo
+        ).select_related('cliente', 'dentista').order_by('fecha_hora')
+        
 class FinalizarCitaView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Cita
     form_class = forms.FinalizarCitaForm
@@ -1540,12 +1546,11 @@ class ProveedorListView(LoginRequiredMixin, ListView):
     context_object_name = 'proveedores'
     paginate_by = 15
 
-class ProveedorCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+class ProveedorCreateView(CreateView):
     model = models.Proveedor
     template_name = 'core/proveedor_form.html'
-    fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
+    fields = ['nombre', 'rfc', 'nombre_contacto', 'telefono', 'email', 'direccion_fiscal']
     success_url = reverse_lazy('core:proveedor_list')
-    success_message = "Proveedor '%(nombre)s' creado con éxito."
 
 class ProveedorUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Proveedor
@@ -1574,10 +1579,9 @@ class InsumoListView(LoginRequiredMixin, ListView):
 class InsumoCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
-    fields = ['nombre', 'descripcion', 'unidad_medida', 'stock_minimo', 'precio_unitario']
+    fields = ['nombre', 'descripcion', 'proveedor', 'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario']
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' creado con éxito."
-
 class InsumoUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
@@ -1613,31 +1617,81 @@ class RegistrarPagoView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
             initial['cita'] = cita
         return initial
 
-class ProcesarPagoView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
-    model = models.Cita
-    form_class = forms.FinalizarCitaForm  # ✅ Este formulario SÍ existe
-    template_name = 'core/cita_procesar_pago.html'
+class ProcesarPagoView(LoginRequiredMixin, CreateView):
+    model = models.Pago
+    template_name = 'core/procesar_pago.html'
+    form_class = forms.PagoForm
     success_url = reverse_lazy('core:citas_pendientes_pago')
-    success_message = "Pago procesado con éxito."
+
+    def dispatch(self, request, *args, **kwargs):
+        cita_id = self.kwargs.get('cita_id') or self.request.GET.get('cita')
+        try:
+            models.Cita.objects.get(id=cita_id)
+        except models.Cita.DoesNotExist:
+            messages.error(self.request, f"No se encontró una cita con ID {cita_id}. Por favor, seleccione una cita válida.")
+            return redirect('core:citas_pendientes_pago')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cita_id = self.kwargs.get('cita_id') or self.request.GET.get('cita')
+        context['cita'] = models.Cita.objects.get(id=cita_id)  # Ya validado en dispatch
+        context['paciente'] = context['cita'].cliente
+        context['datos_fiscales_form'] = forms.DatosFiscalesForm()
+        context['has_datos_fiscales'] = models.DatosFiscales.objects.filter(paciente=context['paciente']).exists()
+        return context
+
+    def form_valid(self, form):
+        cita_id = self.kwargs.get('cita_id') or self.request.GET.get('cita')
+        try:
+            pago = form.save(commit=False)
+            pago.cita = models.Cita.objects.get(id=cita_id)
+            pago.paciente = pago.cita.cliente
+            pago.save()
+        except models.Cita.DoesNotExist:
+            messages.error(self.request, f"No se encontró una cita con ID {cita_id}. Por favor, seleccione una cita válida.")
+            return self.form_invalid(form)
+
+        # Verificar si desea facturar
+        if form.cleaned_data['desea_factura']:
+            try:
+                datos_fiscales = models.DatosFiscales.objects.get(paciente=pago.paciente)
+                if not all([datos_fiscales.rfc, datos_fiscales.razon_social, datos_fiscales.domicilio_fiscal]):
+                    messages.error(self.request, "El paciente no tiene datos fiscales completos. Por favor, complételos.")
+                    return self.form_invalid(form)
+                # Aquí iría la lógica para generar la factura
+                messages.success(self.request, "Pago registrado y factura solicitada con éxito.")
+            except models.DatosFiscales.DoesNotExist:
+                datos_fiscales_form = forms.DatosFiscalesForm(self.request.POST)
+                if datos_fiscales_form.is_valid():
+                    datos_fiscales = datos_fiscales_form.save(commit=False)
+                    datos_fiscales.paciente = pago.paciente
+                    datos_fiscales.save()
+                    messages.success(self.request, "Pago registrado y datos fiscales guardados. Factura solicitada.")
+                else:
+                    messages.error(self.request, "Por favor, complete los datos fiscales.")
+                    return self.render_to_response(
+                        self.get_context_data(form=form, datos_fiscales_form=datos_fiscales_form)
+                    )
+        else:
+            messages.success(self.request, "Pago registrado con éxito.")
+
+        # Actualizar saldo global
+        pago.paciente.actualizar_saldo_global()
+        return super().form_valid(form)
 
 # --- REPORTES ---
 class ReporteSaldosView(LoginRequiredMixin, ListView):
-    model = models.Cita
+    model = models.Paciente
     template_name = 'core/reportes/reporte_saldos.html'
-    context_object_name = 'citas_con_saldo'
-    
-    def get_queryset(self):
-        return models.Cita.objects.filter(
-            saldo_pendiente__gt=0
-        ).select_related('cliente').order_by('-saldo_pendiente')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['total_saldos'] = self.get_queryset().aggregate(
-            total=Sum('saldo_pendiente')
-        )['total'] or 0
-        return context
+    context_object_name = 'pacientes'
 
+    def get_queryset(self):
+        pacientes = models.Paciente.objects.all()
+        for paciente in pacientes:
+            paciente.actualizar_saldo_global()
+        return pacientes.filter(saldo_global__gt=0).select_related('usuario')
+    
 class ReporteFacturacionView(LoginRequiredMixin, ListView):
     model = models.Cita
     template_name = 'core/reportes/reporte_facturacion.html'
@@ -1647,3 +1701,55 @@ class ReporteFacturacionView(LoginRequiredMixin, ListView):
         return models.Cita.objects.filter(
             requiere_factura=True
         ).select_related('cliente').order_by('-fecha_hora')
+        
+class CitaDetailView(DetailView):
+    model = models.Cita
+    template_name = 'core/cita_detail.html'
+    context_object_name = 'cita'
+    
+    
+class SaldosPendientesListView(ListView):
+    model = models.Paciente
+    template_name = 'core/saldos_pendientes.html'
+    context_object_name = 'pacientes'
+
+    def get_queryset(self):
+        queryset = models.Paciente.objects.filter(saldo_global__gt=0).select_related('dentista')
+        # Filtro por paciente (si se pasa un parámetro)
+        paciente_nombre = self.request.GET.get('paciente', '')
+        if paciente_nombre:
+            queryset = queryset.filter(nombre__icontains=paciente_nombre)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Lista de dentistas para agrupar
+        context['dentistas'] = models.PerfilDentista.objects.all()
+        return context
+    
+    
+class RegistrarPagoPacienteView(CreateView):
+    model = models.Pago
+    form_class = forms.PagoForm
+    template_name = 'core/registrar_pago_paciente.html'
+    success_url = reverse_lazy('core:saldos_pendientes')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        paciente_id = self.kwargs.get('paciente_id')
+        self.paciente = get_object_or_404(Paciente, id=paciente_id)
+        kwargs['paciente'] = self.paciente
+        return kwargs
+
+    def form_valid(self, form):
+        pago = form.save(commit=False)
+        pago.paciente = self.paciente
+        pago.save()
+        # Actualizar saldo
+        self.paciente.saldo_global -= pago.monto
+        self.paciente.save()
+        # Si se desea facturar
+        if form.cleaned_data.get('desea_factura'):
+            # Aquí iría la lógica de facturación (puedes redirigir a otra vista)
+            pass
+        return super().form_valid(form)

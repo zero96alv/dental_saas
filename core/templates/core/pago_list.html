@@ -30,9 +30,13 @@
                         <tr>
                             <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
                             <td>
-                                <a href="#"> <!-- Enlace a Cita Detail View -->
-                                    Cita #{{ pago.cita.id }} del {{ pago.cita.fecha_hora|date:"d/m/Y" }}
-                                </a>
+                                {% if pago.cita %}
+                                    <a href="{% url 'core:cita_detail' pk=pago.cita.id %}">
+                                        Cita #{{ pago.cita.id }} del {{ pago.cita.fecha_hora|date:"d/m/Y" }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Sin cita asociada</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if pago.cita.paciente %}

@@ -1,94 +1,64 @@
 {% extends "core/base.html" %}
-{% load crispy_forms_tags %}
 
-{% block title %}Procesar Pago de Cita{% endblock %}
+{% block title %}Procesar Pago{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <form method="post" novalidate>
-        {% csrf_token %}
-        <div class="row g-4">
-            <!-- Columna de Detalles de Cita y Pago -->
-            <div class="col-lg-7">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h2 class="mb-0">Procesar Pago</h2>
-                    </div>
-                    <div class="card-body">
-                        <h4 class="card-title">Cita de: {{ cita.cliente }}</h4>
-                        <p class="card-text"><strong>Fecha/Hora:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}</p>
-                        
-                        <h5>Servicios Realizados</h5>
-                        <ul class="list-group mb-3">
-                            {% for servicio in cita.servicios_realizados.all %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {{ servicio.nombre }}
-                                    <span>${{ servicio.precio|floatformat:2 }}</span>
-                                </li>
-                            {% endfor %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center active">
-                                <strong>Total Servicios:</strong>
-                                <strong>${{ cita.servicios_realizados.all.total_precio|default:0|floatformat:2 }}</strong>
-                            </li>
-                        </ul>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-cash-coin me-2"></i> Procesar Pago</h2>
+        <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-secondary me-2">
+            <i class="bi bi-arrow-left me-1"></i> Cancelar
+        </a>
+    </div>
 
-                        <h5>Pagos Anteriores</h5>
-                        <p>Total Pagado: ${{ cita.pagos.all.total_monto|default:0|floatformat:2 }}</p>
-                        
-                        <hr>
-                        <h3 class="text-danger">Saldo Pendiente: ${{ cita.saldo_pendiente|floatformat:2 }}</h3>
-                        <hr>
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Detalles de la Cita</h4>
+            <ul class="list-group list-group-flush mb-3">
+                <li class="list-group-item">
+                    <strong>Paciente:</strong> {{ cita.cliente.nombre }} {{ cita.cliente.apellido }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Fecha:</strong> {{ cita.fecha_hora|date:"d/m/Y H:i" }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Servicios:</strong>
+                    <ul>
+                        {% for servicio in cita.servicios_realizados.all %}
+                            <li>{{ servicio.nombre }} - ${{ servicio.precio|floatformat:2 }}</li>
+                        {% empty %}
+                            <li>No hay servicios registrados.</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center active">
+                    <strong>Total Servicios:</strong>
+                    <strong>${{ cita.costo_real|floatformat:2 }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <strong>Total Pagado:</strong>
+                    <strong>${{ cita.total_pagado|floatformat:2 }}</strong>
+                </li>
+            </ul>
 
-                        <h4>Registrar Nuevo Pago</h4>
-                        {{ pago_form|crispy }}
-                    </div>
+            <h4 class="card-title mt-4">Registrar Pago</h4>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                
+                {% if not has_datos_fiscales and form.desea_factura.value %}
+                    <h5 class="mt-4">Datos Fiscales</h5>
+                    <p>Por favor, complete los datos fiscales para generar la factura:</p>
+                    {{ datos_fiscales_form.as_p }}
+                {% endif %}
+                
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle-fill me-1"></i> Registrar Pago
+                    </button>
                 </div>
-            </div>
-
-            <!-- Columna de Facturación -->
-            <div class="col-lg-5">
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="mb-0">Opciones de Facturación</h4>
-                    </div>
-                    <div class="card-body">
-                        {{ form.requiere_factura|as_crispy_field }}
-                        
-                        <div id="datos-fiscales-container" class="{% if not form.requiere_factura.value %}d-none{% endif %}">
-                            <hr>
-                            <h5>Datos Fiscales del Paciente</h5>
-                            {{ datos_fiscales_form|crispy }}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
-
-        <div class="row mt-4">
-            <div class="col-12 d-flex justify-content-end">
-                <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-secondary me-2">Cancelar</a>
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-check-circle-fill me-1"></i> Registrar Pago y Finalizar
-                </button>
-            </div>
-        </div>
-    </form>
+    </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const requiereFacturaCheckbox = document.getElementById('id_requiere_factura');
-    const datosFiscalesContainer = document.getElementById('datos-fiscales-container');
-
-    requiereFacturaCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            datosFiscalesContainer.classList.remove('d-none');
-        } else {
-            datosFiscalesContainer.classList.add('d-none');
-        }
-    });
-});
-</script>
 {% endblock %}

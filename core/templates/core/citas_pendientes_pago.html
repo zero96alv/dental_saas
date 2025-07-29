@@ -8,6 +8,14 @@
         <h2><i class="bi bi-hourglass-split me-2"></i> Citas Pendientes de Pago</h2>
     </div>
 
+    {% if messages %}
+    <div class="alert alert-danger">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -23,17 +31,17 @@
                     </thead>
                     <tbody>
                         {% for cita in citas %}
+                        {% if cita.cliente.saldo_global > 0 %}
                         <tr>
                             <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
-                            <td>{{ cita.cliente }}</td>
-                            <td>{{ cita.dentista }}</td>
-                            <td class="text-end">${{ cita.saldo_pendiente|floatformat:2 }}</td>
+                            <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
+                            <td>{{ cita.dentista.nombre }} {{ cita.dentista.apellido }}</td>
+                            <td class="text-end">${{ cita.cliente.saldo_global|floatformat:2 }}</td>
                             <td class="text-end">
-                                <a href="{% url 'core:procesar_pago' cita.pk %}" class="btn btn-sm btn-success">
-                                    <i class="bi bi-cash-coin me-1"></i> Procesar Pago
-                                </a>
+                                <a href="{% url 'core:procesar_pago' pk=cita.id %}">Procesar Pago</a>
                             </td>
                         </tr>
+                        {% endif %}
                         {% empty %}
                         <tr>
                             <td colspan="5" class="text-center">No hay citas pendientes de pago.</td>
