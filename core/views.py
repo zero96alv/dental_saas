@@ -32,6 +32,8 @@ from reportlab.lib.units import mm
 import string
 import random
 from datetime import timedelta
+from openpyxl import Workbook 
+from datetime import datetime, timedelta
 
 # Importar forms y models de manera controlada para evitar ciclos
 from . import forms
@@ -164,43 +166,62 @@ class UsuarioCreateView(SuccessMessageMixin, CreateView):
         return super().form_valid(form)
 
 class UsuarioUpdateView(SuccessMessageMixin, UpdateView):
-    model = User
+    model = User  # Usa tu modelo de usuario si es personalizado
     form_class = forms.UserForm
-    template_name = 'core/usuario_form.html'
-    success_url = reverse_lazy('core:usuario_list')
-    success_message = "Usuario '%(username)s' actualizado con éxito."
+    template_name = 'core/usuario_edit.html'
+    success_url = reverse_lazy('core:usuarios')
+    success_message = "Usuario actualizado correctamente."
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user = self.get_object()
-        
-        has_dentist_profile = hasattr(user, 'perfil_dentista')
-        context['has_dentist_profile'] = has_dentist_profile
+        # Verificar si el usuario pertenece al grupo "Dentista"
+        es_dentista = self.object.groups.filter(name="Dentista").exists()
+        context['mostrar_perfil_dentista'] = es_dentista
 
-        if has_dentist_profile:
-            if self.request.POST:
-                context['perfil_form'] = forms.PerfilDentistaForm(self.request.POST, instance=user.perfil_dentista)
-            else:
-                context['perfil_form'] = forms.PerfilDentistaForm(instance=user.perfil_dentista)
+        if es_dentista:
+            try:
+                # Si existe un perfil de dentista, lo usamos como instancia
+                perfil = self.object.perfil_dentista
+                context['perfil_dentista_form'] = forms.PerfilDentistaForm(instance=perfil)
+            except self.model.perfil_dentista.RelatedObjectDoesNotExist:
+                # Si no existe, creamos un formulario vacío
+                context['perfil_dentista_form'] = forms.PerfilDentistaForm()
+        else:
+            context['perfil_dentista_form'] = None
+
         return context
 
-    def form_valid(self, form):
-        context = self.get_context_data()
-        user = form.save()
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        perfil_dentista_form = None
 
-        if context.get('has_dentist_profile'):
-            perfil_form = context['perfil_form']
-            if perfil_form.is_valid():
-                perfil = perfil_form.save(commit=False)
-                perfil.usuario = user
-                perfil.nombre = user.first_name
-                perfil.apellido = user.last_name
-                perfil.email = user.email
-                perfil.save()
-            else:
+        # Verificar si el usuario es dentista
+        es_dentista = self.object.groups.filter(name="Dentista").exists()
+
+        if es_dentista:
+            try:
+                perfil = self.object.perfil_dentista
+                perfil_dentista_form = forms.PerfilDentistaForm(request.POST, instance=perfil)
+            except self.model.perfil_dentista.RelatedObjectDoesNotExist:
+                perfil_dentista_form = forms.PerfilDentistaForm(request.POST)
+
+            if perfil_dentista_form and not perfil_dentista_form.is_valid():
                 return self.form_invalid(form)
 
-        return super().form_valid(form)
+        if form.is_valid():
+            # Guardar el formulario principal (UserForm)
+            user = form.save()
+
+            # Si es dentista y hay un formulario de perfil, guardarlo
+            if es_dentista and perfil_dentista_form:
+                perfil_dentista = perfil_dentista_form.save(commit=False)
+                perfil_dentista.usuario = user
+                perfil_dentista.save()
+                perfil_dentista_form.save_m2m()  # Guardar especialidades (ManyToMany)
+
+            return self.form_valid(form)
+        return self.form_invalid(form)
 
 class PacienteListView(ListView):
     model = models.Paciente
@@ -859,6 +880,28 @@ def agenda_events(request):
             'start': cita.fecha_hora.isoformat(),
         })
     return JsonResponse(eventos, safe=False)
+
+def get_horarios_ocupados(request):
+    dentista_id = request.GET.get('dentista_id')
+    fecha = request.GET.get('fecha')  # Formato: YYYY-MM-DD
+    horarios_ocupados = []
+
+    if dentista_id and fecha:
+        fecha = datetime.strptime(fecha, '%Y-%m-%d')
+        citas = models.Cita.objects.filter(
+            dentista_id=dentista_id,
+            fecha_hora__date=fecha,
+            estado__in=['PEN', 'CON']  # Citas pendientes o confirmadas
+        )
+        for cita in citas:
+            duracion = sum(s.duracion_minutos for s in cita.servicios_planeados.all())
+            hora_fin = cita.fecha_hora + timedelta(minutes=duracion)
+            horarios_ocupados.append({
+                'inicio': cita.fecha_hora.isoformat(),
+                'fin': hora_fin.isoformat()
+            })
+
+    return JsonResponse({'horarios_ocupados': horarios_ocupados})
 
 def cita_create_api(request):
     if request.method == 'POST':
@@ -1737,7 +1780,7 @@ class RegistrarPagoPacienteView(CreateView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         paciente_id = self.kwargs.get('paciente_id')
-        self.paciente = get_object_or_404(Paciente, id=paciente_id)
+        self.paciente = get_object_or_404(models.Paciente, id=paciente_id)
         kwargs['paciente'] = self.paciente
         return kwargs
 

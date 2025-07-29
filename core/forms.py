@@ -37,7 +37,15 @@ class PerfilDentistaForm(forms.ModelForm):
     class Meta:
         model = models.PerfilDentista
         fields = ['telefono', 'especialidades', 'activo']
-        widgets = {'especialidades': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'})}
+        widgets = {
+            'especialidades': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 5}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['especialidades'].label_from_instance = lambda obj: obj.nombre
 
 # En forms.py - REEMPLAZAR CitaForm existente
 class CitaForm(forms.ModelForm):
