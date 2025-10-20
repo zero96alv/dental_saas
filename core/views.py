@@ -4563,14 +4563,27 @@ def redirect_to_dashboard(request):
     """
     Función para manejar la redirección de la raíz '/'
     Verifica autenticación y redirige apropiadamente
+    Preserva parámetro tenant si existe
     """
     if not request.user.is_authenticated:
         from django.conf import settings
-        return redirect(settings.LOGIN_URL)
+        login_url = settings.LOGIN_URL
+        # Preservar parámetro tenant si existe
+        tenant_param = request.GET.get('tenant')
+        if tenant_param:
+            login_url += f'?tenant={tenant_param}'
+        return redirect(login_url)
     
     # Usuario autenticado, redirigir al dashboard
     from django.urls import reverse
-    return redirect(reverse('core:dashboard'))
+    dashboard_url = reverse('core:dashboard')
+    
+    # Preservar parámetro tenant si existe
+    tenant_param = request.GET.get('tenant')
+    if tenant_param:
+        dashboard_url += f'?tenant={tenant_param}'
+    
+    return redirect(dashboard_url)
 
 # --- API PARA CANCELAR CITAS ---
 @login_required
