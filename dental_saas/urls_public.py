@@ -6,6 +6,7 @@ from tenants.views import tenant_check_view
 from core.setup_views import setup_tenants_migrations
 from core.simple_setup import simple_setup
 from core.tenant_switch import tenant_switch_view, switch_to_tenant
+from core.debug_views import tenant_debug, user_debug, force_tenant_switch
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,4 +15,8 @@ urlpatterns = [
     path('simple-setup/', simple_setup, name='simple_setup'),
     path('tenants/', tenant_switch_view, name='tenant_switch'),
     path('switch/<str:tenant_schema>/', switch_to_tenant, name='switch_tenant'),
+    # Debug views
+    path('debug/tenant/', tenant_debug, name='tenant_debug'),
+    path('debug/user/', user_debug, name='user_debug'),
+    path('debug/force-tenant/', force_tenant_switch, name='force_tenant_switch'),
 ]

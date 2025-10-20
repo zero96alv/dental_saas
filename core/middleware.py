@@ -28,6 +28,7 @@ class ForceAuthenticationMiddleware:
             '/simple-setup/',
             '/tenants/',
             '/switch/',
+            '/debug/',  # Vistas de debug
         ]
         
         # Prefijos de URL que se deben ignorar completamente (archivos estáticos, media, etc.)
