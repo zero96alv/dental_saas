@@ -76,12 +76,11 @@ def simple_setup(request):
                     output += f"✅ Clínica {config['name']} ({config['schema_name']}) creada\n"
                 else:
                     output += f"ℹ️ Clínica {config['name']} ya existe\n"
+            except Exception as e:
+                output += f"⚠️ Error creando clínica {config['schema_name']}: {e}\n"
             
             # Las clínicas ahora se acceden por rutas: /sgdental/, /cgdental/, /demo/
             # No necesitamos dominios específicos
-                
-        except Exception as e:
-            output += f"⚠️ Error tenant demo: {e}\n"
         
         # Ejecutar migraciones
         output += "\n🔄 Ejecutando migraciones...\n"
