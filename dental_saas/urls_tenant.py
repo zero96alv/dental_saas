@@ -22,12 +22,18 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
 from core.auth_views import CustomLogoutView, CustomLoginView
+from core.debug_views import tenant_debug, user_debug, force_tenant_switch
 
 urlpatterns = [
     # URLs de Autenticación
     path('accounts/login/', CustomLoginView.as_view(), name='login'),
     # Usar nuestra vista de logout personalizada
     path('accounts/logout/', CustomLogoutView.as_view(), name='logout'),
+    
+    # Debug views (también en tenant para pruebas)
+    path('debug/tenant/', tenant_debug, name='tenant_debug_tenant'),
+    path('debug/user/', user_debug, name='user_debug_tenant'),
+    path('debug/force-tenant/', force_tenant_switch, name='force_tenant_switch_tenant'),
     
     # URLs de la aplicación core (incluye la raíz) - DEBE IR ANTES del admin
     path('', include('core.urls', namespace='core')),
