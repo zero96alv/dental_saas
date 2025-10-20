@@ -62,7 +62,7 @@ TENANT_DOMAIN_MODEL = "tenants.Domain"
 DEFAULT_TENANT_SCHEMA = 'dev'
 
 MIDDLEWARE = [
-    'core.tenant_middleware.TenantByParamMiddleware',  # Reemplaza TenantMainMiddleware
+    'core.clinic_route_middleware.ClinicRouteMiddleware',  # Nuevo: Rutas de clínicas
     'django.middleware.security.SecurityMiddleware',
 #    'django.contrib.staticfiles.middleware.StaticFilesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

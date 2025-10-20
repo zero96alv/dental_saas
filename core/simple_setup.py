@@ -37,53 +37,48 @@ def simple_setup(request):
             else:
                 output += "ℹ️ Tenant público ya existe\n"
             
-            # Dominio público
-            public_domain = Domain.objects.filter(domain='dental-saas.onrender.com').first()
-            if not public_domain:
-                Domain.objects.create(
-                    domain='dental-saas.onrender.com',
-                    tenant=public_tenant,
-                    is_primary=True
-                )
-                output += "✅ Dominio público creado\n"
+            # NO asignar dominio principal a PUBLIC - dejar que el middleware maneje las rutas
+            # output += "ℹ️ Dominio principal se maneja por middleware\n"
         except Exception as e:
             output += f"⚠️ Error tenant público: {e}\n"
         
-        # Crear tenant demo
-        output += "\n📋 Creando tenant demo...\n"
-        try:
-            demo_tenant = Clinica.objects.filter(schema_name='demo').first()
-            if not demo_tenant:
-                demo_tenant = Clinica.objects.create(
-                    schema_name='demo',
-                    name='Clínica Demo',
-                    telefono='+52 55 1234 5678',
-                    email='contacto@demo.dental-saas.com',
-                    direccion='Av. Demo #123, Ciudad Demo, CP 12345'
-                )
-                output += "✅ Tenant demo creado\n"
-            else:
-                output += "ℹ️ Tenant demo ya existe\n"
+        # Crear clínicas con slugs identificables
+        clinicas_config = [
+            {
+                'schema_name': 'demo',
+                'name': 'Clínica Demo',
+                'telefono': '+52 55 1234 5678',
+                'email': 'contacto@demo.dental-saas.com',
+                'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'
+            },
+            {
+                'schema_name': 'sgdental',
+                'name': 'SG Dental',
+                'telefono': '+52 55 9876 5432',
+                'email': 'contacto@sgdental.com',
+                'direccion': 'Calle Sonrisas #456, Col. Dental, CP 54321'
+            },
+            {
+                'schema_name': 'cgdental',
+                'name': 'CG Dental Care',
+                'telefono': '+52 55 5555 0000',
+                'email': 'info@cgdental.com',
+                'direccion': 'Av. Salud Oral #789, Centro, CP 67890'
+            }
+        ]
+        
+        output += "\n📋 Creando clínicas...\n"
+        for config in clinicas_config:
+            try:
+                tenant = Clinica.objects.filter(schema_name=config['schema_name']).first()
+                if not tenant:
+                    tenant = Clinica.objects.create(**config)
+                    output += f"✅ Clínica {config['name']} ({config['schema_name']}) creada\n"
+                else:
+                    output += f"ℹ️ Clínica {config['name']} ya existe\n"
             
-            # Dominios demo - Usar dominio único para evitar conflictos
-            demo_domain_prod = Domain.objects.filter(domain='demo.dental-saas.onrender.com').first()
-            if not demo_domain_prod:
-                # Intentar crear dominio específico (aunque Render no lo soporte)
-                Domain.objects.create(
-                    domain='demo.dental-saas.onrender.com',
-                    tenant=demo_tenant,
-                    is_primary=True
-                )
-                output += "✅ Dominio demo específico creado\n"
-                
-            demo_domain_local = Domain.objects.filter(domain='demo.localhost').first()
-            if not demo_domain_local:
-                Domain.objects.create(
-                    domain='demo.localhost',
-                    tenant=demo_tenant,
-                    is_primary=True  # Este sí es primario para desarrollo
-                )
-                output += "✅ Dominio demo local creado\n"
+            # Las clínicas ahora se acceden por rutas: /sgdental/, /cgdental/, /demo/
+            # No necesitamos dominios específicos
                 
         except Exception as e:
             output += f"⚠️ Error tenant demo: {e}\n"
@@ -98,32 +93,36 @@ def simple_setup(request):
         except Exception as e:
             output += f"⚠️ Error migraciones: {e}\n"
         
-        # Configurar datos demo
-        output += "\n👤 Configurando usuario demo...\n"
-        try:
-            # Cambiar al esquema demo
-            demo_tenant = Clinica.objects.get(schema_name='demo')
-            connection.set_tenant(demo_tenant)
-            
-            from django.contrib.auth.models import User, Group
-            
-            # Crear grupos
-            admin_group, _ = Group.objects.get_or_create(name="Administrador")
-            dentist_group, _ = Group.objects.get_or_create(name="Dentista")
-            recep_group, _ = Group.objects.get_or_create(name="Recepcionista")
-            output += "✅ Grupos creados\n"
-            
-            # Crear usuario admin
-            if not User.objects.filter(username='admin').exists():
-                admin_user = User.objects.create_superuser(
-                    username='admin',
-                    email='admin@demo.dental-saas.com',
-                    password='DemoAdmin2025!'
-                )
-                admin_user.groups.add(admin_group)
-                output += "✅ Usuario admin creado\n"
-            else:
-                output += "ℹ️ Usuario admin ya existe\n"
+        # Configurar usuarios para todas las clínicas
+        output += "\n👤 Configurando usuarios...\n"
+        
+        from django.contrib.auth.models import User, Group
+        
+        # Configurar cada clínica
+        for config in clinicas_config:
+            try:
+                output += f"\n🏥 Configurando {config['name']}...\n"
+                
+                # Cambiar al esquema de esta clínica
+                tenant = Clinica.objects.get(schema_name=config['schema_name'])
+                connection.set_tenant(tenant)
+                
+                # Crear grupos estándar
+                admin_group, _ = Group.objects.get_or_create(name="Administrador")
+                dentist_group, _ = Group.objects.get_or_create(name="Dentista")
+                recep_group, _ = Group.objects.get_or_create(name="Recepcionista")
+                
+                # Crear usuario admin para esta clínica
+                if not User.objects.filter(username='admin').exists():
+                    admin_user = User.objects.create_superuser(
+                        username='admin',
+                        email=config['email'].replace('contacto@', 'admin@').replace('info@', 'admin@'),
+                        password='DemoAdmin2025!'
+                    )
+                    admin_user.groups.add(admin_group)
+                    output += f"✅ Usuario admin creado para {config['name']}\n"
+                else:
+                    output += f"ℹ️ Usuario admin ya existe en {config['name']}\n"
                 
         except Exception as e:
             output += f"⚠️ Error config demo: {e}\n"
@@ -139,14 +138,17 @@ def simple_setup(request):
 {output}
 
 URLs disponibles:
-- Admin Principal: https://dental-saas.onrender.com/admin/
-- Admin Demo (parámetro): https://dental-saas.onrender.com/admin/?tenant=demo
-- Sistema Demo: https://dental-saas.onrender.com/?tenant=demo
-- Login Demo: https://dental-saas.onrender.com/accounts/login/?tenant=demo
+- 🏠 Landing Page: https://dental-saas.onrender.com/
+- ⚙️ Admin Principal: https://dental-saas.onrender.com/admin/
 
-Credenciales Demo: admin / DemoAdmin2025!
+Clínicas disponibles:
+- 🏥 Demo: https://dental-saas.onrender.com/demo/
+- 🏥 SG Dental: https://dental-saas.onrender.com/sgdental/
+- 🏥 CG Dental: https://dental-saas.onrender.com/cgdental/
 
-NOTA: Render no soporta subdominios. Usa ?tenant=demo para acceder al tenant demo.
+Credenciales para todas las clínicas: admin / DemoAdmin2025!
+
+NOTA: Ahora cada clínica tiene su propia ruta identificable. 🎉
 """
     
     return HttpResponse(response_text, content_type='text/plain; charset=utf-8')
