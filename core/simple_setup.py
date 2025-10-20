@@ -122,9 +122,8 @@ def simple_setup(request):
                     output += f"✅ Usuario admin creado para {config['name']}\n"
                 else:
                     output += f"ℹ️ Usuario admin ya existe en {config['name']}\n"
-                
-        except Exception as e:
-            output += f"⚠️ Error config demo: {e}\n"
+            except Exception as e:
+                output += f"⚠️ Error configurando {config['schema_name']}: {e}\n"
         
         output += "\n🎉 Setup completado!\n"
         
