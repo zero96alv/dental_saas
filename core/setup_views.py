@@ -1,22 +1,16 @@
 from django.http import HttpResponse, Http404
 from django.core.management import call_command
 from django.conf import settings
-from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from io import StringIO
 import sys
 
 @csrf_exempt
-@require_http_methods(["GET", "POST"])
 def setup_tenants_migrations(request):
     """
     Vista especial para ejecutar migraciones en tenants desde URL
-    Solo disponible en producción con clave secreta
+    Con setup automático de tenants
     """
-    # Verificar que esté en producción
-    if settings.DEBUG:
-        raise Http404("Solo disponible en producción")
-    
     # Verificar clave secreta en parámetro
     secret_key = request.GET.get('key') or request.POST.get('key')
     expected_key = "DentalSaaS2025Setup!"
@@ -24,60 +18,99 @@ def setup_tenants_migrations(request):
     if secret_key != expected_key:
         raise Http404("Clave incorrecta")
     
-    # Capturar salida del comando
-    out = StringIO()
-    old_stdout = sys.stdout
-    sys.stdout = out
+    output = "🚀 Iniciando setup automático...\n\n"
     
     try:
-        # Ejecutar comando de migración de tenants
-        call_command('migrate_all_tenants', stdout=out)
-        output = out.getvalue()
+        # 1. Crear tenants si no existen
+        from tenants.models import Clinica, Domain
         
-        # También ejecutar setup de datos iniciales
-        call_command('shell', '-c', '''
-import os
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "dental_saas.settings_production")
-
-from tenants.models import Clinica
-from django.db import connection
-from django.contrib.auth.models import User, Group
-
-# Configurar datos para tenant demo
-try:
-    demo_tenant = Clinica.objects.get(schema_name="demo")
-    connection.set_tenant(demo_tenant)
-    
-    # Crear grupos
-    Group.objects.get_or_create(name="Administrador")
-    Group.objects.get_or_create(name="Dentista") 
-    Group.objects.get_or_create(name="Recepcionista")
-    
-    # Crear usuario admin para demo
-    if not User.objects.filter(username="admin").exists():
-        admin_user = User.objects.create_superuser(
-            username="admin",
-            email="admin@demo.dental-saas.com", 
-            password="DemoAdmin2025!"
+        # Crear tenant público
+        public_tenant, public_created = Clinica.objects.get_or_create(
+            schema_name='public',
+            defaults={'name': 'Public Schema'}
         )
-        admin_user.groups.add(Group.objects.get(name="Administrador"))
-        print("✅ Usuario admin creado para demo")
-    else:
-        print("ℹ️ Usuario admin ya existe en demo")
         
-    print("✅ Datos iniciales configurados para demo")
-    
-except Exception as e:
-    print(f"❌ Error configurando demo: {e}")
-        ''', stdout=out)
+        if public_created:
+            Domain.objects.create(
+                domain='dental-saas.onrender.com',
+                tenant=public_tenant,
+                is_primary=True
+            )
+            output += "✅ Tenant público creado\n"
+        else:
+            output += "ℹ️ Tenant público ya existe\n"
         
-        output += out.getvalue()
+        # Crear tenant demo
+        demo_tenant, demo_created = Clinica.objects.get_or_create(
+            schema_name='demo',
+            defaults={
+                'name': 'Clínica Demo',
+                'telefono': '+52 55 1234 5678',
+                'email': 'contacto@demo.dental-saas.com',
+                'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'
+            }
+        )
+        
+        if demo_created:
+            Domain.objects.create(
+                domain='demo.dental-saas.onrender.com',
+                tenant=demo_tenant,
+                is_primary=True
+            )
+            # También crear dominio para localhost
+            Domain.objects.create(
+                domain='demo.localhost',
+                tenant=demo_tenant,
+                is_primary=False
+            )
+            output += "✅ Tenant demo creado\n"
+        else:
+            output += "ℹ️ Tenant demo ya existe\n"
+        
+        output += "\n🔄 Ejecutando migraciones...\n"
+        
+        # 2. Ejecutar migraciones
+        out = StringIO()
+        call_command('migrate_all_tenants', stdout=out)
+        migration_output = out.getvalue()
+        output += migration_output
+        
+        # También ejecutar setup de datos iniciales directamente
+        from tenants.models import Clinica
+        from django.db import connection
+        from django.contrib.auth.models import User, Group
+        
+        # Configurar datos para tenant demo
+        try:
+            demo_tenant = Clinica.objects.get(schema_name="demo")
+            connection.set_tenant(demo_tenant)
+            
+            # Crear grupos
+            Group.objects.get_or_create(name="Administrador")
+            Group.objects.get_or_create(name="Dentista") 
+            Group.objects.get_or_create(name="Recepcionista")
+            
+            # Crear usuario admin para demo
+            if not User.objects.filter(username="admin").exists():
+                admin_user = User.objects.create_superuser(
+                    username="admin",
+                    email="admin@demo.dental-saas.com", 
+                    password="DemoAdmin2025!"
+                )
+                admin_user.groups.add(Group.objects.get(name="Administrador"))
+                output += "\n✅ Usuario admin creado para demo"
+            else:
+                output += "\nℹ️ Usuario admin ya existe en demo"
+                
+            output += "\n✅ Datos iniciales configurados para demo"
+            
+        except Exception as e:
+            output += f"\n❌ Error configurando demo: {e}"
+        
+        output += "\n\n🎉 Setup completado exitosamente!"
         
     except Exception as e:
-        output = f"❌ Error ejecutando setup: {str(e)}"
-    finally:
-        sys.stdout = old_stdout
-        out.close()
+        output += f"\n\n❌ Error ejecutando setup: {str(e)}"
     
     # Devolver respuesta HTML con resultado
     html = f"""
