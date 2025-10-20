@@ -2,10 +2,12 @@ from django.http import HttpResponse, Http404
 from django.core.management import call_command
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from io import StringIO
 import sys
 
 @csrf_exempt
+@never_cache  # Evitar problemas de cache
 def setup_tenants_migrations(request):
     """
     Vista especial para ejecutar migraciones en tenants desde URL
@@ -21,51 +23,66 @@ def setup_tenants_migrations(request):
     output = "🚀 Iniciando setup automático...\n\n"
     
     try:
+        # Deshabilitar sesiones temporalmente para evitar errores
+        if hasattr(request, 'session'):
+            try:
+                # Limpiar sesiones problemáticas
+                request.session.flush()
+            except:
+                pass
+        
         # 1. Crear tenants si no existen
         from tenants.models import Clinica, Domain
+        from django.db import connection
+        
+        # Asegurar que estamos en el esquema público
+        connection.set_schema_to_public()
         
         # Crear tenant público
-        public_tenant, public_created = Clinica.objects.get_or_create(
-            schema_name='public',
-            defaults={'name': 'Public Schema'}
-        )
-        
-        if public_created:
-            Domain.objects.create(
-                domain='dental-saas.onrender.com',
-                tenant=public_tenant,
-                is_primary=True
+        try:
+            public_tenant, public_created = Clinica.objects.get_or_create(
+                schema_name='public',
+                defaults={'name': 'Public Schema'}
             )
-            output += "✅ Tenant público creado\n"
-        else:
-            output += "ℹ️ Tenant público ya existe\n"
+            
+            if public_created:
+                Domain.objects.get_or_create(
+                    domain='dental-saas.onrender.com',
+                    defaults={'tenant': public_tenant, 'is_primary': True}
+                )
+                output += "✅ Tenant público creado\n"
+            else:
+                output += "ℹ️ Tenant público ya existe\n"
+        except Exception as e:
+            output += f"⚠️ Error con tenant público: {e}\n"
         
         # Crear tenant demo
-        demo_tenant, demo_created = Clinica.objects.get_or_create(
-            schema_name='demo',
-            defaults={
-                'name': 'Clínica Demo',
-                'telefono': '+52 55 1234 5678',
-                'email': 'contacto@demo.dental-saas.com',
-                'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'
-            }
-        )
-        
-        if demo_created:
-            Domain.objects.create(
-                domain='demo.dental-saas.onrender.com',
-                tenant=demo_tenant,
-                is_primary=True
+        try:
+            demo_tenant, demo_created = Clinica.objects.get_or_create(
+                schema_name='demo',
+                defaults={
+                    'name': 'Clínica Demo',
+                    'telefono': '+52 55 1234 5678',
+                    'email': 'contacto@demo.dental-saas.com',
+                    'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'
+                }
             )
-            # También crear dominio para localhost
-            Domain.objects.create(
-                domain='demo.localhost',
-                tenant=demo_tenant,
-                is_primary=False
-            )
-            output += "✅ Tenant demo creado\n"
-        else:
-            output += "ℹ️ Tenant demo ya existe\n"
+            
+            if demo_created:
+                Domain.objects.get_or_create(
+                    domain='demo.dental-saas.onrender.com',
+                    defaults={'tenant': demo_tenant, 'is_primary': True}
+                )
+                # También crear dominio para localhost
+                Domain.objects.get_or_create(
+                    domain='demo.localhost',
+                    defaults={'tenant': demo_tenant, 'is_primary': False}
+                )
+                output += "✅ Tenant demo creado\n"
+            else:
+                output += "ℹ️ Tenant demo ya existe\n"
+        except Exception as e:
+            output += f"⚠️ Error con tenant demo: {e}\n"
         
         output += "\n🔄 Ejecutando migraciones...\n"
         
