@@ -65,22 +65,23 @@ def simple_setup(request):
             else:
                 output += "ℹ️ Tenant demo ya existe\n"
             
-            # Dominios demo
+            # Dominios demo - Usar dominio único para evitar conflictos
             demo_domain_prod = Domain.objects.filter(domain='demo.dental-saas.onrender.com').first()
             if not demo_domain_prod:
+                # Intentar crear dominio específico (aunque Render no lo soporte)
                 Domain.objects.create(
                     domain='demo.dental-saas.onrender.com',
                     tenant=demo_tenant,
                     is_primary=True
                 )
-                output += "✅ Dominio demo prod creado\n"
+                output += "✅ Dominio demo específico creado\n"
                 
             demo_domain_local = Domain.objects.filter(domain='demo.localhost').first()
             if not demo_domain_local:
                 Domain.objects.create(
                     domain='demo.localhost',
                     tenant=demo_tenant,
-                    is_primary=False
+                    is_primary=True  # Este sí es primario para desarrollo
                 )
                 output += "✅ Dominio demo local creado\n"
                 
@@ -139,10 +140,13 @@ def simple_setup(request):
 
 URLs disponibles:
 - Admin Principal: https://dental-saas.onrender.com/admin/
-- Admin Demo: https://demo.dental-saas.onrender.com/admin/
-- Sistema Demo: https://demo.dental-saas.onrender.com/
+- Admin Demo (parámetro): https://dental-saas.onrender.com/admin/?tenant=demo
+- Sistema Demo: https://dental-saas.onrender.com/?tenant=demo
+- Login Demo: https://dental-saas.onrender.com/accounts/login/?tenant=demo
 
 Credenciales Demo: admin / DemoAdmin2025!
+
+NOTA: Render no soporta subdominios. Usa ?tenant=demo para acceder al tenant demo.
 """
     
     return HttpResponse(response_text, content_type='text/plain; charset=utf-8')
