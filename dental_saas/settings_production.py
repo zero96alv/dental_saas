@@ -119,4 +119,12 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@sgdental.com')
 
+# Temporalmente deshabilitar context_processor problemático hasta que las migraciones se ejecuten
+for template in TEMPLATES:
+    if 'context_processors' in template.get('OPTIONS', {}):
+        context_processors = template['OPTIONS']['context_processors']
+        if 'core.context_processors.menu_dinamico' in context_processors:
+            context_processors.remove('core.context_processors.menu_dinamico')
+            print("⚠️ Context processor menu_dinamico deshabilitado temporalmente")
+
 print("✅ Configuración de producción cargada correctamente")

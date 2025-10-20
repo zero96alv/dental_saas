@@ -51,6 +51,22 @@ def main():
         
         print('✅ Configuración inicial completada')
         
+        # Crear tenant demo también
+        if not Clinica.objects.filter(schema_name='demo').exists():
+            demo_tenant = Clinica(
+                schema_name='demo',
+                nombre='Demo - Clínica Dental de Prueba'
+            )
+            demo_tenant.save()
+            
+            demo_domain = Domain(
+                domain=f'demo.{hostname}',
+                tenant=demo_tenant,
+                is_primary=True
+            )
+            demo_domain.save()
+            print(f'✅ Tenant demo creado con dominio: demo.{hostname}')
+        
     except Exception as e:
         print(f'❌ Error en configuración inicial: {e}')
         raise

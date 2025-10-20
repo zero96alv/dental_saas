@@ -13,7 +13,10 @@ echo "📁 Recolectando archivos estáticos..."
 python manage.py collectstatic --no-input --settings=dental_saas.settings_production
 
 # Ejecutar migraciones
-echo "🗄️ Ejecutando migraciones de base de datos..."
+echo "🗄️ Ejecutando migraciones en esquema público..."
+python manage.py migrate_schemas --schema=public --settings=dental_saas.settings_production
+
+echo "🗄️ Ejecutando migraciones en esquemas tenant..."
 python manage.py migrate_schemas --settings=dental_saas.settings_production
 
 # Crear tabla de cache
