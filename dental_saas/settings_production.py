@@ -20,11 +20,28 @@ ALLOWED_HOSTS = [
 ]
 
 # Database configuration for Render
-DATABASES['default'] = dj_database_url.config(
-    default=config('DATABASE_URL', default='sqlite:///db.sqlite3'),
-    conn_max_age=600,
-    conn_health_checks=True,
-)
+database_url = config('DATABASE_URL', default='sqlite:///db.sqlite3')
+if database_url.startswith('postgresql'):
+    # Configuración para PostgreSQL con django-tenants
+    db_config = dj_database_url.parse(database_url)
+    DATABASES['default'].update({
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': db_config['NAME'],
+        'USER': db_config['USER'],
+        'PASSWORD': db_config['PASSWORD'],
+        'HOST': db_config['HOST'],
+        'PORT': db_config['PORT'],
+        'CONN_MAX_AGE': 600,
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    })
+else:
+    # Fallback para SQLite (desarrollo local)
+    DATABASES['default'] = dj_database_url.config(
+        default=database_url,
+        conn_max_age=600,
+    )
 
 # Static files configuration
 STATIC_URL = '/static/'

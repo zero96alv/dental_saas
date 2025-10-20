@@ -14,7 +14,7 @@ python manage.py collectstatic --no-input --settings=dental_saas.settings_produc
 
 # Ejecutar migraciones
 echo "🗄️ Ejecutando migraciones de base de datos..."
-python manage.py migrate --settings=dental_saas.settings_production
+python manage.py migrate_schemas --settings=dental_saas.settings_production
 
 # Crear tabla de cache
 echo "💾 Creando tabla de cache..."
