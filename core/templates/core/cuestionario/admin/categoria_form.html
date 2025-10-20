@@ -1,0 +1,366 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if object %}
+        Editar Categoría - {{ object.nombre }}
+    {% else %}
+        Nueva Categoría - Cuestionario
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ddd;
+    margin-right: 10px;
+}
+.icon-preview {
+    font-size: 1.2em;
+    color: white;
+}
+.icon-selector {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.icon-option {
+    cursor: pointer;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+.icon-option:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+}
+.icon-option.selected {
+    background-color: #e3f2fd;
+    border-color: #007bff;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="fas fa-folder-open text-primary"></i>
+                        {% if object %}
+                            Editar Categoría
+                        {% else %}
+                            Nueva Categoría
+                        {% endif %}
+                    </h2>
+                    <p class="text-muted">Configure las categorías para organizar las preguntas del historial clínico</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:categoria_historial_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+
+            <form method="post" id="categoria-form">
+                {% csrf_token %}
+                
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-edit"></i> Información de la Categoría
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Información básica -->
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    {{ form.nombre|as_crispy_field }}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.descripcion|as_crispy_field }}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.orden|as_crispy_field }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Estado</label>
+                                            <div class="form-check form-switch">
+                                                {{ form.activa }}
+                                                <label class="form-check-label" for="{{ form.activa.id_for_label }}">
+                                                    Categoría activa
+                                                </label>
+                                            </div>
+                                            <small class="form-text text-muted">
+                                                Solo las categorías activas aparecen en el cuestionario
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview y configuración visual -->
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6>Vista Previa</h6>
+                                        <div id="categoria-preview" class="mb-3">
+                                            <div class="color-preview mx-auto" id="preview-circle">
+                                                <i id="preview-icon" class="icon-preview fas fa-folder"></i>
+                                            </div>
+                                        </div>
+                                        <div id="preview-name" class="fw-bold">Nombre de Categoría</div>
+                                        <small id="preview-description" class="text-muted">Descripción de la categoría</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Configuración visual -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Color de la Categoría</label>
+                                    <div class="input-group">
+                                        {{ form.color }}
+                                        <span class="input-group-text p-1">
+                                            <div id="color-display" class="color-preview" style="width: 30px; height: 30px; margin: 0;">
+                                                <i class="fas fa-palette text-white" style="font-size: 0.8em;"></i>
+                                            </div>
+                                        </span>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Use colores distintivos para cada categoría (#hexadecimal)
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Ícono</label>
+                                    {{ form.icono }}
+                                    <small class="form-text text-muted">
+                                        Clase CSS del ícono (ej: fas fa-heart)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Selector de íconos -->
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#icon-selector">
+                                <i class="fas fa-icons"></i> Seleccionar Ícono
+                            </button>
+                            
+                            <div class="collapse mt-3" id="icon-selector">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>Íconos Sugeridos para Categorías Médicas</h6>
+                                        <div class="row icon-selector">
+                                            {% for icon_class, icon_name in icon_options %}
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" 
+                                                     data-icon="{{ icon_class }}" 
+                                                     data-bs-toggle="tooltip" 
+                                                     title="{{ icon_name }}">
+                                                    <i class="{{ icon_class }} fa-2x mb-1"></i>
+                                                    <br><small>{{ icon_name }}</small>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <!-- Íconos por defecto si no se pasan desde la vista -->
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-user">
+                                                    <i class="fas fa-user fa-2x mb-1"></i><br><small>Paciente</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-stethoscope">
+                                                    <i class="fas fa-stethoscope fa-2x mb-1"></i><br><small>Médico</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-heartbeat">
+                                                    <i class="fas fa-heartbeat fa-2x mb-1"></i><br><small>Corazón</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-tooth">
+                                                    <i class="fas fa-tooth fa-2x mb-1"></i><br><small>Dental</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-pills">
+                                                    <i class="fas fa-pills fa-2x mb-1"></i><br><small>Medicinas</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-2 mb-2">
+                                                <div class="icon-option text-center" data-icon="fas fa-smoking-ban">
+                                                    <i class="fas fa-smoking-ban fa-2x mb-1"></i><br><small>Hábitos</small>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    Los campos marcados con * son obligatorios
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{% url 'core:categoria_historial_list' %}" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i>
+                                    {% if object %}Actualizar{% else %}Crear{% endif %} Categoría
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nombreInput = document.getElementById('id_nombre');
+    const descripcionInput = document.getElementById('id_descripcion');
+    const colorInput = document.getElementById('id_color');
+    const iconoInput = document.getElementById('id_icono');
+    
+    const previewName = document.getElementById('preview-name');
+    const previewDescription = document.getElementById('preview-description');
+    const previewCircle = document.getElementById('preview-circle');
+    const previewIcon = document.getElementById('preview-icon');
+    const colorDisplay = document.getElementById('color-display');
+    
+    // Función para actualizar la vista previa
+    function updatePreview() {
+        // Nombre
+        if (nombreInput.value) {
+            previewName.textContent = nombreInput.value;
+        } else {
+            previewName.textContent = 'Nombre de Categoría';
+        }
+        
+        // Descripción
+        if (descripcionInput.value) {
+            previewDescription.textContent = descripcionInput.value.substring(0, 50) + '...';
+        } else {
+            previewDescription.textContent = 'Descripción de la categoría';
+        }
+        
+        // Color
+        if (colorInput.value) {
+            previewCircle.style.backgroundColor = colorInput.value;
+            colorDisplay.style.backgroundColor = colorInput.value;
+        }
+        
+        // Ícono
+        if (iconoInput.value) {
+            previewIcon.className = 'icon-preview ' + iconoInput.value;
+        }
+    }
+    
+    // Event listeners para actualización en tiempo real
+    nombreInput.addEventListener('input', updatePreview);
+    descripcionInput.addEventListener('input', updatePreview);
+    colorInput.addEventListener('input', updatePreview);
+    iconoInput.addEventListener('input', updatePreview);
+    
+    // Selector de íconos
+    document.querySelectorAll('.icon-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const iconClass = this.dataset.icon;
+            
+            // Limpiar selección anterior
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Marcar como seleccionado
+            this.classList.add('selected');
+            
+            // Actualizar el input
+            iconoInput.value = iconClass;
+            
+            // Actualizar preview
+            updatePreview();
+            
+            // Colapsar el selector
+            const collapse = new bootstrap.Collapse(document.getElementById('icon-selector'));
+            collapse.hide();
+        });
+    });
+    
+    // Inicializar preview con valores existentes
+    updatePreview();
+    
+    // Validación del formulario
+    document.getElementById('categoria-form').addEventListener('submit', function(e) {
+        let isValid = true;
+        const requiredFields = ['nombre', 'color'];
+        
+        requiredFields.forEach(fieldName => {
+            const field = document.getElementById('id_' + fieldName);
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        // Validar formato de color
+        if (colorInput.value && !/^#[0-9A-F]{6}$/i.test(colorInput.value)) {
+            colorInput.classList.add('is-invalid');
+            isValid = false;
+            alert('El color debe estar en formato hexadecimal (#000000)');
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor complete todos los campos obligatorios correctamente.');
+        }
+    });
+    
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

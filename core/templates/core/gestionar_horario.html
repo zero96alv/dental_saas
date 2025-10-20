@@ -1,0 +1,153 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if puede_editar %}Gestionar{% else %}Ver{% endif %} Horario de {{ dentista }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0">
+                {% if puede_editar %}Gestionar{% else %}Mi{% endif %} Horario
+                <small class="text-muted">({{ dentista }})</small>
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ formset.management_form }}
+                
+                <div class="mb-3 d-flex gap-2">
+                    {% if puede_editar %}
+                    <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-lg"></i> Añadir horario
+                    </button>
+                    <button type="button" id="presetLunVieBtn" class="btn btn-outline-secondary btn-sm">
+                        Preset Lun–Vie 09:00–16:00
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Día de la Semana</th>
+                                <th>Hora de Inicio</th>
+                                <th>Hora de Fin</th>
+                                <th>Activo</th>
+                                {% if puede_editar %}
+                                    <th>Eliminar</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in formset %}
+                                <tr>
+                                    {{ form.id }}
+                                    <td>
+                                        <input type="hidden" name="{{ form.prefix }}-dia_semana" value="{{ form.dia_semana.value }}">
+                                        {{ form.dia_semana|as_crispy_field }}
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="{{ form.prefix }}-hora_inicio" value="{{ form.hora_inicio.value }}">
+                                        {{ form.hora_inicio|as_crispy_field }}
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="{{ form.prefix }}-hora_fin" value="{{ form.hora_fin.value }}">
+                                        {{ form.hora_fin|as_crispy_field }}
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="{{ form.prefix }}-activo" value="{{ form.activo.value }}">
+                                        {{ form.activo|as_crispy_field }}
+                                    </td>
+                                    {% if puede_editar %}
+                                        <td>
+                                            {% if form.instance.pk %}
+                                                {{ form.DELETE|as_crispy_field }}
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    {% if puede_editar %}
+                        <a href="{% url 'core:usuario_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-x-circle-fill me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle-fill me-1"></i> Guardar Horario
+                        </button>
+                    {% else %}
+                        <a href="{% url 'core:dashboard' %}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left-circle-fill me-1"></i> Volver al Dashboard
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if not puede_editar %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Deshabilitar todos los campos del formulario si no se puede editar
+        const form = document.querySelector('form');
+        const elements = form.elements;
+        for (let i = 0; i < elements.length; i++) {
+            elements[i].disabled = true;
+        }
+    });
+</script>
+{% endif %}
+<script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const addBtn = document.getElementById('addRowBtn');
+        const presetBtn = document.getElementById('presetLunVieBtn');
+        const totalForms = document.querySelector('#id_horarios-TOTAL_FORMS');
+        const tableBody = document.querySelector('table tbody');
+        function cloneEmptyRow(){
+            const idx = parseInt(totalForms.value, 10);
+            const firstRow = tableBody.querySelector('tr');
+            if(!firstRow){ return; }
+            const newRow = firstRow.cloneNode(true);
+            newRow.querySelectorAll('input, select').forEach(el=>{
+                if(el.name){
+                    el.name = el.name.replace(/horarios-(\d+)-/,'horarios-'+idx+'-');
+                    el.id = el.id.replace(/id_horarios-(\d+)-/,'id_horarios-'+idx+'-');
+                }
+                if(el.type==='checkbox'){ el.checked=false; }
+                if(el.tagName==='SELECT'){ el.selectedIndex = 0; }
+                if(el.type==='time'){ el.value=''; }
+                if(el.type==='hidden'){ if(el.name.endsWith('-id')) el.value=''; }
+            });
+            tableBody.appendChild(newRow);
+            totalForms.value = idx+1;
+        }
+        function addPresetLunVie(){
+            const days = [0,1,2,3,4]; // Lun-Vie
+            days.forEach(()=>{ cloneEmptyRow(); });
+            // Rellenar últimas 5 filas con horas 09:00–16:00 y días 0..4
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            const last5 = rows.slice(-5);
+            last5.forEach((tr, i)=>{
+                const selects = tr.querySelectorAll('select');
+                const inputs = tr.querySelectorAll('input[type="time"]');
+                if(selects.length){ selects[0].value = String(days[i]); }
+                if(inputs.length>=2){ inputs[0].value='09:00'; inputs[1].value='16:00'; }
+                const activo = tr.querySelector('input[type="checkbox"]');
+                if(activo){ activo.checked = true; }
+            });
+        }
+        if(addBtn){ addBtn.addEventListener('click', cloneEmptyRow); }
+        if(presetBtn){ presetBtn.addEventListener('click', addPresetLunVie); }
+    });
+</script>
+
+{% endblock %}

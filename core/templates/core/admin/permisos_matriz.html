@@ -1,0 +1,504 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Matriz de Permisos - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">
+                        <i class="fas fa-key mr-2"></i>
+                        Matriz de Permisos por Rol
+                    </h3>
+                    <div class="btn-group">
+                        <a href="{% url 'core:admin_permisos' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Regresar
+                        </a>
+                        <button type="button" class="btn btn-success" id="guardar-permisos">
+                            <i class="fas fa-save"></i> Guardar Cambios
+                        </button>
+                        <button type="button" class="btn btn-warning" id="resetear-permisos">
+                            <i class="fas fa-undo"></i> Resetear
+                        </button>
+                        <button type="button" class="btn btn-info" id="exportar-permisos">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <!-- Selector de Rol -->
+                    <div class="row p-3 bg-light border-bottom">
+                        <div class="col-md-6">
+                            <label for="rol-selector" class="font-weight-bold">Seleccionar Rol:</label>
+                            <select id="rol-selector" class="form-control">
+                                <option value="">-- Seleccione un Rol --</option>
+                                {% for rol in roles %}
+                                <option value="{{ rol.id }}" data-slug="{{ rol.slug }}">
+                                    {{ rol.nombre }} ({{ rol.descripcion }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="font-weight-bold">Acciones Rápidas:</label>
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-success btn-sm" id="marcar-todos">
+                                    <i class="fas fa-check"></i> Marcar Todos
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="desmarcar-todos">
+                                    <i class="fas fa-times"></i> Desmarcar Todos
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="solo-lectura">
+                                    <i class="fas fa-eye"></i> Solo Lectura
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Matriz de Permisos -->
+                    <div id="matriz-permisos" class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="thead-dark sticky-top">
+                                <tr>
+                                    <th rowspan="2" class="align-middle" style="min-width: 200px;">
+                                        <i class="fas fa-list"></i> Funcionalidad
+                                    </th>
+                                    <th rowspan="2" class="align-middle text-center" style="min-width: 120px;">
+                                        <i class="fas fa-layer-group"></i> Módulo
+                                    </th>
+                                    <th colspan="5" class="text-center">
+                                        <i class="fas fa-key"></i> Permisos
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th class="text-center bg-success text-white" title="Ver/Listar">
+                                        <i class="fas fa-eye"></i><br>Ver
+                                    </th>
+                                    <th class="text-center bg-primary text-white" title="Crear/Agregar">
+                                        <i class="fas fa-plus"></i><br>Crear
+                                    </th>
+                                    <th class="text-center bg-warning text-white" title="Editar/Modificar">
+                                        <i class="fas fa-edit"></i><br>Editar
+                                    </th>
+                                    <th class="text-center bg-danger text-white" title="Eliminar">
+                                        <i class="fas fa-trash"></i><br>Eliminar
+                                    </th>
+                                    <th class="text-center bg-info text-white" title="Exportar">
+                                        <i class="fas fa-download"></i><br>Exportar
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="matriz-body">
+                                <!-- Se llena dinámicamente con JavaScript -->
+                                <tr id="loading-row">
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                                        Seleccione un rol para cargar los permisos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Los cambios se guardan automáticamente al hacer clic en "Guardar Cambios".
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <span class="badge badge-info" id="total-permisos">0 permisos configurados</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para copiar permisos -->
+<div class="modal fade" id="modal-copiar-permisos" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-copy"></i> Copiar Permisos
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desea copiar los permisos desde otro rol?</p>
+                <div class="form-group">
+                    <label for="rol-origen">Rol Origen:</label>
+                    <select id="rol-origen" class="form-control">
+                        <option value="">-- Seleccione rol origen --</option>
+                        {% for rol in roles %}
+                        <option value="{{ rol.id }}">{{ rol.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmar-copiar">Copiar Permisos</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos personalizados para la matriz */
+.table th {
+    font-size: 0.85rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Checkboxes más grandes y visibles */
+.permiso-checkbox {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.permiso-checkbox:checked {
+    accent-color: #28a745;
+}
+
+/* Colores por tipo de permiso */
+.permiso-ver { background-color: rgba(40, 167, 69, 0.1); }
+.permiso-crear { background-color: rgba(0, 123, 255, 0.1); }
+.permiso-editar { background-color: rgba(255, 193, 7, 0.1); }
+.permiso-eliminar { background-color: rgba(220, 53, 69, 0.1); }
+.permiso-exportar { background-color: rgba(23, 162, 184, 0.1); }
+
+/* Filas del módulo */
+.modulo-row {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.submenu-row:hover {
+    background-color: #f1f3f4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.8rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+}
+
+/* Loading spinner personalizado */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    let matrizDatos = {};
+    let rolActual = null;
+
+    // Cargar permisos al seleccionar rol
+    $('#rol-selector').change(function() {
+        const rolId = $(this).val();
+        const rolSlug = $(this).find('option:selected').data('slug');
+        
+        if (rolId) {
+            rolActual = rolId;
+            cargarMatrizPermisos(rolId, rolSlug);
+        } else {
+            mostrarFilaLoading();
+        }
+    });
+
+    function cargarMatrizPermisos(rolId, rolSlug) {
+        $('#matriz-body').html(`
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Cargando permisos para ${rolSlug}...
+                </td>
+            </tr>
+        `);
+
+        $.ajax({
+            url: '{% url "admin_permisos_obtener_matriz" %}',
+            method: 'GET',
+            data: { rol_id: rolId },
+            success: function(response) {
+                if (response.success) {
+                    construirMatriz(response.data);
+                    actualizarContadorPermisos();
+                } else {
+                    mostrarError('Error al cargar permisos: ' + response.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                mostrarError('Error de conexión al cargar permisos');
+            }
+        });
+    }
+
+    function construirMatriz(data) {
+        let html = '';
+        matrizDatos = data;
+
+        // Agrupar por módulo
+        const modulos = {};
+        data.submenus.forEach(submenu => {
+            if (!modulos[submenu.modulo_id]) {
+                modulos[submenu.modulo_id] = {
+                    info: submenu.modulo,
+                    submenus: []
+                };
+            }
+            modulos[submenu.modulo_id].submenus.push(submenu);
+        });
+
+        // Construir filas
+        Object.keys(modulos).forEach(moduloId => {
+            const modulo = modulos[moduloId];
+            
+            // Fila del módulo (header)
+            html += `
+                <tr class="modulo-row">
+                    <td colspan="2">
+                        <i class="${modulo.info.icono} mr-2"></i>
+                        <strong>${modulo.info.nombre}</strong>
+                        <small class="text-muted ml-2">(${modulo.submenus.length} funcionalidades)</small>
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="modulo-toggle" data-modulo="${moduloId}" data-permiso="ver">
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="modulo-toggle" data-modulo="${moduloId}" data-permiso="crear">
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="modulo-toggle" data-modulo="${moduloId}" data-permiso="editar">
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="modulo-toggle" data-modulo="${moduloId}" data-permiso="eliminar">
+                    </td>
+                    <td class="text-center">
+                        <input type="checkbox" class="modulo-toggle" data-modulo="${moduloId}" data-permiso="exportar">
+                    </td>
+                </tr>
+            `;
+
+            // Filas de submenús
+            modulo.submenus.forEach(submenu => {
+                const permisos = data.permisos_actuales.find(p => p.submenu_id === submenu.id) || {
+                    puede_ver: false,
+                    puede_crear: false,
+                    puede_editar: false,
+                    puede_eliminar: false,
+                    puede_exportar: false
+                };
+
+                html += `
+                    <tr class="submenu-row">
+                        <td class="pl-4">
+                            <i class="${submenu.icono || 'fas fa-circle'} mr-2 text-muted"></i>
+                            ${submenu.nombre}
+                            ${submenu.url_pattern ? `<small class="text-muted d-block">${submenu.url_pattern}</small>` : ''}
+                        </td>
+                        <td class="text-muted small">${modulo.info.nombre}</td>
+                        <td class="text-center permiso-ver">
+                            <input type="checkbox" class="permiso-checkbox" 
+                                   data-submenu="${submenu.id}" data-permiso="ver"
+                                   ${permisos.puede_ver ? 'checked' : ''}>
+                        </td>
+                        <td class="text-center permiso-crear">
+                            <input type="checkbox" class="permiso-checkbox" 
+                                   data-submenu="${submenu.id}" data-permiso="crear"
+                                   ${permisos.puede_crear ? 'checked' : ''}>
+                        </td>
+                        <td class="text-center permiso-editar">
+                            <input type="checkbox" class="permiso-checkbox" 
+                                   data-submenu="${submenu.id}" data-permiso="editar"
+                                   ${permisos.puede_editar ? 'checked' : ''}>
+                        </td>
+                        <td class="text-center permiso-eliminar">
+                            <input type="checkbox" class="permiso-checkbox" 
+                                   data-submenu="${submenu.id}" data-permiso="eliminar"
+                                   ${permisos.puede_eliminar ? 'checked' : ''}>
+                        </td>
+                        <td class="text-center permiso-exportar">
+                            <input type="checkbox" class="permiso-checkbox" 
+                                   data-submenu="${submenu.id}" data-permiso="exportar"
+                                   ${permisos.puede_exportar ? 'checked' : ''}>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+
+        $('#matriz-body').html(html);
+        configurarEventosMatriz();
+    }
+
+    function configurarEventosMatriz() {
+        // Toggle de módulo completo
+        $('.modulo-toggle').change(function() {
+            const moduloId = $(this).data('modulo');
+            const permiso = $(this).data('permiso');
+            const checked = $(this).is(':checked');
+            
+            $(`.submenu-row input[data-permiso="${permiso}"]`).each(function() {
+                const submenuRow = $(this).closest('.submenu-row');
+                const moduloRow = submenuRow.prevAll('.modulo-row').first();
+                const moduloActual = moduloRow.find(`[data-modulo="${moduloId}"]`);
+                
+                if (moduloActual.length > 0) {
+                    $(this).prop('checked', checked);
+                }
+            });
+            
+            actualizarContadorPermisos();
+        });
+
+        // Cambios en permisos individuales
+        $('.permiso-checkbox').change(function() {
+            actualizarContadorPermisos();
+        });
+    }
+
+    // Acciones rápidas
+    $('#marcar-todos').click(function() {
+        $('.permiso-checkbox').prop('checked', true);
+        actualizarContadorPermisos();
+    });
+
+    $('#desmarcar-todos').click(function() {
+        $('.permiso-checkbox').prop('checked', false);
+        actualizarContadorPermisos();
+    });
+
+    $('#solo-lectura').click(function() {
+        $('.permiso-checkbox').prop('checked', false);
+        $('.permiso-checkbox[data-permiso="ver"]').prop('checked', true);
+        actualizarContadorPermisos();
+    });
+
+    // Guardar permisos
+    $('#guardar-permisos').click(function() {
+        if (!rolActual) {
+            mostrarError('Debe seleccionar un rol primero');
+            return;
+        }
+
+        const permisos = recolectarPermisos();
+        guardarPermisos(rolActual, permisos);
+    });
+
+    function recolectarPermisos() {
+        const permisos = [];
+        
+        $('.submenu-row').each(function() {
+            const submenuId = $(this).find('.permiso-checkbox').first().data('submenu');
+            const permiso = {
+                submenu_id: submenuId,
+                puede_ver: $(this).find('[data-permiso="ver"]').is(':checked'),
+                puede_crear: $(this).find('[data-permiso="crear"]').is(':checked'),
+                puede_editar: $(this).find('[data-permiso="editar"]').is(':checked'),
+                puede_eliminar: $(this).find('[data-permiso="eliminar"]').is(':checked'),
+                puede_exportar: $(this).find('[data-permiso="exportar"]').is(':checked')
+            };
+            permisos.push(permiso);
+        });
+        
+        return permisos;
+    }
+
+    function guardarPermisos(rolId, permisos) {
+        const btn = $('#guardar-permisos');
+        const originalText = btn.html();
+        
+        btn.html('<i class="fas fa-spinner fa-spin"></i> Guardando...').prop('disabled', true);
+
+        $.ajax({
+            url: '{% url "admin_permisos_guardar_matriz" %}',
+            method: 'POST',
+            data: {
+                rol_id: rolId,
+                permisos: JSON.stringify(permisos),
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    mostrarExito('Permisos guardados correctamente');
+                } else {
+                    mostrarError('Error al guardar: ' + response.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                mostrarError('Error de conexión al guardar permisos');
+            },
+            complete: function() {
+                btn.html(originalText).prop('disabled', false);
+            }
+        });
+    }
+
+    function actualizarContadorPermisos() {
+        const total = $('.permiso-checkbox:checked').length;
+        const totalPosibles = $('.permiso-checkbox').length;
+        $('#total-permisos').text(`${total} de ${totalPosibles} permisos habilitados`);
+    }
+
+    function mostrarFilaLoading() {
+        $('#matriz-body').html(`
+            <tr id="loading-row">
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Seleccione un rol para cargar los permisos...
+                </td>
+            </tr>
+        `);
+    }
+
+    function mostrarError(mensaje) {
+        const alertHtml = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                ${mensaje}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        `;
+        $('.card-body').prepend(alertHtml);
+    }
+
+    function mostrarExito(mensaje) {
+        const alertHtml = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check mr-2"></i>
+                ${mensaje}
+                <button type="button" class="close" data-dismiss="alert">
+                    <span>&times;</span>
+                </button>
+            </div>
+        `;
+        $('.card-body').prepend(alertHtml);
+    }
+});
+</script>
+{% endblock %}

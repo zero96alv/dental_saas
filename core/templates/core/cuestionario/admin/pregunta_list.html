@@ -1,0 +1,418 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Administrar Preguntas - Cuestionario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-question-circle text-primary"></i> Preguntas del Cuestionario</h2>
+                    <p class="text-muted">Administrar las preguntas del historial clínico según normas COFEPRIS</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:pregunta_historial_create' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Nueva Pregunta
+                    </a>
+                    <a href="{% url 'core:categoria_historial_list' %}" class="btn btn-outline-info">
+                        <i class="fas fa-folder-open"></i> Categorías
+                    </a>
+                    <a href="{% url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Categoría:</label>
+                            <select class="form-select" name="categoria">
+                                <option value="">Todas las categorías</option>
+                                {% for categoria in categorias_disponibles %}
+                                    <option value="{{ categoria.id }}" 
+                                        {% if request.GET.categoria == categoria.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ categoria.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo:</label>
+                            <select class="form-select" name="tipo">
+                                <option value="">Todos los tipos</option>
+                                <option value="SI_NO" {% if request.GET.tipo == 'SI_NO' %}selected{% endif %}>Sí / No</option>
+                                <option value="TEXT" {% if request.GET.tipo == 'TEXT' %}selected{% endif %}>Texto Corto</option>
+                                <option value="TEXTAREA" {% if request.GET.tipo == 'TEXTAREA' %}selected{% endif %}>Párrafo</option>
+                                <option value="MULTIPLE" {% if request.GET.tipo == 'MULTIPLE' %}selected{% endif %}>Opción Múltiple</option>
+                                <option value="FECHA" {% if request.GET.tipo == 'FECHA' %}selected{% endif %}>Fecha</option>
+                                <option value="NUMERO" {% if request.GET.tipo == 'NUMERO' %}selected{% endif %}>Número</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Importancia:</label>
+                            <select class="form-select" name="importancia">
+                                <option value="">Todas</option>
+                                <option value="CRITICA" {% if request.GET.importancia == 'CRITICA' %}selected{% endif %}>Crítica</option>
+                                <option value="ALTA" {% if request.GET.importancia == 'ALTA' %}selected{% endif %}>Importante</option>
+                                <option value="MEDIA" {% if request.GET.importancia == 'MEDIA' %}selected{% endif %}>Media</option>
+                                <option value="BAJA" {% if request.GET.importancia == 'BAJA' %}selected{% endif %}>Informativa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de preguntas -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Preguntas Configuradas
+                        <small class="text-muted">({{ preguntas|length }} preguntas)</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if preguntas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 5%;">Orden</th>
+                                        <th style="width: 15%;">Categoría</th>
+                                        <th style="width: 35%;">Pregunta</th>
+                                        <th style="width: 10%;">Tipo</th>
+                                        <th style="width: 10%;">Importancia</th>
+                                        <th style="width: 10%;">Estado</th>
+                                        <th style="width: 15%;" class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pregunta in preguntas %}
+                                    <tr class="{% if not pregunta.activa %}table-secondary{% endif %}">
+                                        <td>
+                                            <span class="badge bg-secondary">{{ pregunta.categoria.orden }}.{{ pregunta.orden }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    <div style="width: 20px; height: 20px; background-color: {{ pregunta.categoria.color }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="{{ pregunta.categoria.icono|default:'fas fa-folder' }} text-white" style="font-size: 0.7em;"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <small><strong>{{ pregunta.categoria.nombre }}</strong></small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>{{ pregunta.texto|truncatechars:60 }}</strong>
+                                                {% if pregunta.obligatoria %}
+                                                    <span class="badge bg-warning badge-sm ms-1">Obligatoria</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if pregunta.subtitulo %}
+                                                <small class="text-muted">{{ pregunta.subtitulo|truncatechars:80 }}</small>
+                                            {% endif %}
+                                            
+                                            <div class="mt-1">
+                                                {% if pregunta.requiere_seguimiento %}
+                                                    <span class="badge bg-info badge-sm">
+                                                        <i class="fas fa-eye"></i> Seguimiento
+                                                    </span>
+                                                {% endif %}
+                                                {% if pregunta.alerta_cofepris %}
+                                                    <span class="badge bg-danger badge-sm">
+                                                        <i class="fas fa-shield-alt"></i> COFEPRIS
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                {% if pregunta.tipo == 'SI_NO' %}Sí/No
+                                                {% elif pregunta.tipo == 'TEXT' %}Texto
+                                                {% elif pregunta.tipo == 'TEXTAREA' %}Párrafo
+                                                {% elif pregunta.tipo == 'MULTIPLE' %}Múltiple
+                                                {% elif pregunta.tipo == 'FECHA' %}Fecha
+                                                {% elif pregunta.tipo == 'NUMERO' %}Número
+                                                {% else %}{{ pregunta.get_tipo_display }}
+                                                {% endif %}
+                                            </span>
+                                            {% if pregunta.tipo == 'MULTIPLE' and pregunta.opciones %}
+                                                <br><small class="text-muted">{{ pregunta.get_opciones_lista|length }} opciones</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if pregunta.importancia == 'CRITICA' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i> Crítica
+                                                </span>
+                                            {% elif pregunta.importancia == 'ALTA' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-exclamation"></i> Alta
+                                                </span>
+                                            {% elif pregunta.importancia == 'MEDIA' %}
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-info"></i> Media
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-info-circle"></i> Baja
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if pregunta.activa %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Activa
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times"></i> Inactiva
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" 
+                                                   class="btn btn-outline-warning"
+                                                   data-bs-toggle="tooltip" title="Editar pregunta">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-info"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#viewModal{{ pregunta.id }}"
+                                                        data-bs-toggle="tooltip" title="Ver detalles">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteModal{{ pregunta.id }}"
+                                                        data-bs-toggle="tooltip" title="Eliminar pregunta">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-question-circle fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No hay preguntas configuradas</h4>
+                            <p class="text-muted">
+                                {% if request.GET %}
+                                    No se encontraron preguntas que coincidan con los filtros aplicados.
+                                {% else %}
+                                    Cree la primera pregunta para el cuestionario de historial clínico.
+                                {% endif %}
+                            </p>
+                            {% if not request.GET %}
+                                <a href="{% url 'core:pregunta_historial_create' %}" class="btn btn-success">
+                                    <i class="fas fa-plus"></i> Crear Primera Pregunta
+                                </a>
+                            {% else %}
+                                <a href="{% url 'core:pregunta_historial_list' %}" class="btn btn-primary">
+                                    <i class="fas fa-refresh"></i> Limpiar Filtros
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            {% if preguntas %}
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ preguntas|length }}</h4>
+                                    <small>Total Preguntas</small>
+                                </div>
+                                <i class="fas fa-question-circle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">
+                                        {{ preguntas|length|add:preguntas.count }}
+                                    </h4>
+                                    <small>Críticas</small>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">
+                                        {{ preguntas|length|add:preguntas.count }}
+                                    </h4>
+                                    <small>Obligatorias</small>
+                                </div>
+                                <i class="fas fa-asterisk fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ categorias_disponibles|length }}</h4>
+                                    <small>Categorías</small>
+                                </div>
+                                <i class="fas fa-folder-open fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modales de visualización y eliminación -->
+{% for pregunta in preguntas %}
+<!-- Modal de detalles -->
+<div class="modal fade" id="viewModal{{ pregunta.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Pregunta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6><strong>{{ pregunta.texto }}</strong></h6>
+                        {% if pregunta.subtitulo %}
+                            <p class="text-muted">{{ pregunta.subtitulo }}</p>
+                        {% endif %}
+                        
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <strong>Categoría:</strong><br>
+                                <span style="color: {{ pregunta.categoria.color }};">
+                                    <i class="{{ pregunta.categoria.icono }}"></i> {{ pregunta.categoria.nombre }}
+                                </span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Tipo:</strong><br>
+                                {{ pregunta.get_tipo_display }}
+                            </div>
+                        </div>
+                        
+                        {% if pregunta.tipo == 'MULTIPLE' and pregunta.opciones %}
+                            <div class="mt-3">
+                                <strong>Opciones disponibles:</strong>
+                                <ul class="list-group list-group-flush">
+                                    {% for opcion in pregunta.get_opciones_lista %}
+                                        <li class="list-group-item py-1">{{ opcion }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Configuración</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Orden:</strong> {{ pregunta.categoria.orden }}.{{ pregunta.orden }}</li>
+                                    <li><strong>Importancia:</strong> {{ pregunta.get_importancia_display }}</li>
+                                    <li><strong>Obligatoria:</strong> {% if pregunta.obligatoria %}Sí{% else %}No{% endif %}</li>
+                                    <li><strong>Activa:</strong> {% if pregunta.activa %}Sí{% else %}No{% endif %}</li>
+                                    <li><strong>Seguimiento:</strong> {% if pregunta.requiere_seguimiento %}Sí{% else %}No{% endif %}</li>
+                                    <li><strong>Alerta COFEPRIS:</strong> {% if pregunta.alerta_cofepris %}Sí{% else %}No{% endif %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <a href="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de eliminación -->
+<div class="modal fade" id="deleteModal{{ pregunta.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <p>¿Está seguro de que desea eliminar la pregunta?</p>
+                <div class="alert alert-info">
+                    <strong>{{ pregunta.texto }}</strong>
+                </div>
+                <div class="alert alert-warning">
+                    <small><i class="fas fa-info-circle"></i> Esta acción eliminará también todas las respuestas asociadas a esta pregunta.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

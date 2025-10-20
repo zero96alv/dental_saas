@@ -1,0 +1,863 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Agenda de Citas{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Estilos específicos para calendario legacy */
+.legacy-calendar {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 100%;
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #007bff;
+    color: white;
+    border-radius: 8px 8px 0 0;
+}
+
+.calendar-nav {
+    background: none;
+    border: 1px solid white;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.calendar-nav:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.calendar-nav:active {
+    background: rgba(255,255,255,0.3);
+}
+
+.calendar-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.calendar-grid {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calendar-weekdays {
+    display: table-row;
+    background: #f8f9fa;
+}
+
+.calendar-weekday {
+    display: table-cell;
+    padding: 12px 4px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    font-size: 14px;
+}
+
+.calendar-week {
+    display: table-row;
+}
+
+.calendar-day {
+    display: table-cell;
+    width: 14.28%;
+    height: 100px;
+    border: 1px solid #dee2e6;
+    padding: 4px;
+    vertical-align: top;
+    position: relative;
+    cursor: pointer;
+    background: white;
+}
+
+.calendar-day:hover {
+    background: #f8f9fa;
+}
+
+.calendar-day.other-month {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+}
+
+.calendar-day.has-events {
+    background: #fff3e0;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.day-events {
+    font-size: 11px;
+}
+
+.event-item {
+    background: #007bff;
+    color: white;
+    padding: 1px 3px;
+    margin: 1px 0;
+    border-radius: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.event-item:hover {
+    background: #0056b3;
+}
+
+.event-item.estado-con {
+    background: #28a745;
+}
+
+.event-item.estado-atn {
+    background: #ffc107;
+    color: #212529;
+}
+
+.event-item.estado-com {
+    background: #17a2b8;
+}
+
+.event-item.estado-can {
+    background: #dc3545;
+}
+
+/* Vista de lista para móviles */
+.calendar-list-view {
+    display: none;
+}
+
+.appointment-card {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    padding: 12px;
+    background: white;
+}
+
+.appointment-time {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 16px;
+}
+
+.appointment-patient {
+    font-size: 14px;
+    margin: 4px 0;
+}
+
+.appointment-dentist {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .calendar-grid {
+        display: none;
+    }
+    .calendar-list-view {
+        display: block;
+    }
+    .calendar-header {
+        padding: 15px;
+    }
+    .calendar-title {
+        font-size: 18px;
+    }
+}
+
+/* Botones de acción */
+.action-buttons {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #dee2e6;
+}
+
+.btn-legacy {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 5px;
+    border: 1px solid #007bff;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.btn-legacy:hover {
+    background: #0056b3;
+    border-color: #0056b3;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-legacy.btn-outline {
+    background: white;
+    color: #007bff;
+}
+
+.btn-legacy.btn-outline:hover {
+    background: #007bff;
+    color: white;
+}
+
+/* Loading state */
+.loading {
+    text-align: center;
+    padding: 40px;
+    font-style: italic;
+    color: #6c757d;
+}
+
+/* Error state */
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 20px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Agenda de Citas</h1>
+    
+    <!-- Filtros -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label for="dentistaFilter" class="form-label">Filtrar por Dentista:</label>
+            <select id="dentistaFilter" class="form-select">
+                <option value="">Todos los Dentistas</option>
+                {% for dentista in dentistas %}
+                    <option value="{{ dentista.pk }}">{{ dentista }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Calendario Legacy -->
+    <div class="legacy-calendar">
+        <div class="calendar-header">
+            <button class="calendar-nav" id="prevMonth" type="button">&lt;</button>
+            <h2 class="calendar-title" id="calendarTitle">Cargando...</h2>
+            <button class="calendar-nav" id="nextMonth" type="button">&gt;</button>
+        </div>
+        
+        <div id="calendarContent" class="loading">
+            Cargando calendario...
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn-legacy" onclick="showNewAppointmentForm()">Nueva Cita</button>
+            <a href="{% url 'core:cita_list' %}" class="btn-legacy btn-outline">Ver Lista</a>
+            <button class="btn-legacy btn-outline" onclick="location.reload()">Actualizar</button>
+            <button class="btn-legacy btn-outline" onclick="testDebug()">Test Debug</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal funcional para nueva cita -->
+<div id="legacyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; margin-bottom: 20px;">
+        <h3>Nueva Cita</h3>
+        <form id="legacyForm" method="POST" action="{% url 'core:cita_create' %}">
+            {% csrf_token %}
+            <input type="hidden" name="fecha_hora" id="legacy_fecha_hora">
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Fecha:</label>
+                <input type="date" name="fecha_seleccionada" id="legacy_fecha" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Paciente:</label>
+                <select name="paciente" id="legacy_paciente" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    <option value="">Seleccionar paciente...</option>
+                    <!-- Los pacientes se cargarán dinámicamente -->
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Dentista:</label>
+                <select name="dentista" id="legacy_dentista" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    <option value="">Seleccionar dentista...</option>
+                    {% for dentista in dentistas %}
+                        <option value="{{ dentista.pk }}">{{ dentista }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Hora:</label>
+                <select name="hora" id="legacy_hora" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    <option value="">Primero seleccione dentista y fecha</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Motivo (opcional):</label>
+                <textarea name="motivo" id="legacy_motivo" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 60px; resize: vertical;" placeholder="Motivo de la cita..."></textarea>
+            </div>
+            
+            <div id="legacy-errors" style="display: none; background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px;"></div>
+            
+            <div style="text-align: right;">
+                <button type="button" onclick="closeLegacyModal()" class="btn-legacy btn-outline" style="margin-right: 10px;">Cancelar</button>
+                <button type="submit" class="btn-legacy">Guardar Cita</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+var currentDate = new Date();
+var currentEvents = [];
+var currentFilter = '';
+
+// Nombres de meses y días en español
+var monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+var dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+// Función para cargar eventos desde el servidor
+function loadEvents() {
+    var url = '{% url "core:agenda_events" %}';
+    var params = [];
+    
+    if (currentFilter) {
+        params.push('dentista=' + encodeURIComponent(currentFilter));
+    }
+    
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
+    
+    // Usar XMLHttpRequest para compatibilidad con iOS 9.3
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                try {
+                    currentEvents = JSON.parse(xhr.responseText);
+                    renderCalendar();
+                } catch (e) {
+                    console.error('Error procesando datos:', e);
+                    showError('Error al procesar los datos del calendario: ' + e.message);
+                }
+            } else {
+                console.error('Error HTTP:', xhr.status, xhr.statusText);
+                showError('Error al cargar las citas del servidor (HTTP ' + xhr.status + ')');
+            }
+        }
+    };
+    xhr.send();
+}
+
+// Función para mostrar errores
+function showError(message) {
+    document.getElementById('calendarContent').innerHTML = 
+        '<div class="error-message">' + message + '</div>';
+}
+
+// Función para renderizar el calendario
+function renderCalendar() {
+    var year = currentDate.getFullYear();
+    var month = currentDate.getMonth();
+    
+    // Actualizar título
+    document.getElementById('calendarTitle').innerText = 
+        monthNames[month] + ' ' + year;
+    
+    // Crear estructura del calendario
+    var html = '';
+    
+    // Vista grid para pantallas grandes
+    html += '<div class="calendar-grid">';
+    html += '<div class="calendar-weekdays">';
+    for (var i = 0; i < dayNames.length; i++) {
+        html += '<div class="calendar-weekday">' + dayNames[i] + '</div>';
+    }
+    html += '</div>';
+    
+    // Obtener primer día del mes y número de días
+    var firstDay = new Date(year, month, 1);
+    var lastDay = new Date(year, month + 1, 0);
+    var daysInMonth = lastDay.getDate();
+    var startingDayOfWeek = firstDay.getDay();
+    
+    // Calcular días del mes anterior para completar la primera semana
+    var prevMonth = month - 1;
+    var prevYear = year;
+    if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear--;
+    }
+    var daysInPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+    
+    var dayCounter = 1;
+    var nextMonthCounter = 1;
+    var today = new Date();
+    
+    // Generar 6 semanas
+    for (var week = 0; week < 6; week++) {
+        html += '<div class="calendar-week">';
+        
+        for (var day = 0; day < 7; day++) {
+            var dayNumber = '';
+            var classes = ['calendar-day'];
+            var isCurrentMonth = true;
+            var dateStr = '';
+            
+            if (week === 0 && day < startingDayOfWeek) {
+                // Días del mes anterior
+                dayNumber = daysInPrevMonth - (startingDayOfWeek - day - 1);
+                classes.push('other-month');
+                isCurrentMonth = false;
+                dateStr = formatDate(prevYear, prevMonth, dayNumber);
+            } else if (dayCounter <= daysInMonth) {
+                // Días del mes actual
+                dayNumber = dayCounter;
+                dateStr = formatDate(year, month, dayNumber);
+                dayCounter++;
+                
+                // Verificar si es hoy
+                if (year === today.getFullYear() && 
+                    month === today.getMonth() && 
+                    dayNumber === today.getDate()) {
+                    classes.push('today');
+                }
+            } else {
+                // Días del mes siguiente
+                dayNumber = nextMonthCounter;
+                classes.push('other-month');
+                isCurrentMonth = false;
+                var nextMonth = month + 1;
+                var nextYear = year;
+                if (nextMonth > 11) {
+                    nextMonth = 0;
+                    nextYear++;
+                }
+                dateStr = formatDate(nextYear, nextMonth, dayNumber);
+                nextMonthCounter++;
+            }
+            
+            // Buscar eventos para este día
+            var dayEvents = [];
+            if (isCurrentMonth) {
+                dayEvents = getDayEvents(dateStr);
+                if (dayEvents.length > 0) {
+                    classes.push('has-events');
+                }
+            }
+            
+            html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '" onclick="onDayClick(\'' + dateStr + '\')">';
+            html += '<div class="day-number">' + dayNumber + '</div>';
+            
+            if (dayEvents.length > 0) {
+                html += '<div class="day-events">';
+                for (var e = 0; e < Math.min(dayEvents.length, 3); e++) {
+                    var event = dayEvents[e];
+                    var eventClass = 'event-item';
+                    if (event.extendedProps && event.extendedProps.estado) {
+                        eventClass += ' estado-' + event.extendedProps.estado.toLowerCase();
+                    }
+                    html += '<div class="' + eventClass + '" title="' + 
+                            escapeHtml(event.title) + '">' + 
+                            escapeHtml(truncateText(event.title, 12)) + '</div>';
+                }
+                if (dayEvents.length > 3) {
+                    html += '<div class="event-item">+' + (dayEvents.length - 3) + ' más</div>';
+                }
+                html += '</div>';
+            }
+            
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        
+        // Si terminamos todos los días del mes y no hay más días del siguiente mes, salir
+        if (dayCounter > daysInMonth && nextMonthCounter > 7) {
+            break;
+        }
+    }
+    
+    html += '</div>';
+    
+    // Vista lista para móviles
+    html += '<div class="calendar-list-view">';
+    var monthEvents = getMonthEvents(year, month);
+    if (monthEvents.length > 0) {
+        monthEvents.forEach(function(event) {
+            html += '<div class="appointment-card">';
+            html += '<div class="appointment-time">' + formatEventDateTime(event) + '</div>';
+            html += '<div class="appointment-patient">' + escapeHtml(event.title) + '</div>';
+            if (event.extendedProps && event.extendedProps.dentista) {
+                html += '<div class="appointment-dentist">Dr. ' + escapeHtml(event.extendedProps.dentista) + '</div>';
+            }
+            html += '</div>';
+        });
+    } else {
+        html += '<div class="appointment-card">No hay citas programadas para este mes.</div>';
+    }
+    html += '</div>';
+    
+    document.getElementById('calendarContent').innerHTML = html;
+    
+    // Agregar event listeners para los días
+    var dayElements = document.querySelectorAll('.calendar-day');
+    for (var i = 0; i < dayElements.length; i++) {
+        dayElements[i].onclick = function() {
+            var date = this.getAttribute('data-date');
+            showDayEvents(date);
+        };
+    }
+}
+
+// Función para obtener eventos de un día específico
+function getDayEvents(dateStr) {
+    return currentEvents.filter(function(event) {
+        var eventDate = event.start.split('T')[0];
+        return eventDate === dateStr;
+    });
+}
+
+// Función para obtener eventos de un mes específico
+function getMonthEvents(year, month) {
+    var startDate = formatDate(year, month, 1);
+    var endDate = formatDate(year, month + 1, 0);
+    
+    return currentEvents.filter(function(event) {
+        var eventDate = event.start.split('T')[0];
+        return eventDate >= startDate && eventDate <= endDate;
+    }).sort(function(a, b) {
+        return a.start.localeCompare(b.start);
+    });
+}
+
+// Función para formatear fecha
+function formatDate(year, month, day) {
+    var m = month + 1;
+    var d = day;
+    if (m < 10) m = '0' + m;
+    if (d < 10) d = '0' + d;
+    return year + '-' + m + '-' + d;
+}
+
+// Función para formatear fecha y hora del evento
+function formatEventDateTime(event) {
+    var date = new Date(event.start);
+    var day = date.getDate();
+    var month = monthNames[date.getMonth()];
+    var hour = date.getHours();
+    var minute = date.getMinutes();
+    
+    if (hour < 10) hour = '0' + hour;
+    if (minute < 10) minute = '0' + minute;
+    
+    return day + ' de ' + month + ' a las ' + hour + ':' + minute;
+}
+
+// Función para escapar HTML
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+// Función para truncar texto
+function truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// Función que se ejecuta cuando se hace clic en un día
+function onDayClick(dateStr) {
+    var events = getDayEvents(dateStr);
+    
+    if (events.length === 0) {
+        // Si no hay eventos, ofrecer crear una cita
+        if (confirm('No hay citas para este día. ¿Desea crear una nueva cita?')) {
+            showNewAppointmentForm(dateStr);
+        }
+    } else {
+        // Si hay eventos, mostrarlos
+        showDayEvents(dateStr);
+    }
+}
+
+// Función para mostrar eventos del día
+function showDayEvents(dateStr) {
+    var events = getDayEvents(dateStr);
+    var date = new Date(dateStr + 'T00:00:00');
+    var dayName = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][date.getDay()];
+    var day = date.getDate();
+    var month = monthNames[date.getMonth()];
+    var year = date.getFullYear();
+    
+    var message = dayName + ', ' + day + ' de ' + month + ' de ' + year + '\n\n';
+    
+    if (events.length === 0) {
+        message += 'No hay citas programadas para este día.';
+    } else {
+        message += 'Citas programadas:\n\n';
+        events.forEach(function(event) {
+            var time = new Date(event.start);
+            var hour = time.getHours();
+            var minute = time.getMinutes();
+            if (hour < 10) hour = '0' + hour;
+            if (minute < 10) minute = '0' + minute;
+            
+            message += '• ' + hour + ':' + minute + ' - ' + event.title + '\n';
+        });
+    }
+    
+    alert(message);
+}
+
+// Event listeners
+document.getElementById('prevMonth').onclick = function() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    loadEvents();
+};
+
+document.getElementById('nextMonth').onclick = function() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    loadEvents();
+};
+
+document.getElementById('dentistaFilter').onchange = function() {
+    currentFilter = this.value;
+    loadEvents();
+};
+
+// Funciones para modal funcional
+function showNewAppointmentForm(selectedDate) {
+    document.getElementById('legacyModal').style.display = 'block';
+    
+    // Si se pasa una fecha, rellenar el campo
+    if (selectedDate) {
+        document.getElementById('legacy_fecha').value = selectedDate;
+    } else {
+        // Por defecto, fecha de hoy
+        var today = new Date();
+        var todayStr = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+        document.getElementById('legacy_fecha').value = todayStr;
+    }
+    
+    // Cargar pacientes
+    loadPatients();
+    
+    // Limpiar formulario
+    document.getElementById('legacy_paciente').value = '';
+    document.getElementById('legacy_dentista').value = '';
+    document.getElementById('legacy_hora').innerHTML = '<option value="">Primero seleccione dentista y fecha</option>';
+    document.getElementById('legacy_motivo').value = '';
+    document.getElementById('legacy-errors').style.display = 'none';
+}
+
+function closeLegacyModal() {
+    document.getElementById('legacyModal').style.display = 'none';
+}
+
+// Función para cargar pacientes
+function loadPatients() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '{% url "core:pacientes_api" %}', true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var pacientes = JSON.parse(xhr.responseText);
+                var select = document.getElementById('legacy_paciente');
+                select.innerHTML = '<option value="">Seleccionar paciente...</option>';
+                
+                pacientes.forEach(function(paciente) {
+                    var option = document.createElement('option');
+                    option.value = paciente.id;
+                    option.textContent = paciente.nombre + ' ' + paciente.apellido;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error('Error cargando pacientes:', e);
+            }
+        }
+    };
+    xhr.send();
+}
+
+// Función para cargar horarios disponibles
+function loadAvailableHours() {
+    var dentistaId = document.getElementById('legacy_dentista').value;
+    var fecha = document.getElementById('legacy_fecha').value;
+    var horaSelect = document.getElementById('legacy_hora');
+    
+    if (!dentistaId || !fecha) {
+        horaSelect.innerHTML = '<option value="">Primero seleccione dentista y fecha</option>';
+        return;
+    }
+    
+    horaSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '{% url "core:api_horarios_disponibles" dentista_id=0 %}'.replace('0', dentistaId) + '?fecha=' + fecha, true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    horaSelect.innerHTML = '<option value="">Seleccionar hora...</option>';
+                    
+                    if (response.horarios_disponibles && response.horarios_disponibles.length > 0) {
+                        response.horarios_disponibles.forEach(function(hora) {
+                            var option = document.createElement('option');
+                            option.value = hora;
+                            option.textContent = hora;
+                            horaSelect.appendChild(option);
+                        });
+                    } else {
+                        horaSelect.innerHTML = '<option value="">No hay horarios disponibles</option>';
+                    }
+                } catch (e) {
+                    horaSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+                }
+            } else {
+                horaSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+            }
+        }
+    };
+    xhr.send();
+}
+
+// Event listeners para el formulario legacy
+document.addEventListener('DOMContentLoaded', function() {
+    // Listener para cambios en dentista o fecha
+    document.getElementById('legacy_dentista').addEventListener('change', loadAvailableHours);
+    document.getElementById('legacy_fecha').addEventListener('change', loadAvailableHours);
+    
+    // Listener para envío del formulario
+    document.getElementById('legacyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var fecha = document.getElementById('legacy_fecha').value;
+        var hora = document.getElementById('legacy_hora').value;
+        
+        if (fecha && hora) {
+            // Crear datetime en formato correcto
+            var fechaHora = fecha + 'T' + hora + ':00';
+            document.getElementById('legacy_fecha_hora').value = fechaHora;
+        }
+        
+        // Enviar formulario vía AJAX
+        var formData = new FormData(this);
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', this.action, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            closeLegacyModal();
+                            alert('Cita creada exitosamente');
+                            location.reload(); // Recargar para mostrar la nueva cita
+                        } else {
+                            showFormErrors(response.errors || 'Error al crear la cita');
+                        }
+                    } catch (e) {
+                        // Si no es JSON, probablemente fue exitoso y redirigido
+                        closeLegacyModal();
+                        alert('Cita creada exitosamente');
+                        location.reload();
+                    }
+                } else {
+                    showFormErrors('Error de comunicación con el servidor');
+                }
+            }
+        };
+        xhr.send(formData);
+    });
+});
+
+// Función para mostrar errores del formulario
+function showFormErrors(errors) {
+    var errorDiv = document.getElementById('legacy-errors');
+    var errorText = '';
+    
+    if (typeof errors === 'string') {
+        errorText = errors;
+    } else if (typeof errors === 'object') {
+        for (var field in errors) {
+            if (errors[field].length) {
+                errorText += field + ': ' + errors[field].join(', ') + '<br>';
+            }
+        }
+    }
+    
+    errorDiv.innerHTML = errorText;
+    errorDiv.style.display = 'block';
+}
+
+// Inicialización con debugging
+setTimeout(function() {
+    console.log('Iniciando calendario legacy...');
+    document.getElementById('debug-info').style.display = 'block';
+    document.getElementById('debug-text').innerText = 'Iniciando calendario legacy...';
+    loadEvents();
+}, 1000);
+
+// Debugging adicional
+window.addEventListener('load', function() {
+    console.log('Página legacy cargada completamente');
+    console.log('User Agent:', navigator.userAgent);
+});
+
+// Función de test debug
+function testDebug() {
+    alert('Calendar Legacy Debug Info:\n' +
+          'User Agent: ' + navigator.userAgent + '\n' +
+          'Current URL: ' + window.location.href + '\n' +
+          'Calendar element exists: ' + (document.getElementById('calendar') ? 'YES' : 'NO') + '\n' +
+          'Current events loaded: ' + currentEvents.length);
+}
+</script>
+{% endblock %}

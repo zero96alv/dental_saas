@@ -1,0 +1,544 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ object.titulo }} - Consentimiento Informado{% endblock %}
+
+{% block extra_css %}
+<style>
+.info-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+}
+.stat-card {
+    transition: transform 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+.pdf-viewer {
+    height: 600px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+.badge-custom {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+}
+.timeline-item {
+    border-left: 2px solid #007bff;
+    padding-left: 1rem;
+    margin-left: 1rem;
+    position: relative;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #007bff;
+}
+.action-buttons {
+    position: sticky;
+    top: 20px;
+    z-index: 100;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="info-card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-2">
+                                <i class="fas fa-file-contract"></i>
+                                {{ object.titulo }}
+                            </h2>
+                            <div class="d-flex align-items-center flex-wrap mb-2">
+                                <span class="badge bg-light text-dark me-2 badge-custom">
+                                    {{ object.get_tipo_documento_display }}
+                                </span>
+                                <span class="badge {% if object.estado == 'ACTIVO' %}bg-success{% elif object.estado == 'INACTIVO' %}bg-secondary{% else %}bg-warning{% endif %} me-2 badge-custom">
+                                    {{ object.get_estado_display }}
+                                </span>
+                                {% if object.esta_vigente %}
+                                    <span class="badge bg-success me-2 badge-custom">
+                                        <i class="fas fa-check-circle"></i> Vigente
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger me-2 badge-custom">
+                                        <i class="fas fa-exclamation-circle"></i> Vencido
+                                    </span>
+                                {% endif %}
+                                {% if object.cumple_cofepris %}
+                                    <span class="badge bg-success me-2 badge-custom">
+                                        <i class="fas fa-shield-alt"></i> COFEPRIS
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <p class="mb-0 opacity-90">
+                                {{ object.descripcion|default:"Sin descripción disponible" }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="action-buttons">
+                                <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" class="btn btn-light btn-lg me-2">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="{% url 'core:consentimiento_list' %}" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-arrow-left"></i> Volver
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Información Principal -->
+                <div class="col-lg-4 mb-4">
+                    <!-- Información Básica -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle text-primary"></i> 
+                                Información del Documento
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Versión:</strong></div>
+                                <div class="col-sm-7">
+                                    <span class="badge bg-primary">v{{ object.version }}</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Creado:</strong></div>
+                                <div class="col-sm-7">{{ object.creado_en|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Actualizado:</strong></div>
+                                <div class="col-sm-7">{{ object.actualizado_en|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            {% if object.creado_por %}
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Creado por:</strong></div>
+                                <div class="col-sm-7">
+                                    {{ object.creado_por.get_full_name|default:object.creado_por.username }}
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Vigencia:</strong></div>
+                                <div class="col-sm-7">
+                                    <div class="small">
+                                        <strong>Desde:</strong> {{ object.fecha_vigencia_inicio|date:"d/m/Y" }}<br>
+                                        <strong>Hasta:</strong> 
+                                        {% if object.fecha_vigencia_fin %}
+                                            {{ object.fecha_vigencia_fin|date:"d/m/Y" }}
+                                        {% else %}
+                                            <em>Indefinida</em>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if object.requiere_testigos %}
+                            <div class="row mb-3">
+                                <div class="col-sm-5"><strong>Testigos:</strong></div>
+                                <div class="col-sm-7">
+                                    <span class="text-warning">
+                                        <i class="fas fa-users"></i> Requeridos
+                                    </span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar text-success"></i> 
+                                Estadísticas de Uso
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="stat-card border rounded p-3">
+                                        <div class="display-6 text-primary fw-bold">
+                                            {{ object.pacienteconsentimiento_set.count }}
+                                        </div>
+                                        <small class="text-muted">Presentados</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="stat-card border rounded p-3">
+                                        <div class="display-6 text-success fw-bold" id="firmados-stat">
+                                            -
+                                        </div>
+                                        <small class="text-muted">Firmados</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card border rounded p-3">
+                                        <div class="display-6 text-warning fw-bold" id="pendientes-stat">
+                                            -
+                                        </div>
+                                        <small class="text-muted">Pendientes</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card border rounded p-3">
+                                        <div class="display-6 text-danger fw-bold" id="rechazados-stat">
+                                            -
+                                        </div>
+                                        <small class="text-muted">Rechazados</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones Rápidas -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bolt text-warning"></i> 
+                                Acciones Rápidas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if object.archivo_pdf %}
+                                <div class="d-grid gap-2">
+                                    <a href="{{ object.archivo_pdf.url }}" target="_blank" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver PDF
+                                    </a>
+                                    <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-download"></i> Descargar PDF
+                                    </a>
+                                    <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                       class="btn btn-outline-success">
+                                        <i class="fas fa-edit"></i> Editar Documento
+                                    </a>
+                                    <button type="button" class="btn btn-outline-info" onclick="duplicarDocumento()">
+                                        <i class="fas fa-copy"></i> Duplicar
+                                    </button>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    No hay archivo PDF asociado
+                                </div>
+                                <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                   class="btn btn-warning w-100">
+                                    <i class="fas fa-upload"></i> Subir PDF
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualización del PDF y Historial -->
+                <div class="col-lg-8">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="detalleTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="pdf-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#pdf-pane" type="button" role="tab">
+                                <i class="fas fa-file-pdf"></i> Vista Previa PDF
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="historial-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#historial-pane" type="button" role="tab">
+                                <i class="fas fa-history"></i> Historial de Uso
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="info-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#info-pane" type="button" role="tab">
+                                <i class="fas fa-info-circle"></i> Información Técnica
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="detalleTabContent">
+                        <!-- PDF Viewer -->
+                        <div class="tab-pane fade show active" id="pdf-pane" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-file-pdf text-danger"></i> 
+                                        Documento PDF
+                                    </h5>
+                                    {% if object.archivo_pdf %}
+                                        <div>
+                                            <a href="{{ object.archivo_pdf.url }}" target="_blank" 
+                                               class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="fas fa-external-link-alt"></i> Abrir en nueva ventana
+                                            </a>
+                                            <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-download"></i> Descargar
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body p-0">
+                                    {% if object.archivo_pdf %}
+                                        <iframe src="{{ object.archivo_pdf.url }}" 
+                                                class="pdf-viewer w-100" 
+                                                frameborder="0">
+                                            <div class="text-center p-4">
+                                                <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                                                <p>Tu navegador no puede mostrar PDFs.</p>
+                                                <a href="{{ object.archivo_pdf.url }}" target="_blank" 
+                                                   class="btn btn-primary">
+                                                    <i class="fas fa-external-link-alt"></i> Ver PDF
+                                                </a>
+                                            </div>
+                                        </iframe>
+                                    {% else %}
+                                        <div class="text-center p-5">
+                                            <i class="fas fa-file-pdf fa-4x text-muted mb-3"></i>
+                                            <h4>No hay archivo PDF</h4>
+                                            <p class="text-muted">Este documento no tiene un archivo PDF asociado.</p>
+                                            <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                               class="btn btn-primary">
+                                                <i class="fas fa-upload"></i> Subir PDF
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Historial -->
+                        <div class="tab-pane fade" id="historial-pane" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-history text-info"></i> 
+                                        Historial de Presentaciones
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if object.pacienteconsentimiento_set.exists %}
+                                        <div class="timeline">
+                                            {% for consentimiento_paciente in object.pacienteconsentimiento_set.all|slice:":10" %}
+                                                <div class="timeline-item mb-4">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <h6 class="mb-1">
+                                                                <i class="fas fa-user text-primary"></i>
+                                                                {{ consentimiento_paciente.paciente.get_full_name }}
+                                                            </h6>
+                                                            <p class="mb-1 text-muted">
+                                                                <small>
+                                                                    <i class="fas fa-calendar"></i> 
+                                                                    {{ consentimiento_paciente.fecha_presentacion|date:"d/m/Y H:i" }}
+                                                                </small>
+                                                            </p>
+                                                            {% if consentimiento_paciente.fecha_firma %}
+                                                                <p class="mb-0 text-success">
+                                                                    <small>
+                                                                        <i class="fas fa-signature"></i> 
+                                                                        Firmado: {{ consentimiento_paciente.fecha_firma|date:"d/m/Y H:i" }}
+                                                                    </small>
+                                                                </p>
+                                                            {% endif %}
+                                                        </div>
+                                                        <span class="badge 
+                                                            {% if consentimiento_paciente.estado == 'FIRMADO' %}bg-success
+                                                            {% elif consentimiento_paciente.estado == 'PENDIENTE' %}bg-warning
+                                                            {% elif consentimiento_paciente.estado == 'RECHAZADO' %}bg-danger
+                                                            {% else %}bg-secondary{% endif %}">
+                                                            {{ consentimiento_paciente.get_estado_display }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        {% if object.pacienteconsentimiento_set.count > 10 %}
+                                            <div class="text-center mt-3">
+                                                <button class="btn btn-outline-primary" onclick="cargarMasHistorial()">
+                                                    <i class="fas fa-plus"></i> Ver más registros
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="text-center py-4">
+                                            <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                                            <h5>Sin historial</h5>
+                                            <p class="text-muted">Este documento aún no se ha presentado a ningún paciente.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Técnica -->
+                        <div class="tab-pane fade" id="info-pane" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-cog text-secondary"></i> 
+                                        Información Técnica
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-database text-info"></i> Base de Datos</h6>
+                                            <ul class="list-unstyled small">
+                                                <li><strong>ID:</strong> {{ object.id }}</li>
+                                                <li><strong>UUID:</strong> 
+                                                    <code class="text-muted">{{ object.pk }}</code>
+                                                </li>
+                                                <li><strong>Creado:</strong> {{ object.creado_en|date:"Y-m-d H:i:s" }}</li>
+                                                <li><strong>Modificado:</strong> {{ object.actualizado_en|date:"Y-m-d H:i:s" }}</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-file text-warning"></i> Archivo</h6>
+                                            {% if object.archivo_pdf %}
+                                                <ul class="list-unstyled small">
+                                                    <li><strong>Nombre:</strong> {{ object.nombre_archivo_original|default:"N/A" }}</li>
+                                                    <li><strong>Tamaño:</strong> 
+                                                        {% if object.archivo_pdf.size %}
+                                                            {{ object.archivo_pdf.size|filesizeformat }}
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </li>
+                                                    <li><strong>Ruta:</strong> 
+                                                        <code class="text-muted">{{ object.archivo_pdf.name }}</code>
+                                                    </li>
+                                                    <li><strong>URL:</strong> 
+                                                        <a href="{{ object.archivo_pdf.url }}" target="_blank" class="text-primary">
+                                                            Ver archivo <i class="fas fa-external-link-alt"></i>
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            {% else %}
+                                                <p class="text-muted">No hay archivo PDF asociado</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-shield-alt text-success"></i> Cumplimiento</h6>
+                                            <ul class="list-unstyled small">
+                                                <li>
+                                                    <strong>COFEPRIS:</strong> 
+                                                    {% if object.cumple_cofepris %}
+                                                        <span class="text-success">✓ Cumple</span>
+                                                    {% else %}
+                                                        <span class="text-warning">⚠ No verificado</span>
+                                                    {% endif %}
+                                                </li>
+                                                <li>
+                                                    <strong>Testigos:</strong> 
+                                                    {% if object.requiere_testigos %}
+                                                        <span class="text-info">✓ Requeridos</span>
+                                                    {% else %}
+                                                        <span class="text-muted">No requeridos</span>
+                                                    {% endif %}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-calendar-alt text-primary"></i> Vigencia</h6>
+                                            <ul class="list-unstyled small">
+                                                <li><strong>Inicio:</strong> {{ object.fecha_vigencia_inicio|date:"d/m/Y" }}</li>
+                                                <li><strong>Fin:</strong> 
+                                                    {% if object.fecha_vigencia_fin %}
+                                                        {{ object.fecha_vigencia_fin|date:"d/m/Y" }}
+                                                    {% else %}
+                                                        <em>Sin límite</em>
+                                                    {% endif %}
+                                                </li>
+                                                <li><strong>Estado:</strong> 
+                                                    {% if object.esta_vigente %}
+                                                        <span class="text-success">✓ Vigente</span>
+                                                    {% else %}
+                                                        <span class="text-danger">✗ Vencido</span>
+                                                    {% endif %}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Cargar estadísticas
+    cargarEstadisticas();
+    
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function cargarEstadisticas() {
+    // Simular carga de estadísticas - en producción vendría de API
+    const presentados = {{ object.pacienteconsentimiento_set.count }};
+    
+    // Por ahora simulamos los datos, en producción sería una llamada AJAX
+    document.getElementById('firmados-stat').textContent = '0';
+    document.getElementById('pendientes-stat').textContent = presentados.toString();
+    document.getElementById('rechazados-stat').textContent = '0';
+}
+
+function duplicarDocumento() {
+    if (confirm('¿Deseas crear una copia de este documento?')) {
+        // En producción, esto sería una llamada AJAX
+        window.location.href = '{% url "core:consentimiento_create" %}?duplicar={{ object.pk }}';
+    }
+}
+
+function cargarMasHistorial() {
+    // En producción, cargaría más registros via AJAX
+    alert('Función no implementada aún. Se cargarían más registros del historial.');
+}
+
+// Mejorar la experiencia de pestañas
+document.addEventListener('shown.bs.tab', function (event) {
+    if (event.target.getAttribute('data-bs-target') === '#pdf-pane') {
+        // Recargar iframe si es necesario
+        const iframe = document.querySelector('.pdf-viewer');
+        if (iframe) {
+            iframe.style.height = '600px';
+        }
+    }
+});
+</script>
+{% endblock %}

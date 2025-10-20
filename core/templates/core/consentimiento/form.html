@@ -1,0 +1,513 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if object %}
+        Editar Consentimiento - {{ object.titulo }}
+    {% else %}
+        Nuevo Consentimiento Informado
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+.file-upload-area:hover {
+    border-color: #007bff;
+    background: #e3f2fd;
+}
+.file-upload-area.dragover {
+    border-color: #28a745;
+    background: #d4edda;
+}
+.file-preview {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+.help-section {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-left: 4px solid #ffc107;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-file-contract text-primary"></i>
+                                {% if object %}
+                                    Editar Consentimiento Informado
+                                {% else %}
+                                    Nuevo Consentimiento Informado
+                                {% endif %}
+                            </h2>
+                            {% if object %}
+                                <p class="text-muted mb-0">
+                                    Versión actual: <strong>{{ object.version }}</strong> | 
+                                    Creado: <strong>{{ object.creado_en|date:"d/m/Y" }}</strong>
+                                </p>
+                            {% else %}
+                                <p class="text-muted mb-0">
+                                    Crear un nuevo documento de consentimiento informado que cumpla con COFEPRIS
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="{% url 'core:consentimiento_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver a Lista
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="form-consentimiento">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Formulario principal -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-edit"></i> Información del Documento
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <label for="id_titulo" class="form-label fw-bold">Título del Documento *</label>
+                                            <input type="text" name="titulo" class="form-control" id="id_titulo" 
+                                                   value="{{ object.titulo|default:'' }}" required maxlength="200"
+                                                   placeholder="Ej: Consentimiento Informado para Blanqueamiento Dental">
+                                            <small class="form-text text-muted">Nombre descriptivo del documento</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="id_version" class="form-label fw-bold">Versión *</label>
+                                            <input type="text" name="version" class="form-control" id="id_version" 
+                                                   value="{{ object.version|default:'1.0' }}" required maxlength="20"
+                                                   placeholder="1.0">
+                                            <small class="form-text text-muted">Ej: 1.0, 1.1, 2.0</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_tipo_documento" class="form-label fw-bold">Tipo de Documento *</label>
+                                            <select name="tipo_documento" id="id_tipo_documento" class="form-select" required>
+                                                <option value="">Seleccionar tipo...</option>
+                                                <option value="GENERAL" {% if object.tipo_documento == 'GENERAL' %}selected{% endif %}>Consentimiento General</option>
+                                                <option value="CIRUGIA" {% if object.tipo_documento == 'CIRUGIA' %}selected{% endif %}>Consentimiento Cirugía Oral</option>
+                                                <option value="ORTODONTICA" {% if object.tipo_documento == 'ORTODONTICA' %}selected{% endif %}>Consentimiento Ortodoncia</option>
+                                                <option value="ENDODONCIA" {% if object.tipo_documento == 'ENDODONCIA' %}selected{% endif %}>Consentimiento Endodoncia</option>
+                                                <option value="IMPLANTES" {% if object.tipo_documento == 'IMPLANTES' %}selected{% endif %}>Consentimiento Implantes</option>
+                                                <option value="ESTETICA" {% if object.tipo_documento == 'ESTETICA' %}selected{% endif %}>Consentimiento Estética Dental</option>
+                                                <option value="PERIODONCIA" {% if object.tipo_documento == 'PERIODONCIA' %}selected{% endif %}>Consentimiento Periodoncia</option>
+                                                <option value="PROTESIS" {% if object.tipo_documento == 'PROTESIS' %}selected{% endif %}>Consentimiento Prótesis</option>
+                                                <option value="PEDIATRICA" {% if object.tipo_documento == 'PEDIATRICA' %}selected{% endif %}>Consentimiento Odontología Pediátrica</option>
+                                                <option value="OTROS" {% if object.tipo_documento == 'OTROS' %}selected{% endif %}>Otros Procedimientos</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_estado" class="form-label fw-bold">Estado</label>
+                                            <select name="estado" id="id_estado" class="form-select">
+                                                <option value="ACTIVO" {% if not object or object.estado == 'ACTIVO' %}selected{% endif %}>Activo</option>
+                                                <option value="INACTIVO" {% if object.estado == 'INACTIVO' %}selected{% endif %}>Inactivo</option>
+                                                <option value="ARCHIVADO" {% if object.estado == 'ARCHIVADO' %}selected{% endif %}>Archivado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="id_descripcion" class="form-label fw-bold">Descripción</label>
+                                    <textarea name="descripcion" id="id_descripcion" class="form-control" rows="3"
+                                              placeholder="Descripción del propósito y alcance del documento">{{ object.descripcion|default:'' }}</textarea>
+                                    <small class="form-text text-muted">Explicación del propósito del documento</small>
+                                </div>
+
+                                <!-- Archivo PDF -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">
+                                        Documento PDF *
+                                        {% if object and not object.archivo_pdf %}
+                                            <span class="text-danger">(Requerido)</span>
+                                        {% elif not object %}
+                                            <span class="text-danger">(Requerido)</span>
+                                        {% endif %}
+                                    </label>
+                                    
+                                    {% if object and object.archivo_pdf %}
+                                    <div class="file-preview mb-3">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <i class="fas fa-file-pdf text-danger fa-2x me-3"></i>
+                                                <div class="d-inline-block">
+                                                    <div class="fw-bold">{{ object.nombre_archivo_original|default:"archivo_pdf" }}</div>
+                                                    <div class="small text-muted">
+                                                        {% if object.tamaño_archivo %}
+                                                            {{ object.tamaño_archivo|filesizeformat }}
+                                                        {% endif %}
+                                                        - Subido: {{ object.actualizado_en|date:"d/m/Y H:i" }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{{ object.archivo_pdf.url }}" target="_blank" 
+                                                   class="btn btn-outline-primary btn-sm me-2">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </a>
+                                                <a href="{{ object.archivo_pdf.url }}" download 
+                                                   class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-download"></i> Descargar
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="reemplazar-pdf">
+                                        <label class="form-check-label" for="reemplazar-pdf">
+                                            Reemplazar archivo PDF actual
+                                        </label>
+                                    </div>
+                                    {% endif %}
+
+                                    <div id="upload-container" {% if object and object.archivo_pdf %}style="display: none;"{% endif %}>
+                                        <div class="file-upload-area" id="file-drop-area">
+                                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                            <h5>Arrastrar archivo PDF aquí</h5>
+                                            <p class="text-muted mb-3">o hacer clic para seleccionar</p>
+                                            <input type="file" name="archivo_pdf" id="id_archivo_pdf" 
+                                                   class="d-none" accept=".pdf" 
+                                                   {% if not object %}required{% endif %}>
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    onclick="document.getElementById('id_archivo_pdf').click()">
+                                                <i class="fas fa-file-upload"></i> Seleccionar PDF
+                                            </button>
+                                        </div>
+                                        <small class="form-text text-muted">Solo archivos PDF. Máximo 10MB.</small>
+                                    </div>
+                                </div>
+
+                                <!-- Fechas de vigencia -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_fecha_vigencia_inicio" class="form-label fw-bold">Fecha Inicio Vigencia *</label>
+                                            <input type="date" name="fecha_vigencia_inicio" class="form-control" 
+                                                   id="id_fecha_vigencia_inicio" required
+                                                   value="{% if object %}{{ object.fecha_vigencia_inicio|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="id_fecha_vigencia_fin" class="form-label">Fecha Fin Vigencia</label>
+                                            <input type="date" name="fecha_vigencia_fin" class="form-control" 
+                                                   id="id_fecha_vigencia_fin"
+                                                   value="{% if object.fecha_vigencia_fin %}{{ object.fecha_vigencia_fin|date:'Y-m-d' }}{% endif %}">
+                                            <small class="form-text text-muted">Opcional - Dejar vacío para vigencia indefinida</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Opciones COFEPRIS -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" name="cumple_cofepris" 
+                                                   id="id_cumple_cofepris" {% if not object or object.cumple_cofepris %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="id_cumple_cofepris">
+                                                <i class="fas fa-shield-alt text-success"></i> Cumple con COFEPRIS
+                                            </label>
+                                            <div class="small text-muted">Marcar si el documento cumple con normativas COFEPRIS</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" name="requiere_testigos" 
+                                                   id="id_requiere_testigos" {% if object.requiere_testigos %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="id_requiere_testigos">
+                                                <i class="fas fa-users text-info"></i> Requiere Testigos
+                                            </label>
+                                            <div class="small text-muted">Marcar si el documento requiere firma de testigos</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Botones de acción -->
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div>
+                                        <a href="{% url 'core:consentimiento_list' %}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-times"></i> Cancelar
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary btn-lg" id="btn-guardar">
+                                            <i class="fas fa-save"></i> 
+                                            {% if object %}Actualizar{% else %}Crear{% endif %} Documento
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de ayuda -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="card help-section">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-lightbulb"></i> Guía Rápida
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>📋 Contenido del PDF</h6>
+                                <p class="small">El documento PDF debe incluir:</p>
+                                <ul class="small">
+                                    <li>Información del procedimiento</li>
+                                    <li>Riesgos y beneficios</li>
+                                    <li>Alternativas de tratamiento</li>
+                                    <li>Espacios para firmas</li>
+                                    <li>Cumplimiento COFEPRIS</li>
+                                </ul>
+
+                                <h6 class="mt-3">🏷️ Tipos de Documento</h6>
+                                <div class="small">
+                                    <div class="mb-1"><strong>General:</strong> Procedimientos rutinarios</div>
+                                    <div class="mb-1"><strong>Cirugía:</strong> Extracciones, cirugías</div>
+                                    <div class="mb-1"><strong>Ortodoncia:</strong> Brackets, alineadores</div>
+                                    <div class="mb-1"><strong>Endodoncia:</strong> Tratamiento conductos</div>
+                                </div>
+
+                                <h6 class="mt-3">⏰ Vigencia</h6>
+                                <p class="small">
+                                    Configure las fechas de vigencia para controlar cuándo 
+                                    está disponible el documento para presentar a pacientes.
+                                </p>
+
+                                <h6 class="mt-3">👥 Testigos</h6>
+                                <p class="small">
+                                    Los procedimientos quirúrgicos generalmente requieren 
+                                    testigos según normativas COFEPRIS.
+                                </p>
+                            </div>
+                        </div>
+
+                        {% if object %}
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-bar"></i> Estadísticas de Uso
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="border rounded p-2">
+                                            <div class="fw-bold text-primary fs-4">{{ object.pacienteconsentimiento_set.count }}</div>
+                                            <small class="text-muted">Presentados</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="border rounded p-2">
+                                            <div class="fw-bold text-success fs-4" id="firmados-count">-</div>
+                                            <small class="text-muted">Firmados</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-consentimiento');
+    const fileInput = document.getElementById('id_archivo_pdf');
+    const dropArea = document.getElementById('file-drop-area');
+    const uploadContainer = document.getElementById('upload-container');
+    const reemplazarCheckbox = document.getElementById('reemplazar-pdf');
+    
+    // Mostrar/ocultar upload area cuando se marca reemplazar
+    if (reemplazarCheckbox) {
+        reemplazarCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                uploadContainer.style.display = 'block';
+                fileInput.required = true;
+            } else {
+                uploadContainer.style.display = 'none';
+                fileInput.required = false;
+            }
+        });
+    }
+
+    // Drag and drop para archivos
+    if (dropArea) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('dragover');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    fileInput.files = files;
+                    updateFileDisplay(file);
+                } else {
+                    alert('Por favor, seleccione solo archivos PDF.');
+                }
+            }
+        }
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                updateFileDisplay(this.files[0]);
+            }
+        });
+
+        function updateFileDisplay(file) {
+            dropArea.innerHTML = `
+                <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
+                <h6>Archivo seleccionado:</h6>
+                <p class="mb-1">${file.name}</p>
+                <p class="small text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFile()">
+                    <i class="fas fa-times"></i> Cambiar archivo
+                </button>
+            `;
+        }
+
+        window.clearFile = function() {
+            fileInput.value = '';
+            dropArea.innerHTML = `
+                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                <h5>Arrastrar archivo PDF aquí</h5>
+                <p class="text-muted mb-3">o hacer clic para seleccionar</p>
+                <button type="button" class="btn btn-outline-primary" 
+                        onclick="document.getElementById('id_archivo_pdf').click()">
+                    <i class="fas fa-file-upload"></i> Seleccionar PDF
+                </button>
+            `;
+        };
+    }
+
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        const titulo = document.getElementById('id_titulo').value.trim();
+        const tipo = document.getElementById('id_tipo_documento').value;
+        const archivo = fileInput.files.length > 0;
+        const esEdicion = {{ object|yesno:"true,false" }};
+        const reemplazar = reemplazarCheckbox ? reemplazarCheckbox.checked : false;
+        
+        if (!titulo) {
+            e.preventDefault();
+            alert('Por favor, ingrese un título para el documento.');
+            document.getElementById('id_titulo').focus();
+            return false;
+        }
+        
+        if (!tipo) {
+            e.preventDefault();
+            alert('Por favor, seleccione un tipo de documento.');
+            document.getElementById('id_tipo_documento').focus();
+            return false;
+        }
+        
+        if (!esEdicion && !archivo) {
+            e.preventDefault();
+            alert('Por favor, seleccione un archivo PDF.');
+            return false;
+        }
+        
+        if (esEdicion && reemplazar && !archivo) {
+            e.preventDefault();
+            alert('Por favor, seleccione un archivo PDF para reemplazar.');
+            return false;
+        }
+
+        // Deshabilitar botón para evitar doble envío
+        const btnGuardar = document.getElementById('btn-guardar');
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    });
+    
+    // Cargar estadísticas si es edición
+    {% if object %}
+    const objectId = {{ object.id }};
+    if (objectId) {
+        // Simular carga de estadísticas - en producción esto vendría de una API
+        fetch(`/api/consentimientos/${objectId}/stats/`).then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+        }).then(data => {
+            if (data) {
+                document.getElementById('firmados-count').textContent = data.firmados || 0;
+            }
+        }).catch(() => {
+            // Si no hay API, usar valor por defecto
+            document.getElementById('firmados-count').textContent = '0';
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

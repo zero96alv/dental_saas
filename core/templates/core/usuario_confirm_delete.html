@@ -1,0 +1,70 @@
+{% extends "core/base.html" %}
+
+{% block title %}Eliminar Usuario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>¡Advertencia!</strong> Esta acción no se puede deshacer.
+                    </div>
+                    
+                    <p class="mb-3">¿Está seguro que desea eliminar el siguiente usuario?</p>
+                    
+                    <div class="bg-light p-3 rounded mb-4">
+                        <h6><strong>Información del Usuario:</strong></h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Nombre:</strong> {{ usuario.first_name }} {{ usuario.last_name }}</li>
+                            <li><strong>Usuario:</strong> {{ usuario.username }}</li>
+                            <li><strong>Email:</strong> {{ usuario.email|default:"No especificado" }}</li>
+                            <li><strong>Roles:</strong> 
+                                {% for group in usuario.groups.all %}
+                                    <span class="badge bg-info">{{ group.name }}</span>
+                                {% empty %}
+                                    <span class="text-muted">Sin roles asignados</span>
+                                {% endfor %}
+                            </li>
+                            <li><strong>Estado:</strong> 
+                                {% if usuario.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Nota:</strong> Al eliminar este usuario se perderán todos sus datos asociados, incluyendo historial de actividades y referencias en el sistema.
+                    </div>
+                </div>
+                
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{% url 'core:usuario_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Cancelar
+                    </a>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash-fill me-1"></i>
+                            Confirmar Eliminación
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

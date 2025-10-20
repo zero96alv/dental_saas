@@ -1,0 +1,409 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Consentimientos de Pacientes{% endblock %}
+
+{% block extra_css %}
+<style>
+.estado-badge {
+    font-size: 0.8em;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.5rem;
+}
+
+.estado-pendiente {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.estado-firmado {
+    background-color: #198754;
+    color: #fff;
+}
+
+.estado-rechazado {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.estado-vencido {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.filtros-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.estadisticas-card {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.consentimiento-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.consentimiento-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.firma-preview {
+    max-width: 100px;
+    max-height: 50px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.fecha-firma {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.paciente-info {
+    font-weight: 500;
+}
+
+.consentimiento-tipo {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.85em;
+    }
+    
+    .btn-sm {
+        font-size: 0.75em;
+        padding: 0.25rem 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-primary mb-1">
+                <i class="fas fa-file-signature me-2"></i>Consentimientos de Pacientes
+            </h1>
+            <p class="text-muted mb-0">Gestión de firmas y consentimientos informados de pacientes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-collapse">
+                <i class="fas fa-filter me-2"></i>Filtros
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="estadisticas-card p-3 mb-4">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="fs-4 fw-bold">{{ consentimientos_pacientes|length }}</div>
+                <small>Total</small>
+            </div>
+            <div class="col-md-3">
+                <div class="fs-4 fw-bold">
+                    {% for item in consentimientos_pacientes %}
+                        {% if item.estado == 'PENDIENTE' %}{{ forloop.counter0|add:1 }}{% endif %}
+                    {% empty %}0{% endfor %}
+                </div>
+                <small>Pendientes</small>
+            </div>
+            <div class="col-md-3">
+                <div class="fs-4 fw-bold">
+                    {% for item in consentimientos_pacientes %}
+                        {% if item.estado == 'FIRMADO' %}{{ forloop.counter0|add:1 }}{% endif %}
+                    {% empty %}0{% endfor %}
+                </div>
+                <small>Firmados</small>
+            </div>
+            <div class="col-md-3">
+                <div class="fs-4 fw-bold">
+                    {% for item in consentimientos_pacientes %}
+                        {% if item.estado == 'RECHAZADO' %}{{ forloop.counter0|add:1 }}{% endif %}
+                    {% empty %}0{% endfor %}
+                </div>
+                <small>Rechazados</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de filtros -->
+    <div class="collapse{% if request.GET %} show{% endif %}" id="filtros-collapse">
+        <div class="filtros-card p-3">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        {% for value, display in estados_firma %}
+                            <option value="{{ value }}" {% if request.GET.estado == value %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Paciente</label>
+                    <input type="text" name="paciente" class="form-control" 
+                           placeholder="Buscar por nombre..." 
+                           value="{{ request.GET.paciente }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo de Documento</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos los tipos</option>
+                        {% for value, display in tipos_documento %}
+                            <option value="{{ value }}" {% if request.GET.tipo == value %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <a href="{% url 'core:paciente_consentimiento_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de consentimientos -->
+    <div class="card">
+        <div class="card-body">
+            {% if consentimientos_pacientes %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Paciente</th>
+                                <th>Documento</th>
+                                <th>Estado</th>
+                                <th>Fecha Presentado</th>
+                                <th>Fecha Firmado</th>
+                                <th>Presentado Por</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in consentimientos_pacientes %}
+                                <tr>
+                                    <td>
+                                        <div class="paciente-info">
+                                            {{ item.paciente.get_full_name }}
+                                        </div>
+                                        <small class="text-muted">{{ item.paciente.email }}</small>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ item.consentimiento.titulo }}</strong>
+                                        </div>
+                                        <span class="consentimiento-tipo">
+                                            {{ item.consentimiento.get_tipo_documento_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="estado-badge estado-{{ item.estado|lower }}">
+                                            {% if item.estado == 'PENDIENTE' %}
+                                                <i class="fas fa-clock me-1"></i>
+                                            {% elif item.estado == 'FIRMADO' %}
+                                                <i class="fas fa-check me-1"></i>
+                                            {% elif item.estado == 'RECHAZADO' %}
+                                                <i class="fas fa-times me-1"></i>
+                                            {% elif item.estado == 'VENCIDO' %}
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                            {% endif %}
+                                            {{ item.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div>{{ item.fecha_presentado|date:"d/m/Y" }}</div>
+                                        <small class="fecha-firma">{{ item.fecha_presentado|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.fecha_firmado %}
+                                            <div>{{ item.fecha_firmado|date:"d/m/Y" }}</div>
+                                            <small class="fecha-firma">{{ item.fecha_firmado|date:"H:i" }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.presentado_por %}
+                                            <div>Dr. {{ item.presentado_por.usuario.get_full_name }}</div>
+                                        {% else %}
+                                            <span class="text-muted">Sistema</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'core:paciente_consentimiento_detail' pk=item.pk %}" 
+                                               class="btn btn-outline-primary" title="Ver Detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if item.estado == 'PENDIENTE' %}
+                                                <a href="{% url 'core:firmar_consentimiento' paciente_consentimiento_id=item.pk %}" 
+                                                   class="btn btn-outline-success" title="Firmar">
+                                                    <i class="fas fa-signature"></i>
+                                                </a>
+                                            {% endif %}
+                                            {% if item.firma_paciente %}
+                                                <button type="button" class="btn btn-outline-info" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#firmaModal{{ item.pk }}" 
+                                                        title="Ver Firma">
+                                                    <i class="fas fa-image"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Modal para ver firma -->
+                                {% if item.firma_paciente %}
+                                <div class="modal fade" id="firmaModal{{ item.pk }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-signature me-2"></i>
+                                                    Firma de {{ item.paciente.get_full_name }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-center">
+                                                <img src="{{ item.firma_paciente.url }}" 
+                                                     alt="Firma del paciente" 
+                                                     class="img-fluid border rounded">
+                                                <div class="mt-3">
+                                                    <strong>Documento:</strong> {{ item.consentimiento.titulo }}<br>
+                                                    <strong>Firmado el:</strong> {{ item.fecha_firmado|date:"d/m/Y H:i" }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                {% if is_paginated %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Paginación de consentimientos">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-signature fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay consentimientos de pacientes</h4>
+                    <p class="text-muted mb-3">
+                        {% if request.GET %}
+                            No se encontraron consentimientos con los filtros aplicados.
+                        {% else %}
+                            Aún no se han presentado consentimientos a pacientes.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'core:consentimiento_list' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Gestionar Documentos
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mejorar la experiencia con tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.01)';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Auto-envío del formulario de filtros con debounce
+    const searchInput = document.querySelector('input[name="paciente"]');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}

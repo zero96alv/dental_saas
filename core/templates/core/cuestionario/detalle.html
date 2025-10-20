@@ -1,0 +1,525 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Historial Clínico - {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.categoria-section {
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+.categoria-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+.respuesta-critica {
+    background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+    border-left: 4px solid #dc3545;
+}
+.respuesta-seguimiento {
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+    border-left: 4px solid #ffc107;
+}
+.respuesta-normal {
+    background: #f8f9fa;
+    border-left: 4px solid #17a2b8;
+}
+.badge-importancia {
+    font-size: 0.7em;
+    padding: 2px 6px;
+}
+.categoria-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1em;
+}
+.alerta-cofepris {
+    border: 2px solid #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+}
+.timeline-item {
+    border-left: 3px solid #e9ecef;
+    padding-left: 20px;
+    margin-left: 10px;
+    position: relative;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007bff;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px #e9ecef;
+}
+.timeline-item.timeline-alert::before {
+    background: #dc3545;
+}
+.timeline-item.timeline-warning::before {
+    background: #ffc107;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header del historial -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-file-medical text-primary"></i> 
+                                Historial Clínico Completo
+                            </h2>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-4">
+                                    <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                                    <div class="text-muted small">{{ paciente.fecha_nacimiento|date:"d/m/Y" }} ({{ paciente.edad }} años)</div>
+                                </div>
+                                <div class="me-4">
+                                    <i class="fas fa-envelope text-muted"></i> {{ paciente.email|default:"No especificado" }}
+                                    <br><i class="fas fa-phone text-muted"></i> {{ paciente.telefono|default:"No especificado" }}
+                                </div>
+                            </div>
+                            
+                            {% if ultimo_cuestionario %}
+                            <div class="d-flex align-items-center text-muted small">
+                                <i class="fas fa-clock me-1"></i>
+                                Completado: {{ ultimo_cuestionario.fecha_completado|date:"d/m/Y H:i" }}
+                                {% if ultimo_cuestionario.completado_por %}
+                                    por {{ ultimo_cuestionario.completado_por.get_full_name|default:ultimo_cuestionario.completado_por.username }}
+                                {% endif %}
+                                {% if ultimo_cuestionario.revision_medica %}
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check-circle"></i> Revisado médicamente
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning ms-2">
+                                        <i class="fas fa-clock"></i> Pendiente revisión
+                                    </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                   class="btn btn-outline-warning">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="{% url 'core:paciente_detail' pk=paciente.id %}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-user"></i> Perfil Paciente
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="window.print()">
+                                    <i class="fas fa-print"></i> Imprimir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Columna principal del cuestionario -->
+                <div class="col-lg-8">
+                    {% if respuestas_por_categoria %}
+                        <!-- Resumen de alertas -->
+                        {% if respuestas_criticas or respuestas_seguimiento %}
+                        <div class="card mb-4">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    Alertas Médicas Detectadas
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% if respuestas_criticas %}
+                                    <div class="col-md-6">
+                                        <h6 class="text-danger">
+                                            <i class="fas fa-shield-alt"></i> Respuestas Críticas ({{ respuestas_criticas|length }})
+                                        </h6>
+                                        {% for respuesta in respuestas_criticas %}
+                                        <div class="alerta-cofepris p-2 mb-2 rounded">
+                                            <div class="fw-bold small">{{ respuesta.pregunta.categoria.nombre }}</div>
+                                            <div class="text-dark">{{ respuesta.pregunta.texto }}</div>
+                                            <div class="text-danger fw-bold">Respuesta: {{ respuesta.respuesta }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if respuestas_seguimiento %}
+                                    <div class="col-md-6">
+                                        <h6 class="text-warning">
+                                            <i class="fas fa-eye"></i> Requieren Seguimiento ({{ respuestas_seguimiento|length }})
+                                        </h6>
+                                        {% for respuesta in respuestas_seguimiento %}
+                                        <div class="bg-light p-2 mb-2 rounded border-start border-warning border-3">
+                                            <div class="fw-bold small">{{ respuesta.pregunta.categoria.nombre }}</div>
+                                            <div class="text-dark">{{ respuesta.pregunta.texto }}</div>
+                                            <div class="text-warning fw-bold">Respuesta: {{ respuesta.respuesta }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if ultimo_cuestionario.alertas_generadas %}
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6><i class="fas fa-list-ul"></i> Resumen de Alertas Automáticas:</h6>
+                                    <div class="small">
+                                        {{ ultimo_cuestionario.alertas_generadas|linebreaks }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Cuestionario por categorías -->
+                        {% for categoria, respuestas in respuestas_por_categoria.items %}
+                        <div class="categoria-section card mb-4">
+                            <div class="categoria-header card-header">
+                                <div class="d-flex align-items-center">
+                                    <div class="categoria-icon me-3" style="background-color: {{ categoria.color }};">
+                                        <i class="{{ categoria.icono|default:'fas fa-question' }}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-0">{{ categoria.nombre }}</h5>
+                                        <small class="text-muted">{{ categoria.descripcion }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary">{{ respuestas|length }} respuestas</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                {% for respuesta in respuestas %}
+                                <div class="p-3 border-bottom 
+                                    {% if respuesta.es_respuesta_critica %}respuesta-critica
+                                    {% elif respuesta.pregunta.requiere_seguimiento and respuesta.respuesta|lower == 'sí' %}respuesta-seguimiento
+                                    {% else %}respuesta-normal{% endif %}">
+                                    
+                                    <div class="d-flex align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-start mb-2">
+                                                <div class="flex-grow-1">
+                                                    <div class="fw-bold">{{ respuesta.pregunta.texto }}</div>
+                                                    {% if respuesta.pregunta.subtitulo %}
+                                                        <div class="text-muted small">{{ respuesta.pregunta.subtitulo }}</div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="ms-2 d-flex flex-column align-items-end">
+                                                    {% if respuesta.pregunta.importancia == 'CRITICA' %}
+                                                        <span class="badge bg-danger badge-importancia">
+                                                            <i class="fas fa-exclamation-triangle"></i> Crítica
+                                                        </span>
+                                                    {% elif respuesta.pregunta.importancia == 'ALTA' %}
+                                                        <span class="badge bg-warning badge-importancia">
+                                                            <i class="fas fa-exclamation"></i> Importante
+                                                        </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if respuesta.pregunta.alerta_cofepris %}
+                                                        <span class="badge bg-info badge-importancia mt-1">
+                                                            <i class="fas fa-shield-alt"></i> COFEPRIS
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <div class="respuesta-valor p-2 rounded" 
+                                                         style="background-color: rgba(255,255,255,0.7);">
+                                                        <strong>Respuesta:</strong> 
+                                                        <span class="ms-1 
+                                                            {% if respuesta.respuesta|lower == 'sí' and respuesta.pregunta.importancia == 'CRITICA' %}text-danger fw-bold
+                                                            {% elif respuesta.respuesta|lower == 'sí' and respuesta.pregunta.requiere_seguimiento %}text-warning fw-bold
+                                                            {% else %}text-dark{% endif %}">
+                                                            {{ respuesta.respuesta|default:"Sin respuesta" }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 text-end">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock"></i> 
+                                                        {{ respuesta.actualizado_en|date:"d/m/Y H:i" }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            
+                                            {% if respuesta.notas_medicas %}
+                                            <div class="mt-2">
+                                                <div class="alert alert-info mb-0 py-2">
+                                                    <small>
+                                                        <strong><i class="fas fa-stethoscope"></i> Notas médicas:</strong><br>
+                                                        {{ respuesta.notas_medicas }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">No hay cuestionario completado</h4>
+                                <p class="text-muted">Este paciente aún no ha completado su historial clínico.</p>
+                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                   class="btn btn-primary">
+                                    <i class="fas fa-plus-circle"></i> Completar Cuestionario
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Sidebar con información adicional -->
+                <div class="col-lg-4">
+                    <!-- Resumen estadístico -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-pie"></i> Resumen del Historial
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if ultimo_cuestionario %}
+                            <div class="row g-3 text-center">
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-primary fs-4">{{ respuestas_por_categoria.items|length }}</div>
+                                        <small class="text-muted">Categorías</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-info fs-4">
+                                            {{ paciente.respuestas_historial.count }}
+                                        </div>
+                                        <small class="text-muted">Respuestas</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-warning fs-4">{{ respuestas_seguimiento|length }}</div>
+                                        <small class="text-muted">Seguimiento</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <div class="fw-bold text-danger fs-4">{{ respuestas_criticas|length }}</div>
+                                        <small class="text-muted">Críticas</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Tiempo completado:</span>
+                                    <span class="fw-bold">
+                                        {% if ultimo_cuestionario.tiempo_completado_minutos %}
+                                            {{ ultimo_cuestionario.tiempo_completado_minutos }} min
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Estado:</span>
+                                    {% if ultimo_cuestionario.revision_medica %}
+                                        <span class="badge bg-success">Revisado</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-clipboard fa-2x mb-2"></i>
+                                <p>Sin historial completado</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Historial de cambios -->
+                    {% if paciente.cuestionarios_completados.all %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history"></i> Historial de Cambios
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% for cuestionario in paciente.cuestionarios_completados.all|slice:":5" %}
+                            <div class="timeline-item 
+                                {% if cuestionario.tiene_alertas %}timeline-alert
+                                {% elif not cuestionario.revision_medica %}timeline-warning{% endif %} 
+                                mb-3">
+                                <div class="small">
+                                    <div class="fw-bold">
+                                        {{ cuestionario.fecha_completado|date:"d/m/Y H:i" }}
+                                    </div>
+                                    <div class="text-muted">
+                                        {% if cuestionario.completado_por %}
+                                            por {{ cuestionario.completado_por.get_full_name|default:cuestionario.completado_por.username }}
+                                        {% endif %}
+                                    </div>
+                                    {% if cuestionario.tiene_alertas %}
+                                        <div class="text-danger mt-1">
+                                            <i class="fas fa-exclamation-triangle"></i> Con alertas
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Consentimiento Informado -->
+                    {% if ultimo_cuestionario %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-file-contract"></i> Consentimiento Informado
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if ultimo_cuestionario.consentimiento_presentado %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="me-3">
+                                        {% if ultimo_cuestionario.consentimiento_presentado.estado == 'FIRMADO' %}
+                                            <i class="fas fa-check-circle text-success fa-2x"></i>
+                                        {% elif ultimo_cuestionario.consentimiento_presentado.estado == 'PENDIENTE' %}
+                                            <i class="fas fa-clock text-warning fa-2x"></i>
+                                        {% elif ultimo_cuestionario.consentimiento_presentado.estado == 'RECHAZADO' %}
+                                            <i class="fas fa-times-circle text-danger fa-2x"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">{{ ultimo_cuestionario.consentimiento_presentado.consentimiento.titulo }}</div>
+                                        <small class="text-muted">{{ ultimo_cuestionario.consentimiento_presentado.consentimiento.get_tipo_documento_display }}</small>
+                                        <div class="small">
+                                            Estado: 
+                                            {% if ultimo_cuestionario.consentimiento_presentado.estado == 'FIRMADO' %}
+                                                <span class="badge bg-success">Firmado</span>
+                                            {% elif ultimo_cuestionario.consentimiento_presentado.estado == 'PENDIENTE' %}
+                                                <span class="badge bg-warning">Pendiente Firma</span>
+                                            {% elif ultimo_cuestionario.consentimiento_presentado.estado == 'RECHAZADO' %}
+                                                <span class="badge bg-danger">Rechazado</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'core:paciente_consentimiento_detail' pk=ultimo_cuestionario.consentimiento_presentado.id %}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye"></i> Ver Consentimiento
+                                    </a>
+                                    {% if ultimo_cuestionario.consentimiento_presentado.estado == 'PENDIENTE' %}
+                                        <a href="{% url 'core:firmar_consentimiento' paciente_consentimiento_id=ultimo_cuestionario.consentimiento_presentado.id %}" 
+                                           class="btn btn-warning btn-sm">
+                                            <i class="fas fa-signature"></i> Firmar Consentimiento
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% elif ultimo_cuestionario.consentimiento_requerido %}
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-file-contract fa-2x mb-2"></i>
+                                    <p class="mb-2">Consentimiento informado requerido</p>
+                                    <div class="d-grid">
+                                        <a href="{% url 'core:presentar_consentimiento_desde_cuestionario' cuestionario_id=ultimo_cuestionario.id %}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plus-circle"></i> Presentar Consentimiento
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                    <p class="mb-0">No se requiere consentimiento</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Acciones rápidas -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tools"></i> Acciones
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                   class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i> Editar Cuestionario
+                                </a>
+                                <a href="{% url 'core:historial_create' cliente_id=paciente.id %}" 
+                                   class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus"></i> Agregar Evolución
+                                </a>
+                                <a href="{% url 'core:paciente_history' pk=paciente.id %}" 
+                                   class="btn btn-info btn-sm">
+                                    <i class="fas fa-file-medical"></i> Ver Historial Completo
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                                    <i class="fas fa-print"></i> Imprimir PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad adicional si es necesaria
+    console.log('Historial clínico cargado');
+});
+
+// Estilos para impresión
+const style = document.createElement('style');
+style.textContent = `
+    @media print {
+        .btn, .card-header, nav, .sidebar { display: none !important; }
+        .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+        .alerta-cofepris { border: 2px solid #dc3545 !important; }
+        body { font-size: 12px; }
+        h1, h2, h3, h4, h5, h6 { color: black !important; }
+        .text-danger, .text-warning, .text-success { color: black !important; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

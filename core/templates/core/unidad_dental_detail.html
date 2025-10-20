@@ -1,0 +1,93 @@
+
+{% extends "core/base.html" %}
+
+{% block title %}Administrar {{ unidad.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-front me-2"></i> Administrar Unidad: {{ unidad.nombre }}</h2>
+    <p class="text-muted">{{ unidad.descripcion }}</p>
+
+    <div class="row mt-4">
+        <!-- Columna de Stock de Insumos -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-box-seam me-2"></i>Stock de Insumos en esta Unidad</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Insumo</th>
+                                <th>Cantidad</th>
+                                <th>Lote</th>
+                                <th>Caducidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lote in stock_insumos %}
+                                <tr>
+                                    <td>{{ lote.insumo.nombre }}</td>
+                                    <td>{{ lote.cantidad }}</td>
+                                    <td>{{ lote.numero_lote|default:"N/A" }}</td>
+                                    <td>{{ lote.fecha_caducidad|date:"d/m/Y"|default:"N/A" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No hay insumos asignados a esta unidad.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Dentistas Asociados -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h4><i class="bi bi-people me-2"></i>Dentistas Asociados</h4>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Dentistas que han utilizado esta unidad en citas registradas.</p>
+                    <ul class="list-group">
+                        {% for dentista in dentistas_asociados %}
+                            <li class="list-group-item">{{ dentista }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Ningún dentista ha usado esta unidad aún.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="bi bi-check2-square me-2"></i>Dentistas Permitidos</h4>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for dentista in unidad.dentistas_permitidos.all %}
+                            <li class="list-group-item">{{ dentista }}</li>
+                        {% empty %}
+                            <li class="list-group-item">No hay dentistas asignados a esta unidad.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4 d-flex gap-2">
+        <a href="{% url 'core:unidad_dental_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver a la lista de unidades
+        </a>
+        <a href="{% url 'core:unidad_dental_edit' unidad.pk %}" class="btn btn-warning">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+        </a>
+        <a href="{% url 'core:unidad_dental_delete' unidad.pk %}" class="btn btn-danger" onclick="return confirm('¿Eliminar esta unidad?');">
+            <i class="bi bi-trash me-1"></i> Eliminar
+        </a>
+    </div>
+</div>
+{% endblock %}

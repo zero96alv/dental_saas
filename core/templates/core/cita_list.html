@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% load static %}
+{% load custom_tags %}
 
 {% block title %}Gestión de Citas{% endblock %}
 
@@ -167,7 +168,7 @@
                         <div class="col-md-4">
                             <h5 class="card-title mb-1">
                                 <i class="bi bi-person-circle me-1"></i>
-                                {{ cita.cliente.nombre }} {{ cita.cliente.apellido }}
+                                {{ cita.paciente.nombre }} {{ cita.paciente.apellido }}
                             </h5>
                             <p class="text-muted mb-1">
                                 <i class="bi bi-calendar2 me-1"></i>
@@ -239,37 +240,37 @@
                         <!-- Acciones -->
                         <div class="col-md-2 text-end">
                             <div class="btn-group-vertical" role="group">
-                                {% if cita.estado == 'PRO' and user.groups.all.0.name == 'Recepcionista' %}
+                                <a href="{% url 'core:cita_manage' cita.pk %}" class="btn btn-sm btn-outline-dark">
+                                    <i class="bi bi-tools me-1"></i>Gestionar
+                                </a>
+                                {% if user|has_group:'Recepcionista' and cita.estado == 'PRO' %}
                                     <a href="{% url 'core:cita_cambiar_estado' cita.pk %}" 
                                        class="btn btn-sm btn-outline-info">
                                         <i class="bi bi-check-circle me-1"></i>Confirmar
                                     </a>
-                                {% elif cita.estado == 'CON' and user.groups.all.0.name == 'Dentista' %}
+                                {% endif %}
+                                {% if user|has_group:'Dentista' and cita.estado == 'CON' %}
                                     <a href="{% url 'core:cita_finalizar' cita.pk %}" 
                                        class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-clipboard-check me-1"></i>Finalizar
-                                    </a>
-                                {% elif cita.estado == 'ATN' and user.groups.all.0.name in 'Recepcionista,Administrador' %}
-                                    <a href="{% url 'core:procesar_pago' cita.pk %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-cash me-1"></i>Cobrar
+                                        <i class="bi bi-clipboard-check me-1"></i>Atender/Finalizar
                                     </a>
                                 {% endif %}
-
-                                {% if user.groups.all.0.name == 'Administrador' %}
-                                    <a href="{% url 'core:cita_cambiar_estado' cita.pk %}" 
-                                       class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-gear me-1"></i>Editar Estado
-                                    </a>
+                                {% if cita.estado == 'ATN' %}
+                                    {% if user|has_group:'Recepcionista,Administrador' %}
+                                        <a href="{% url 'core:cita_finalizar' cita.pk %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-cash me-1"></i>Finalizar y cobrar
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
-
-                                <a href="{% url 'core:paciente_detail' cita.cliente.pk %}" 
-                                   class="btn btn-sm btn-outline-dark">
-                                    <i class="bi bi-person me-1"></i>Ver Paciente
-                                </a>
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a href="{% url 'core:paciente_detail' cita.paciente.pk %}" class="btn btn-sm btn-outline-dark">
+                        <i class="bi bi-person me-1"></i>Ver Paciente
+                    </a>
                 </div>
             </div>
         </div>

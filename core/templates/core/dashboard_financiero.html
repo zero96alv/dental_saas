@@ -1,0 +1,844 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Financiero{% endblock %}
+
+{% block extra_css %}
+<style>
+/* === DASHBOARD FINANCIERO STYLES === */
+.dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--card-accent, #667eea);
+}
+
+.metric-card.success::before { --card-accent: #28a745; }
+.metric-card.warning::before { --card-accent: #ffc107; }
+.metric-card.danger::before { --card-accent: #dc3545; }
+.metric-card.info::before { --card-accent: #17a2b8; }
+.metric-card.primary::before { --card-accent: #007bff; }
+
+.metric-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-icon {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-size: 2.5rem;
+    opacity: 0.1;
+    color: var(--card-accent, #667eea);
+}
+
+.growth-indicator {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.growth-positive {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.growth-negative {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+/* === CHART CONTAINERS === */
+.chart-container {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    margin-bottom: 2rem;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+/* === ALERTS SECTION === */
+.alert-item {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--alert-color, #17a2b8);
+    transition: all 0.2s ease;
+}
+
+.alert-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.alert-critical { --alert-color: #dc3545; }
+.alert-warning { --alert-color: #ffc107; }
+.alert-info { --alert-color: #17a2b8; }
+.alert-success { --alert-color: #28a745; }
+
+.alert-content {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.alert-text {
+    flex: 1;
+}
+
+.alert-amount {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--alert-color);
+}
+
+/* === PAYMENTS TABLE === */
+.payments-container {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.payments-header {
+    background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-financial {
+    margin: 0;
+}
+
+.table-financial td, .table-financial th {
+    padding: 1rem;
+    vertical-align: middle;
+    border-top: 1px solid #f8f9fa;
+}
+
+.payment-method-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.method-efectivo { background: #d4edda; color: #155724; }
+.method-tarjeta { background: #d1ecf1; color: #0c5460; }
+.method-transferencia { background: #f8d7da; color: #721c24; }
+
+/* === REPORTS GRID === */
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.report-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    border: 2px solid transparent;
+}
+
+.report-card:hover {
+    color: inherit;
+    text-decoration: none;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: var(--report-accent, #667eea);
+}
+
+.report-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+    background: var(--report-accent, #667eea);
+}
+
+.report-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.report-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .metric-number {
+        font-size: 2rem;
+    }
+    
+    .dashboard-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .reports-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === UTILITIES === */
+.fade-in {
+    animation: fadeInUp 0.6s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header text-center fade-in">
+        <h1 class="mb-2">
+            <i class="fas fa-chart-line me-3"></i>Dashboard Financiero
+        </h1>
+        <p class="mb-0 opacity-90">
+            Control integral de ingresos, pagos y análisis financiero
+        </p>
+        <div class="mt-3">
+            <span class="badge bg-light text-dark me-2">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Hoy: {{ "now"|date:"d/m/Y" }}
+            </span>
+            <span class="badge bg-light text-dark">
+                <i class="fas fa-clock me-1"></i>
+                Actualizado: {{ "now"|date:"H:i" }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Métricas Principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="metric-card success fade-in">
+                <div class="metric-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-number text-success">
+                    ${{ ingresos_hoy|floatformat:2|default:"0.00" }}
+                </div>
+                <div class="metric-label">Ingresos Hoy</div>
+                {% if pagos_hoy_count > 0 %}
+                    <small class="text-muted">
+                        <i class="fas fa-receipt me-1"></i>
+                        {{ pagos_hoy_count }} pago{{ pagos_hoy_count|pluralize }}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="metric-card primary fade-in">
+                <div class="metric-icon">
+                    <i class="fas fa-calendar-month"></i>
+                </div>
+                <div class="metric-number text-primary">
+                    ${{ ingresos_mes|floatformat:2|default:"0.00" }}
+                </div>
+                <div class="metric-label">Ingresos del Mes</div>
+                {% if crecimiento_mes %}
+                    <div class="growth-indicator {% if crecimiento_mes >= 0 %}growth-positive{% else %}growth-negative{% endif %}">
+                        <i class="fas fa-{% if crecimiento_mes >= 0 %}arrow-up{% else %}arrow-down{% endif %}"></i>
+                        {{ crecimiento_mes|floatformat:1 }}% vs mes anterior
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="metric-card warning fade-in">
+                <div class="metric-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="metric-number text-warning">
+                    ${{ saldos_pendientes|floatformat:2|default:"0.00" }}
+                </div>
+                <div class="metric-label">Saldos Pendientes</div>
+                {% if pacientes_pendientes > 0 %}
+                    <small class="text-muted">
+                        <i class="fas fa-users me-1"></i>
+                        {{ pacientes_pendientes }} paciente{{ pacientes_pendientes|pluralize }}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="metric-card info fade-in">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-number text-info">
+                    ${{ promedio_diario|floatformat:2|default:"0.00" }}
+                </div>
+                <div class="metric-label">Promedio Diario</div>
+                {% if citas_pendientes > 0 %}
+                    <small class="text-danger">
+                        <i class="fas fa-clock me-1"></i>
+                        {{ citas_pendientes }} cita{{ citas_pendientes|pluralize }} pendiente{{ citas_pendientes|pluralize }}
+                    </small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Gráfico Principal -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Tendencia de Ingresos (Últimos 30 días)
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="updateChart('30d')">30D</button>
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="updateChart('7d')">7D</button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="updateChart('today')">Hoy</button>
+                    </div>
+                </div>
+                <canvas id="incomeChart" height="300"></canvas>
+            </div>
+        </div>
+
+        <!-- Alertas y Pendientes -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-bell text-warning me-2"></i>
+                        Alertas y Pendientes
+                    </h5>
+                </div>
+
+                <!-- Pacientes con Saldo Alto -->
+                {% if pacientes_saldo_alto %}
+                    <div class="mb-4">
+                        <h6 class="text-danger mb-2">
+                            <i class="fas fa-exclamation-circle me-1"></i>
+                            Saldos Críticos (>$5,000)
+                        </h6>
+                        {% for paciente in pacientes_saldo_alto %}
+                            <div class="alert-item alert-critical">
+                                <div class="alert-content">
+                                    <div class="alert-text">
+                                        <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                                        <br><small class="text-muted">{{ paciente.email|default:"Sin email" }}</small>
+                                    </div>
+                                    <div class="alert-amount">
+                                        ${{ paciente.saldo_pendiente|floatformat:2 }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Citas Vencidas -->
+                {% if citas_vencidas %}
+                    <div class="mb-4">
+                        <h6 class="text-warning mb-2">
+                            <i class="fas fa-clock me-1"></i>
+                            Citas Sin Pagar (+7 días)
+                        </h6>
+                        {% for cita in citas_vencidas %}
+                            <div class="alert-item alert-warning">
+                                <div class="alert-content">
+                                    <div class="alert-text">
+                                        <strong>{{ cita.paciente.nombre }} {{ cita.paciente.apellido }}</strong>
+                                        <br><small class="text-muted">{{ cita.fecha_hora|date:"d/m/Y" }}</small>
+                                    </div>
+                                    <div class="alert-amount">
+                                        ${{ cita.total|floatformat:2 }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Pagos Altos del Día -->
+                {% if pagos_altos_hoy %}
+                    <div>
+                        <h6 class="text-success mb-2">
+                            <i class="fas fa-star me-1"></i>
+                            Pagos Destacados Hoy
+                        </h6>
+                        {% for pago in pagos_altos_hoy %}
+                            <div class="alert-item alert-success">
+                                <div class="alert-content">
+                                    <div class="alert-text">
+                                        <strong>{{ pago.cita.paciente.nombre }} {{ pago.cita.paciente.apellido }}</strong>
+                                        <br><small class="text-muted">{{ pago.metodo_pago }}</small>
+                                    </div>
+                                    <div class="alert-amount">
+                                        ${{ pago.monto|floatformat:2 }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if not pacientes_saldo_alto and not citas_vencidas and not pagos_altos_hoy %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h6 class="text-muted">¡Todo está al día!</h6>
+                        <p class="text-muted mb-0">No hay alertas pendientes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Métodos de Pago -->
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-credit-card text-info me-2"></i>
+                        Métodos de Pago (Este Mes)
+                    </h5>
+                </div>
+                <canvas id="paymentMethodsChart" height="250"></canvas>
+            </div>
+        </div>
+
+        <!-- Servicios Rentables -->
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-trophy text-success me-2"></i>
+                        Top Servicios (Este Mes)
+                    </h5>
+                </div>
+                <canvas id="servicesChart" height="250"></canvas>
+            </div>
+        </div>
+
+        <!-- Pagos Recientes -->
+        <div class="col-xl-4 col-lg-12 mb-4">
+            <div class="payments-container fade-in">
+                <div class="payments-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt text-primary me-2"></i>
+                        Pagos Recientes
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-financial table-hover mb-0">
+                        <tbody>
+                            {% for pago in pagos_recientes|slice:":5" %}
+                                <tr>
+                                    <td class="ps-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas fa-user-circle fa-2x text-muted"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">
+                                                    {% if pago.cita and pago.cita.paciente %}
+                                                        {{ pago.cita.paciente.nombre }} {{ pago.cita.paciente.apellido }}
+                                                    {% else %}
+                                                        Pago directo
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">
+                                                    {{ pago.fecha_pago|date:"d/m/Y H:i" }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="payment-method-badge method-{{ pago.metodo_pago|lower }}">
+                                            {{ pago.metodo_pago }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <div class="fw-bold text-success">
+                                            ${{ pago.monto|floatformat:2 }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4">
+                                        <i class="fas fa-inbox fa-2x text-muted mb-2 d-block"></i>
+                                        <span class="text-muted">No hay pagos recientes</span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if pagos_recientes %}
+                    <div class="text-center p-3 border-top">
+                        <a href="{% url 'core:pago_list' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-1"></i>
+                            Ver Todos los Pagos
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Reportes Rápidos -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="chart-container fade-in">
+                <div class="chart-header">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-pie text-purple me-2"></i>
+                        Reportes y Análisis
+                    </h5>
+                    <small class="text-muted">Acceso rápido a reportes financieros detallados</small>
+                </div>
+
+                <div class="reports-grid">
+                    {% for reporte in reportes_disponibles %}
+                        <a href="{% url reporte.url %}" class="report-card" style="--report-accent: 
+                            {% if 'ingresos' in reporte.url %}#28a745
+                            {% elif 'saldos' in reporte.url %}#ffc107
+                            {% elif 'facturacion' in reporte.url %}#17a2b8
+                            {% else %}#6f42c1{% endif %}">
+                            
+                            <div class="report-icon">
+                                <i class="{{ reporte.icon }}"></i>
+                            </div>
+                            <div class="report-title">{{ reporte.nombre }}</div>
+                            <div class="report-description">{{ reporte.descripcion }}</div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === CONFIGURACIÓN DE CHARTS ===
+    const chartColors = {
+        primary: '#667eea',
+        success: '#28a745',
+        warning: '#ffc107',
+        danger: '#dc3545',
+        info: '#17a2b8',
+        gradient: function(ctx, color1, color2) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+            return gradient;
+        }
+    };
+
+    // === GRÁFICO DE INGRESOS DIARIOS ===
+    const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+    const incomeChart = new Chart(incomeCtx, {
+        type: 'line',
+        data: {
+            labels: {{ labels_dias|safe }},
+            datasets: [{
+                label: 'Ingresos Diarios',
+                data: {{ ingresos_diarios|safe }},
+                backgroundColor: chartColors.gradient(incomeCtx, 'rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.05)'),
+                borderColor: chartColors.primary,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: chartColors.primary,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Ingresos: $' + context.parsed.y.toLocaleString('es-MX', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('es-MX');
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+
+    // === GRÁFICO DE MÉTODOS DE PAGO ===
+    {% if metodos_pago %}
+    const methodsCtx = document.getElementById('paymentMethodsChart').getContext('2d');
+    const methodsChart = new Chart(methodsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for metodo in metodos_pago %}'{{ metodo.metodo_pago }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for metodo in metodos_pago %}{{ metodo.total }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: [
+                    chartColors.success,
+                    chartColors.info,
+                    chartColors.warning,
+                    chartColors.danger,
+                    chartColors.primary
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': $' + context.parsed.toLocaleString('es-MX', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // === GRÁFICO DE SERVICIOS ===
+    {% if servicios_rentables %}
+    const servicesCtx = document.getElementById('servicesChart').getContext('2d');
+    const servicesChart = new Chart(servicesCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for servicio in servicios_rentables %}'{{ servicio.servicio__nombre|truncatechars:15 }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Ingresos',
+                data: [{% for servicio in servicios_rentables %}{{ servicio.total_ingresos }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                backgroundColor: chartColors.gradient(servicesCtx, chartColors.success, 'rgba(40, 167, 69, 0.7)'),
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Ingresos: $' + context.parsed.y.toLocaleString('es-MX', {minimumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('es-MX');
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // === FUNCIONES ADICIONALES ===
+    
+    // Actualizar gráfico por período
+    window.updateChart = function(period) {
+        // Esta función se puede extender para hacer llamadas AJAX
+        // y actualizar el gráfico dinámicamente
+        console.log('Actualizando gráfico para período:', period);
+    };
+
+    // Auto-refresh cada 5 minutos
+    setInterval(function() {
+        console.log('Auto-refrescando datos financieros...');
+        // Implementar llamadas AJAX para actualizar métricas
+    }, 300000);
+
+    // Animar números al cargar
+    const animateNumbers = () => {
+        const numbers = document.querySelectorAll('.metric-number');
+        numbers.forEach((number, index) => {
+            setTimeout(() => {
+                number.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    number.style.transform = 'scale(1)';
+                }, 200);
+            }, index * 100);
+        });
+    };
+
+    // Ejecutar animación
+    setTimeout(animateNumbers, 500);
+
+    console.log('🚀 Dashboard Financiero cargado exitosamente');
+});
+</script>
+{% endblock %}

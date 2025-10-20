@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba - Sistema de Numeración FDI Universal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container-fluid {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            max-width: 1400px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.3);
+        }
+        
+        .fdi-explanation {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+        
+        .test-controls {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+        
+        .btn-test {
+            margin: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .cuadrante-info {
+            background: #ffffff;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .cuadrante-header {
+            font-weight: 700;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .diente-ejemplo {
+            display: inline-block;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 5px;
+            font-weight: 600;
+            color: #495057;
+            transition: all 0.2s ease;
+        }
+        
+        .diente-ejemplo:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+        
+        .estado-ejemplo {
+            display: inline-flex;
+            align-items: center;
+            margin: 8px 12px 8px 0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .estado-sano { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .estado-caries { background: #f8d7da; color: #721c24; border: 1px solid #f1aeb5; }
+        .estado-obturada { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .estado-corona { background: #d1ecf1; color: #0c5460; border: 1px solid #b8daff; }
+        .estado-extraida { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+        .estado-implante { background: #d1f2eb; color: #0c5460; border: 1px solid #a2d9ce; }
+        .estado-endodoncia { background: #f8d7da; color: #721c24; border: 1px solid #f1aeb5; }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        
+        .numero-fdi-grande {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #495057;
+            font-family: 'Consolas', monospace;
+        }
+        
+        .current-selection {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1><i class="fas fa-tooth"></i> Sistema de Numeración Universal FDI - Prueba Interactiva</h1>
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="info-box">
+                    <h5><i class="fas fa-info-circle"></i> Sistema de Numeración FDI (Fédération Dentaire Internationale):</h5>
+                    <p><strong>Estándar Internacional:</strong> El sistema más utilizado mundialmente para identificar dientes permanentes.</p>
+                    <ul>
+                        <li><strong>Numeración de dos dígitos:</strong> El primer dígito indica el cuadrante, el segundo la posición</li>
+                        <li><strong>Vista Oclusal:</strong> Perspectiva desde arriba, como ve el dentista durante el examen</li>
+                        <li><strong>División por Cuadrantes:</strong> Facilita la localización y comunicación clínica precisa</li>
+                    </ul>
+                </div>
+                
+                <!-- Aquí se incluye el odontograma FDI -->
+                {% include 'core/partials/odontograma_fdi_universal.html' %}
+                
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="fdi-explanation">
+                    <h6><i class="fas fa-graduation-cap"></i> Explicación del Sistema FDI</h6>
+                    <div class="cuadrante-info">
+                        <div class="cuadrante-header">🔢 Estructura de Numeración:</div>
+                        <p><span class="numero-fdi-grande">XY</span></p>
+                        <p><strong>X</strong> = Cuadrante (1, 2, 3, 4)</p>
+                        <p><strong>Y</strong> = Posición (1-8)</p>
+                    </div>
+                </div>
+                
+                <div class="cuadrante-info">
+                    <div class="cuadrante-header">📍 Cuadrantes FDI:</div>
+                    <p><strong>Cuadrante 1:</strong> Superior Derecho (11-18)</p>
+                    <p><strong>Cuadrante 2:</strong> Superior Izquierdo (21-28)</p>
+                    <p><strong>Cuadrante 3:</strong> Inferior Izquierdo (31-38)</p>
+                    <p><strong>Cuadrante 4:</strong> Inferior Derecho (41-48)</p>
+                </div>
+                
+                <div class="cuadrante-info">
+                    <div class="cuadrante-header">🦷 Tipos de Dientes:</div>
+                    <p><strong>1-2:</strong> Incisivos (Centrales y Laterales)</p>
+                    <p><strong>3:</strong> Caninos</p>
+                    <p><strong>4-5:</strong> Premolares</p>
+                    <p><strong>6-7-8:</strong> Molares</p>
+                </div>
+                
+                <div class="current-selection" id="seleccion-actual" style="display: none;">
+                    <h6><i class="fas fa-hand-pointer"></i> Diente Seleccionado:</h6>
+                    <div id="info-diente"></div>
+                </div>
+                
+                <div class="test-controls">
+                    <h6><i class="fas fa-tools"></i> Controles de Prueba:</h6>
+                    <button class="btn btn-primary btn-test" onclick="testSeleccionFDI()">
+                        <i class="fas fa-mouse-pointer"></i> Probar Selección
+                    </button>
+                    <button class="btn btn-success btn-test" onclick="testDiagnosticosFDI()">
+                        <i class="fas fa-stethoscope"></i> Aplicar Diagnósticos
+                    </button>
+                    <button class="btn btn-warning btn-test" onclick="limpiarSeleccionFDI()">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </button>
+                    <button class="btn btn-info btn-test" onclick="mostrarInfoTecnicaFDI()">
+                        <i class="fas fa-info"></i> Info Técnica
+                    </button>
+                    
+                    <hr>
+                    
+                    <h6><i class="fas fa-palette"></i> Pruebas por Cuadrante:</h6>
+                    <button class="btn btn-outline-primary btn-test btn-sm" onclick="testCuadrante(1)">Cuadrante I</button>
+                    <button class="btn btn-outline-success btn-test btn-sm" onclick="testCuadrante(2)">Cuadrante II</button>
+                    <button class="btn btn-outline-warning btn-test btn-sm" onclick="testCuadrante(3)">Cuadrante III</button>
+                    <button class="btn btn-outline-danger btn-test btn-sm" onclick="testCuadrante(4)">Cuadrante IV</button>
+                    
+                    <hr>
+                    
+                    <h6><i class="fas fa-eye"></i> Estados de Diagnóstico:</h6>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <div class="estado-ejemplo estado-sano"><i class="fas fa-check-circle"></i> Sano</div>
+                        <div class="estado-ejemplo estado-caries"><i class="fas fa-exclamation-triangle"></i> Caries</div>
+                        <div class="estado-ejemplo estado-obturada"><i class="fas fa-fill-drip"></i> Obturada</div>
+                        <div class="estado-ejemplo estado-corona"><i class="fas fa-crown"></i> Corona</div>
+                        <div class="estado-ejemplo estado-extraida"><i class="fas fa-times-circle"></i> Extraída</div>
+                        <div class="estado-ejemplo estado-implante"><i class="fas fa-wrench"></i> Implante</div>
+                        <div class="estado-ejemplo estado-endodoncia"><i class="fas fa-procedures"></i> Endodoncia</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="fas fa-check-circle"></i> Funcionalidades Activas:</h6>
+                    <ul>
+                        <li>Selección individual por click</li>
+                        <li>Identificación automática de cuadrante</li>
+                        <li>Clasificación por tipo de diente</li>
+                        <li>Estados de diagnóstico visuales</li>
+                        <li>Eventos personalizados</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-cogs"></i> Características Técnicas:</h6>
+                    <ul>
+                        <li>Vista oclusal profesional</li>
+                        <li>División clara por cuadrantes</li>
+                        <li>Formas anatómicas diferenciadas</li>
+                        <li>Numeración FDI estándar</li>
+                        <li>Responsive y escalable</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-graduation-cap"></i> Uso Clínico:</h6>
+                    <ul>
+                        <li>Comunicación entre profesionales</li>
+                        <li>Registro de historial clínico</li>
+                        <li>Planificación de tratamientos</li>
+                        <li>Documentación precisa</li>
+                        <li>Estándar internacional</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function testSeleccionFDI() {
+            console.log('=== PRUEBA DE SELECCIÓN FDI ===');
+            
+            // Seleccionar algunos dientes representativos de cada cuadrante
+            const dientes = ['11', '13', '16', '21', '23', '26', '31', '33', '36', '41', '43', '46'];
+            let delay = 0;
+            
+            dientes.forEach(numeroFDI => {
+                setTimeout(() => {
+                    const diente = document.getElementById(`diente-${numeroFDI}`);
+                    if (diente) {
+                        diente.click();
+                        console.log(`Seleccionado diente FDI ${numeroFDI}`);
+                    }
+                }, delay);
+                delay += 500;
+            });
+        }
+        
+        function testDiagnosticosFDI() {
+            console.log('=== PRUEBA DE DIAGNÓSTICOS FDI ===');
+            
+            const diagnosticos = [
+                { diente: '11', estado: 'sano' },
+                { diente: '12', estado: 'caries' },
+                { diente: '13', estado: 'obturada' },
+                { diente: '14', estado: 'corona' },
+                { diente: '15', estado: 'extraida' },
+                { diente: '16', estado: 'implante' },
+                { diente: '17', estado: 'endodoncia' },
+                { diente: '21', estado: 'sano' },
+                { diente: '31', estado: 'caries' },
+                { diente: '41', estado: 'obturada' }
+            ];
+            
+            diagnosticos.forEach(diag => {
+                window.aplicarDiagnosticoFDI(diag.diente, diag.estado);
+            });
+        }
+        
+        function testCuadrante(cuadranteNum) {
+            console.log(`=== PRUEBA CUADRANTE ${cuadranteNum} ===`);
+            
+            // Limpiar selección anterior
+            window.limpiarSeleccionFDI();
+            
+            // Definir rango de dientes por cuadrante
+            let rango = [];
+            switch(cuadranteNum) {
+                case 1: rango = ['11', '12', '13', '14', '15', '16', '17', '18']; break;
+                case 2: rango = ['21', '22', '23', '24', '25', '26', '27', '28']; break;
+                case 3: rango = ['31', '32', '33', '34', '35', '36', '37', '38']; break;
+                case 4: rango = ['41', '42', '43', '44', '45', '46', '47', '48']; break;
+            }
+            
+            // Aplicar color por cuadrante
+            const colores = ['sano', 'caries', 'obturada', 'corona'];
+            let colorIndex = cuadranteNum - 1;
+            
+            rango.forEach(numeroFDI => {
+                const diente = document.getElementById(`diente-${numeroFDI}`);
+                if (diente) {
+                    window.aplicarDiagnosticoFDI(numeroFDI, colores[colorIndex]);
+                }
+            });
+        }
+        
+        function mostrarInfoTecnicaFDI() {
+            const info = `
+=== INFORMACIÓN TÉCNICA DEL SISTEMA FDI UNIVERSAL ===
+
+📋 Especificaciones:
+- Estándar: FDI (Fédération Dentaire Internationale)
+- Dientes: 32 permanentes (11-18, 21-28, 31-38, 41-48)
+- Vista: Oclusal (desde arriba)
+- División: 4 cuadrantes con líneas centrales
+
+📐 Dimensiones Técnicas:
+- ViewBox SVG: 800x600 pixels
+- Formas diferenciadas por tipo dental
+- Escalado responsivo automático
+
+🎨 Características Visuales:
+- Incisivos: Forma elíptica alargada
+- Caninos: Elipse puntiaguda
+- Premolares: Elipse redondeada
+- Molares: Rectángulo con bordes suavizados
+
+⚙️ Funcionalidad JavaScript:
+- Detección automática de cuadrante
+- Eventos personalizados para integración
+- Funciones globales de control
+- Logging detallado en consola
+
+🏥 Uso Clínico:
+- Comunicación profesional estándar
+- Compatible con sistemas internacionales
+- Ideal para historia clínica digital
+- Facilitación de diagnósticos precisos
+            `;
+            
+            console.log(info);
+            alert('Información técnica completa mostrada en la consola (F12)');
+        }
+        
+        // Event listener para mostrar información del diente seleccionado
+        document.addEventListener('dienteFDISeleccionado', function(e) {
+            const info = e.detail;
+            const seleccionDiv = document.getElementById('seleccion-actual');
+            const infoDiv = document.getElementById('info-diente');
+            
+            infoDiv.innerHTML = `
+                <div class="numero-fdi-grande">${info.numeroFDI}</div>
+                <div><strong>${info.tipoDiente}</strong></div>
+                <div>Cuadrante ${info.cuadrante}: ${info.nombreCuadrante}</div>
+                <div>Posición ${info.posicion}</div>
+            `;
+            
+            seleccionDiv.style.display = 'block';
+        });
+        
+        // Log automático al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🦷 Sistema de Numeración FDI Universal - Página de Prueba Cargada');
+            console.log('📋 Usa los controles para probar todas las funcionalidades');
+            console.log('🖱️ Haz click en cualquier diente para ver información detallada');
+        });
+    </script>
+</body>
+</html>

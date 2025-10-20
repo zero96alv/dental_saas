@@ -1,0 +1,553 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Gestionar Cita #{{ cita.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Gestionar Cita #{{ cita.id }}</h2>
+    <div>
+      <a class="btn btn-secondary" href="{% url 'core:cita_list' %}"><i class="bi bi-arrow-left"></i> Volver a Citas</a>
+      <a class="btn btn-outline-primary" href="{% url 'core:paciente_detail' cita.paciente.id %}"><i class="bi bi-person"></i> Ver Paciente</a>
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#resumen" type="button" role="tab">Resumen</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#historial" type="button" role="tab">Historial Clínico</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tratamientos" type="button" role="tab">Tratamientos</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pagos" type="button" role="tab">Pagos</button>
+    </li>
+  </ul>
+
+  <div class="tab-content mt-3">
+    <div class="alert alert-info d-none" id="cita-action-msg"></div>
+    <div class="tab-pane fade show active" id="resumen" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">Datos de la Cita</h5>
+              <p><strong>Paciente:</strong> {{ cita.paciente }}</p>
+              <p><strong>Dentista:</strong> {{ cita.dentista }}</p>
+              <p><strong>Fecha y hora:</strong> {{ cita.fecha_hora }}</p>
+              <p><strong>Unidad:</strong> {{ cita.unidad_dental }}</p>
+              <p><strong>Estado:</strong> <span id="cita-estado">{{ cita.get_estado_display }}</span></p>
+              <div class="d-grid gap-2 d-md-block">
+                <button class="btn btn-outline-secondary btn-sm me-1" data-estado="PRO" id="btn-pro">Programar</button>
+                <button class="btn btn-primary btn-sm me-1" data-estado="CON" id="btn-con">Confirmar</button>
+                <button class="btn btn-warning btn-sm me-1" data-estado="ATN" id="btn-atn">Atender</button>
+                <button class="btn btn-success btn-sm me-1" data-estado="COM" id="btn-com">Completar</button>
+                <button class="btn btn-danger btn-sm" data-estado="CAN" id="btn-can">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">Servicios</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Planeados</h6>
+                  <ul>
+                    {% for s in cita.servicios_planeados.all %}
+                      <li>{{ s.nombre }} - ${{ s.precio }}</li>
+                    {% empty %}<li>Sin servicios planeados</li>{% endfor %}
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h6>Realizados</h6>
+                  <ul>
+                    {% for s in cita.servicios_realizados.all %}
+                      <li>{{ s.nombre }} - ${{ s.precio }}</li>
+                    {% empty %}<li>Sin servicios realizados</li>{% endfor %}
+                  </ul>
+                </div>
+              </div>
+              <div class="mt-2">
+                <p><strong>Total pagado:</strong> ${{ cita.total_pagado }}</p>
+                <p><strong>Saldo pendiente:</strong> ${{ cita.saldo_pendiente }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="historial" role="tabpanel">
+      <div class="row">
+        <!-- Panel de historial existente -->
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-clock-history"></i>
+                Historial Clínico del Paciente
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <a class="btn btn-outline-secondary btn-sm me-2" href="{% url 'core:paciente_history' cita.paciente.id %}"><i class="bi bi-clock-history"></i> Ver historial completo</a>
+                <a class="btn btn-outline-primary btn-sm me-2" href="{% url 'core:paciente_cuestionario' cita.paciente.id %}"><i class="bi bi-ui-checks"></i> Cuestionario</a>
+              </div>
+              
+              <!-- Mostrar últimas entradas del historial -->
+              <div class="historial-reciente">
+                <h6>Entradas Recientes:</h6>
+                {% for entrada in cita.paciente.historial_clinico.all|slice:":5" %}
+                <div class="border-start border-3 border-primary ps-3 mb-3">
+                  <div class="d-flex justify-content-between">
+                    <strong>{{ entrada.get_tipo_registro_display|default:"Registro" }}</strong>
+                    <small class="text-muted">{{ entrada.fecha_evento|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  <p class="mb-1">{{ entrada.descripcion_evento|truncatewords:25 }}</p>
+                  {% if entrada.registrado_por %}
+                    <small class="text-muted">Por: {{ entrada.registrado_por }}</small>
+                  {% endif %}
+                  {% if entrada.cita %}
+                    <small class="text-muted"> | Cita: {{ entrada.cita.id }}</small>
+                  {% endif %}
+                </div>
+                {% empty %}
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle"></i>
+                  No hay entradas en el historial clínico.
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Panel para agregar nueva entrada -->
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="bi bi-plus-circle"></i>
+                Nueva Entrada
+              </h6>
+            </div>
+            <div class="card-body">
+              <form id="form-historial" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="historial">
+                
+                <div class="mb-3">
+                  <label for="tipo_registro" class="form-label">Tipo de Registro</label>
+                  <select class="form-select" id="tipo_registro" name="tipo_registro" required>
+                    <option value="CONSULTA">Consulta General</option>
+                    <option value="DIAGNOSTICO">Diagnóstico</option>
+                    <option value="TRATAMIENTO">Tratamiento Realizado</option>
+                    <option value="SEGUIMIENTO">Seguimiento</option>
+                    <option value="OBSERVACION">Observación General</option>
+                    <option value="EMERGENCIA">Emergencia</option>
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="descripcion_evento" class="form-label">Descripción</label>
+                  <textarea class="form-control" id="descripcion_evento" name="descripcion_evento" rows="4" 
+                            placeholder="Descripción detallada del evento clínico..." required></textarea>
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Agregar al Historial
+                  </button>
+                </div>
+              </form>
+              
+              <hr>
+              
+              <div class="text-center">
+                <h6>Acceso Rápido</h6>
+                <a href="{% url 'core:historial_create' cliente_id=cita.paciente.id %}" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-file-earmark-plus"></i>
+                  Formulario Avanzado
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nueva pestaña de Tratamientos -->
+    <div class="tab-pane fade" id="tratamientos" role="tabpanel">
+      <div class="row">
+        <!-- Panel de tratamientos existentes -->
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-clipboard-pulse"></i>
+                Tratamientos Realizados
+              </h5>
+            </div>
+            <div class="card-body">
+              <div id="tratamientos-existentes">
+                {% for tratamiento in cita.tratamientos_realizados.all %}
+                <div class="border rounded p-3 mb-3">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">{{ tratamiento.dientes_formateados }}</h6>
+                    <small class="text-muted">{{ tratamiento.fecha_registro|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  <p class="mb-2"><strong>Descripción:</strong> {{ tratamiento.descripcion|truncatewords:20 }}</p>
+                  <p class="mb-2"><strong>Estado inicial:</strong> {{ tratamiento.estado_inicial_descripcion|truncatewords:15 }}</p>
+                  <p class="mb-2"><strong>Estado final:</strong> {{ tratamiento.estado_final_descripcion|truncatewords:15 }}</p>
+                  {% if tratamiento.trabajo_pendiente %}
+                    <div class="alert alert-warning py-2">
+                      <small><strong>Pendiente:</strong> {{ tratamiento.trabajo_pendiente }}</small>
+                    </div>
+                  {% endif %}
+                  {% if tratamiento.requiere_seguimiento %}
+                    <div class="alert alert-info py-2">
+                      <small><strong>Seguimiento:</strong> {{ tratamiento.fecha_seguimiento_sugerida|date:"d/m/Y" }}</small>
+                    </div>
+                  {% endif %}
+                  <small class="text-muted">Registrado por: {{ tratamiento.registrado_por }}</small>
+                </div>
+                {% empty %}
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle"></i>
+                  No se han registrado tratamientos para esta cita.
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Panel para registrar nuevo tratamiento -->
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="bi bi-plus-circle"></i>
+                Registrar Tratamiento
+              </h6>
+            </div>
+            <div class="card-body">
+              <form id="form-tratamiento" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="tratamiento">
+                <div class="mb-3">
+                  <label for="dientes_tratados" class="form-label">Dientes Tratados</label>
+                  <input type="text" class="form-control" id="dientes_tratados" name="dientes_tratados" 
+                         placeholder="Ej: 16,17,18" required>
+                  <div class="form-text">Separar múltiples dientes con comas</div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="descripcion" class="form-label">Tratamiento Realizado</label>
+                  <textarea class="form-control" id="descripcion" name="descripcion" rows="3" 
+                            placeholder="Descripción detallada del tratamiento" required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="estado_inicial" class="form-label">Estado Inicial</label>
+                  <textarea class="form-control" id="estado_inicial" name="estado_inicial" rows="2" 
+                            placeholder="Descripción del estado antes del tratamiento" required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="estado_final" class="form-label">Estado Final</label>
+                  <textarea class="form-control" id="estado_final" name="estado_final" rows="2" 
+                            placeholder="Descripción del estado después del tratamiento" required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="diagnostico_final_id" class="form-label">Diagnóstico Final</label>
+                  <select class="form-select" id="diagnostico_final_id" name="diagnostico_final_id" required>
+                    <option value="">Seleccionar diagnóstico...</option>
+                    {% for diagnostico in diagnosticos %}
+                    <option value="{{ diagnostico.id }}">{{ diagnostico.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="trabajo_pendiente" class="form-label">Trabajo Pendiente</label>
+                  <textarea class="form-control" id="trabajo_pendiente" name="trabajo_pendiente" rows="2" 
+                            placeholder="Trabajo que queda pendiente (opcional)"></textarea>
+                </div>
+                
+                <div class="mb-3 form-check">
+                  <input type="checkbox" class="form-check-input" id="requiere_seguimiento" name="requiere_seguimiento">
+                  <label class="form-check-label" for="requiere_seguimiento">
+                    Requiere seguimiento
+                  </label>
+                </div>
+                
+                <div class="mb-3" id="fecha-seguimiento-container" style="display: none;">
+                  <label for="fecha_seguimiento" class="form-label">Fecha de Seguimiento</label>
+                  <input type="date" class="form-control" id="fecha_seguimiento" name="fecha_seguimiento">
+                </div>
+                
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i>
+                    Registrar Tratamiento
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          <!-- Acceso rápido al odontograma -->
+          <div class="card mt-3">
+            <div class="card-body text-center">
+              <h6>Odontograma del Paciente</h6>
+              <a href="{% url 'core:odontograma_48' cita.paciente.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-diagram-2"></i>
+                Abrir Odontograma
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="pagos" role="tabpanel">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Pagos de la Cita</h5>
+          <ul>
+            {% for p in cita.pagos.all %}
+              <li>{{ p.fecha_pago }} - ${{ p.monto }} ({{ p.metodo_pago }})</li>
+            {% empty %}
+              <li>No hay pagos registrados.</li>
+            {% endfor %}
+          </ul>
+          <a href="{% url 'core:procesar_pago' cita.id %}" class="btn btn-success">Registrar pago</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const msg = document.getElementById('cita-action-msg');
+  function showMsg(text, ok=true){
+    msg.classList.remove('d-none','alert-success','alert-danger');
+    msg.classList.add(ok ? 'alert-success' : 'alert-danger');
+    msg.textContent = text;
+  }
+  function cambiarEstado(estado){
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    fetch('{% url "core:cita_cambiar_estado" cita.id %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With':'XMLHttpRequest' },
+      body: new URLSearchParams({ estado })
+    }).then(r => r.json()).then(data => {
+      if (data.success){
+        showMsg(data.message, true);
+        document.getElementById('cita-estado').textContent = estadoMap[estado] || estado;
+      } else {
+        showMsg(data.error || 'Error al cambiar estado', false);
+      }
+    }).catch(() => showMsg('Error de red', false));
+  }
+  const estadoMap = { PRO:'Programada', CON:'Confirmada', ATN:'Atendida', COM:'Completada', CAN:'Cancelada' };
+  ['pro','con','atn','com','can'].forEach(suf=>{
+    const btn = document.getElementById('btn-'+suf);
+    if (btn){ btn.addEventListener('click', function(){ cambiarEstado(this.dataset.estado); }); }
+  });
+  
+  // Manejar checkbox de seguimiento
+  const seguimientoCheck = document.getElementById('requiere_seguimiento');
+  const fechaSeguimientoContainer = document.getElementById('fecha-seguimiento-container');
+  
+  if (seguimientoCheck && fechaSeguimientoContainer) {
+    seguimientoCheck.addEventListener('change', function() {
+      fechaSeguimientoContainer.style.display = this.checked ? 'block' : 'none';
+      if (this.checked) {
+        // Sugerir fecha de seguimiento en 7 días
+        const fechaSugerida = new Date();
+        fechaSugerida.setDate(fechaSugerida.getDate() + 7);
+        document.getElementById('fecha_seguimiento').value = fechaSugerida.toISOString().split('T')[0];
+      }
+    });
+  }
+  
+  // Manejar formulario de tratamiento
+  const formTratamiento = document.getElementById('form-tratamiento');
+  if (formTratamiento) {
+    formTratamiento.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Deshabilitar botón para evitar doble envío
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-clock"></i> Guardando...';
+      
+      const formData = new FormData(this);
+      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      
+      fetch('{% url "core:cita_manage" cita.id %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showMsg(data.message, true);
+          // Limpiar formulario
+          this.reset();
+          fechaSeguimientoContainer.style.display = 'none';
+          // Recargar la página después de un momento para mostrar el nuevo tratamiento
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showMsg(data.error || 'Error al registrar tratamiento', false);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showMsg('Error de conexión', false);
+      })
+      .finally(() => {
+        // Rehabilitar botón
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      });
+    });
+  }
+  
+  // Manejar formulario de historial clínico
+  const formHistorial = document.getElementById('form-historial');
+  if (formHistorial) {
+    formHistorial.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Deshabilitar botón para evitar doble envío
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-clock"></i> Guardando...';
+      
+      const formData = new FormData(this);
+      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      
+      fetch('{% url "core:cita_manage" cita.id %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showMsg(data.message, true);
+          // Limpiar formulario
+          this.reset();
+          // Recargar la página después de un momento para mostrar la nueva entrada
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showMsg(data.error || 'Error al agregar entrada al historial', false);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showMsg('Error de conexión', false);
+      })
+      .finally(() => {
+        // Rehabilitar botón
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      });
+    });
+  }
+  
+  // Manejar formulario de tratamiento
+  const formTratamiento = document.getElementById('form-tratamiento');
+  if (formTratamiento) {
+    formTratamiento.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="bi bi-clock"></i> Registrando...';
+      
+      const formData = new FormData(this);
+      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      
+      fetch('{% url "core:cita_manage" cita.id %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showMsg(data.message, true);
+          this.reset();
+          // Recargar después de un momento para mostrar el nuevo tratamiento
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showMsg(data.error || 'Error al registrar tratamiento', false);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showMsg('Error de conexión', false);
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      });
+    });
+  }
+  
+  // Manejar mostrar/ocultar fecha de seguimiento
+  const checkboxSeguimiento = document.getElementById('requiere_seguimiento');
+  const contenedorFecha = document.getElementById('fecha-seguimiento-container');
+  
+  if (checkboxSeguimiento && contenedorFecha) {
+    checkboxSeguimiento.addEventListener('change', function() {
+      if (this.checked) {
+        contenedorFecha.style.display = 'block';
+        // Sugerir una fecha 7 días después
+        const fechaActual = new Date();
+        fechaActual.setDate(fechaActual.getDate() + 7);
+        const fechaSugerida = fechaActual.toISOString().split('T')[0];
+        document.getElementById('fecha_seguimiento').value = fechaSugerida;
+      } else {
+        contenedorFecha.style.display = 'none';
+        document.getElementById('fecha_seguimiento').value = '';
+      }
+    });
+  }
+
+</script>
+{% endblock %}

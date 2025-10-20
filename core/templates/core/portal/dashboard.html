@@ -36,7 +36,12 @@
                     <p class="fs-3 {% if saldo_total_pendiente > 0 %}text-danger{% else %}text-success{% endif %}">
                         ${{ saldo_total_pendiente|floatformat:2 }}
                     </p>
-                    <a href="{% url 'core:portal_pagos' %}" class="btn btn-primary">Ver Historial de Pagos</a>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'core:portal_pagos' %}" class="btn btn-primary">Ver Historial de Pagos</a>
+                        <a href="{% url 'core:portal_historial' %}" class="btn btn-outline-success">
+                            <i class="fas fa-file-medical-alt me-2"></i>Mi Historial Clínico
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

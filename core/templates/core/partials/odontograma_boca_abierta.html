@@ -1,0 +1,478 @@
+{% load math_filters %}
+<div id="odontograma-boca-abierta" class="odontograma-boca-abierta">
+    <style>
+        .odontograma-boca-abierta {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        .odontograma-boca-abierta svg {
+            width: 100%;
+            height: auto;
+            background: linear-gradient(135deg, #f8fdff 0%, #e8f4fd 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 123, 255, 0.15);
+            border: 2px solid #e3f2fd;
+        }
+        
+        /* Dientes con forma de U */
+        .diente-u {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .diente-u:hover {
+            filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));
+        }
+        
+        .diente-u.selected {
+            filter: drop-shadow(0 0 12px rgba(255, 193, 7, 1));
+        }
+        
+        .diente-forma {
+            fill: #ffffff;
+            stroke: #37474f;
+            stroke-width: 1.5;
+            transition: all 0.2s ease;
+        }
+        
+        .diente-numero {
+            font-family: 'Arial', sans-serif;
+            font-size: 10px;
+            font-weight: bold;
+            fill: #263238;
+            text-anchor: middle;
+            pointer-events: none;
+            dominant-baseline: central;
+        }
+        
+        /* Estados de diagnóstico */
+        .diente-u.sano .diente-forma { 
+            fill: #4caf50;
+            stroke: #2e7d32;
+        }
+        .diente-u.caries .diente-forma { 
+            fill: #f44336;
+            stroke: #c62828;
+        }
+        .diente-u.obturada .diente-forma { 
+            fill: #ff9800;
+            stroke: #ef6c00;
+        }
+        .diente-u.corona .diente-forma { 
+            fill: #2196f3;
+            stroke: #1565c0;
+        }
+        .diente-u.extraida .diente-forma { 
+            fill: #9e9e9e;
+            stroke: #424242;
+            stroke-dasharray: 5,3;
+            opacity: 0.7;
+        }
+        .diente-u.implante .diente-forma { 
+            fill: #00bcd4;
+            stroke: #006064;
+            stroke-width: 2.5;
+        }
+        .diente-u.endodoncia .diente-forma { 
+            fill: #e91e63;
+            stroke: #ad1457;
+        }
+        
+        /* Supernumerarios en paneles */
+        .supernumerario .diente-forma {
+            stroke: #ff5722;
+            stroke-dasharray: 3,2;
+            opacity: 0.8;
+        }
+        
+        .supernumerario .diente-numero {
+            fill: #ff5722;
+            font-size: 8px;
+        }
+        
+        .etiqueta-boca {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            fill: #455a64;
+            text-anchor: middle;
+        }
+        
+        .panel-extra {
+            fill: #f5f5f5;
+            stroke: #ddd;
+            stroke-width: 1;
+            opacity: 0.7;
+        }
+    </style>
+    
+    <div class="text-center mb-3">
+        <h4 style="color: #37474f; margin-bottom: 10px; font-weight: 600;">
+            🦷 Odontograma - Vista de Boca Abierta
+        </h4>
+        <p style="color: #78909c; font-size: 0.9rem;">Vista superior como en el consultorio dental</p>
+    </div>
+    
+    <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fondo sutil -->
+        <rect width="1000" height="600" fill="#fafbfc" opacity="0.5"/>
+        
+        <!-- Etiquetas -->
+        <text x="500" y="50" class="etiqueta-boca">VISTA DE BOCA ABIERTA OVALADA</text>
+        <text x="500" y="580" class="etiqueta-boca">Vista superior como en el consultorio dental</text>
+        
+        <!-- ==================== FORMA OVALADA DE BOCA ABIERTA ==================== -->
+        <!-- Dientes siguiendo curvatura elíptica natural de la boca -->
+        <!-- Los dientes forman un óvalo continuo como una boca real abierta -->
+        
+        <!-- ARCADA SUPERIOR - Mitad superior del óvalo (1-16) -->
+        
+        <!-- Diente 1 - Molar extremo derecho superior -->
+        <g class="diente-u" id="diente-1">
+            <path d="M 160 180 Q 180 170 200 180 Q 205 200 200 220 Q 180 230 160 220 Q 155 200 160 180 Z" class="diente-forma"/>
+            <text x="180" y="200" class="diente-numero">1</text>
+        </g>
+        
+        <!-- Diente 2 -->
+        <g class="diente-u" id="diente-2">
+            <path d="M 200 180 Q 220 165 240 180 Q 245 200 240 220 Q 220 235 200 220 Q 195 200 200 180 Z" class="diente-forma"/>
+            <text x="220" y="200" class="diente-numero">2</text>
+        </g>
+        
+        <!-- Diente 3 -->
+        <g class="diente-u" id="diente-3">
+            <path d="M 240 180 Q 260 150 280 180 Q 285 200 280 220 Q 260 250 240 220 Q 235 200 240 180 Z" class="diente-forma"/>
+            <text x="260" y="200" class="diente-numero">3</text>
+        </g>
+        
+        <!-- Diente 4 -->
+        <g class="diente-u" id="diente-4">
+            <path d="M 280 180 Q 300 135 320 180 Q 325 198 320 216 Q 300 261 280 216 Q 275 198 280 180 Z" class="diente-forma"/>
+            <text x="300" y="198" class="diente-numero">4</text>
+        </g>
+        
+        <!-- Diente 5 -->
+        <g class="diente-u" id="diente-5">
+            <path d="M 320 180 Q 340 120 360 180 Q 365 198 360 216 Q 340 276 320 216 Q 315 198 320 180 Z" class="diente-forma"/>
+            <text x="340" y="198" class="diente-numero">5</text>
+        </g>
+        
+        <!-- Diente 6 -->
+        <g class="diente-u" id="diente-6">
+            <path d="M 360 180 Q 380 105 400 180 Q 405 202 400 224 Q 380 299 360 224 Q 355 202 360 180 Z" class="diente-forma"/>
+            <text x="380" y="202" class="diente-numero">6</text>
+        </g>
+        
+        <!-- Diente 7 -->
+        <g class="diente-u" id="diente-7">
+            <path d="M 400 180 Q 418 90 436 180 Q 441 200 436 220 Q 418 310 400 220 Q 395 200 400 180 Z" class="diente-forma"/>
+            <text x="418" y="200" class="diente-numero">7</text>
+        </g>
+        
+        <!-- Diente 8 (Incisivo central superior derecho) -->
+        <g class="diente-u" id="diente-8">
+            <path d="M 436 180 Q 456 75 476 180 Q 481 202 476 224 Q 456 329 436 224 Q 431 202 436 180 Z" class="diente-forma"/>
+            <text x="456" y="202" class="diente-numero">8</text>
+        </g>
+        
+        <!-- Diente 9 (Incisivo central superior izquierdo) -->
+        <g class="diente-u" id="diente-9">
+            <path d="M 524 180 Q 544 75 564 180 Q 569 202 564 224 Q 544 329 524 224 Q 519 202 524 180 Z" class="diente-forma"/>
+            <text x="544" y="202" class="diente-numero">9</text>
+        </g>
+        
+        <!-- Diente 10 -->
+        <g class="diente-u" id="diente-10">
+            <path d="M 564 180 Q 582 90 600 180 Q 605 200 600 220 Q 582 310 564 220 Q 559 200 564 180 Z" class="diente-forma"/>
+            <text x="582" y="200" class="diente-numero">10</text>
+        </g>
+        
+        <!-- Diente 11 -->
+        <g class="diente-u" id="diente-11">
+            <path d="M 600 180 Q 620 105 640 180 Q 645 202 640 224 Q 620 299 600 224 Q 595 202 600 180 Z" class="diente-forma"/>
+            <text x="620" y="202" class="diente-numero">11</text>
+        </g>
+        
+        <!-- Diente 12 -->
+        <g class="diente-u" id="diente-12">
+            <path d="M 640 180 Q 660 120 680 180 Q 685 198 680 216 Q 660 276 640 216 Q 635 198 640 180 Z" class="diente-forma"/>
+            <text x="660" y="198" class="diente-numero">12</text>
+        </g>
+        
+        <!-- Diente 13 -->
+        <g class="diente-u" id="diente-13">
+            <path d="M 680 180 Q 700 135 720 180 Q 725 198 720 216 Q 700 261 680 216 Q 675 198 680 180 Z" class="diente-forma"/>
+            <text x="700" y="198" class="diente-numero">13</text>
+        </g>
+        
+        <!-- Diente 14 -->
+        <g class="diente-u" id="diente-14">
+            <path d="M 720 180 Q 740 150 760 180 Q 765 200 760 220 Q 740 250 720 220 Q 715 200 720 180 Z" class="diente-forma"/>
+            <text x="740" y="200" class="diente-numero">14</text>
+        </g>
+        
+        <!-- Diente 15 -->
+        <g class="diente-u" id="diente-15">
+            <path d="M 760 180 Q 780 165 800 180 Q 805 200 800 220 Q 780 235 760 220 Q 755 200 760 180 Z" class="diente-forma"/>
+            <text x="780" y="200" class="diente-numero">15</text>
+        </g>
+        
+        <!-- Diente 16 - Molar extremo izquierdo superior -->
+        <g class="diente-u" id="diente-16">
+            <path d="M 800 180 Q 820 170 840 180 Q 845 200 840 220 Q 820 230 800 220 Q 795 200 800 180 Z" class="diente-forma"/>
+            <text x="820" y="200" class="diente-numero">16</text>
+        </g>
+        
+        <!-- ARCADA INFERIOR - Mitad inferior del óvalo (17-32) -->
+        
+        <!-- Diente 17 - Molar extremo derecho inferior -->
+        <g class="diente-u" id="diente-17">
+            <path d="M 160 420 Q 180 430 200 420 Q 205 400 200 380 Q 180 370 160 380 Q 155 400 160 420 Z" class="diente-forma"/>
+            <text x="180" y="400" class="diente-numero">17</text>
+        </g>
+        
+        <!-- Diente 18 -->
+        <g class="diente-u" id="diente-18">
+            <path d="M 200 420 Q 220 435 240 420 Q 245 400 240 380 Q 220 365 200 380 Q 195 400 200 420 Z" class="diente-forma"/>
+            <text x="220" y="400" class="diente-numero">18</text>
+        </g>
+        
+        <!-- Diente 19 -->
+        <g class="diente-u" id="diente-19">
+            <path d="M 240 420 Q 260 450 280 420 Q 285 400 280 380 Q 260 350 240 380 Q 235 400 240 420 Z" class="diente-forma"/>
+            <text x="260" y="400" class="diente-numero">19</text>
+        </g>
+        
+        <!-- Diente 20 -->
+        <g class="diente-u" id="diente-20">
+            <path d="M 280 420 Q 300 465 320 420 Q 325 402 320 384 Q 300 339 280 384 Q 275 402 280 420 Z" class="diente-forma"/>
+            <text x="300" y="402" class="diente-numero">20</text>
+        </g>
+        
+        <!-- Diente 21 -->
+        <g class="diente-u" id="diente-21">
+            <path d="M 320 420 Q 340 480 360 420 Q 365 402 360 384 Q 340 324 320 384 Q 315 402 320 420 Z" class="diente-forma"/>
+            <text x="340" y="402" class="diente-numero">21</text>
+        </g>
+        
+        <!-- Diente 22 -->
+        <g class="diente-u" id="diente-22">
+            <path d="M 360 420 Q 380 495 400 420 Q 405 398 400 376 Q 380 301 360 376 Q 355 398 360 420 Z" class="diente-forma"/>
+            <text x="380" y="398" class="diente-numero">22</text>
+        </g>
+        
+        <!-- Diente 23 -->
+        <g class="diente-u" id="diente-23">
+            <path d="M 400 420 Q 418 510 436 420 Q 441 400 436 380 Q 418 290 400 380 Q 395 400 400 420 Z" class="diente-forma"/>
+            <text x="418" y="400" class="diente-numero">23</text>
+        </g>
+        
+        <!-- Diente 24 (Incisivo central inferior derecho) -->
+        <g class="diente-u" id="diente-24">
+            <path d="M 436 420 Q 456 525 476 420 Q 481 398 476 376 Q 456 271 436 376 Q 431 398 436 420 Z" class="diente-forma"/>
+            <text x="456" y="398" class="diente-numero">24</text>
+        </g>
+        
+        <!-- Diente 25 (Incisivo central inferior izquierdo) -->
+        <g class="diente-u" id="diente-25">
+            <path d="M 524 420 Q 544 525 564 420 Q 569 398 564 376 Q 544 271 524 376 Q 519 398 524 420 Z" class="diente-forma"/>
+            <text x="544" y="398" class="diente-numero">25</text>
+        </g>
+        
+        <!-- Diente 26 -->
+        <g class="diente-u" id="diente-26">
+            <path d="M 564 420 Q 582 510 600 420 Q 605 400 600 380 Q 582 290 564 380 Q 559 400 564 420 Z" class="diente-forma"/>
+            <text x="582" y="400" class="diente-numero">26</text>
+        </g>
+        
+        <!-- Diente 27 -->
+        <g class="diente-u" id="diente-27">
+            <path d="M 600 420 Q 620 495 640 420 Q 645 398 640 376 Q 620 301 600 376 Q 595 398 600 420 Z" class="diente-forma"/>
+            <text x="620" y="398" class="diente-numero">27</text>
+        </g>
+        
+        <!-- Diente 28 -->
+        <g class="diente-u" id="diente-28">
+            <path d="M 640 420 Q 660 480 680 420 Q 685 402 680 384 Q 660 324 640 384 Q 635 402 640 420 Z" class="diente-forma"/>
+            <text x="660" y="402" class="diente-numero">28</text>
+        </g>
+        
+        <!-- Diente 29 -->
+        <g class="diente-u" id="diente-29">
+            <path d="M 680 420 Q 700 465 720 420 Q 725 402 720 384 Q 700 339 680 384 Q 675 402 680 420 Z" class="diente-forma"/>
+            <text x="700" y="402" class="diente-numero">29</text>
+        </g>
+        
+        <!-- Diente 30 -->
+        <g class="diente-u" id="diente-30">
+            <path d="M 720 420 Q 740 450 760 420 Q 765 400 760 380 Q 740 350 720 380 Q 715 400 720 420 Z" class="diente-forma"/>
+            <text x="740" y="400" class="diente-numero">30</text>
+        </g>
+        
+        <!-- Diente 31 -->
+        <g class="diente-u" id="diente-31">
+            <path d="M 760 420 Q 780 435 800 420 Q 805 400 800 380 Q 780 365 760 380 Q 755 400 760 420 Z" class="diente-forma"/>
+            <text x="780" y="400" class="diente-numero">31</text>
+        </g>
+        
+        <!-- Diente 32 - Molar extremo izquierdo inferior -->
+        <g class="diente-u" id="diente-32">
+            <path d="M 800 420 Q 820 430 840 420 Q 845 400 840 380 Q 820 370 800 380 Q 795 400 800 420 Z" class="diente-forma"/>
+            <text x="820" y="400" class="diente-numero">32</text>
+        </g>
+        
+        <!-- ==================== CONTORNO OVALADO DE BOCA ABIERTA ==================== -->
+        <!-- Contorno exterior de la boca para simular apertura real -->
+        <ellipse cx="500" cy="300" rx="420" ry="220" fill="none" stroke="#ccc" stroke-width="3" opacity="0.4"/>
+        
+        <!-- Encías superiores e inferiores con contorno curvo realista -->
+        <path d="M 120 200 Q 300 60 500 60 Q 700 60 880 200" fill="none" stroke="#ffb3ba" stroke-width="4" opacity="0.7"/>
+        <path d="M 120 400 Q 300 540 500 540 Q 700 540 880 400" fill="none" stroke="#ffb3ba" stroke-width="4" opacity="0.7"/>
+        
+        <!-- Lengua sutil en el centro para mayor realismo -->
+        <ellipse cx="500" cy="320" rx="90" ry="50" fill="#ffcccb" opacity="0.5" stroke="#ff9999" stroke-width="2"/>
+        
+        <!-- Sombras sutiles dentro de la boca -->
+        <ellipse cx="500" cy="280" rx="380" ry="180" fill="none" stroke="#e0e0e0" stroke-width="1" opacity="0.3"/>
+        
+        <!-- ==================== SUPERNUMERARIOS (33-48) ==================== -->
+        
+        <!-- Panel izquierdo -->
+        <rect x="10" y="250" width="40" height="300" rx="5" ry="5" class="panel-extra"/>
+        <text x="30" y="240" class="etiqueta-boca" font-size="9">EXTRAS</text>
+        
+        <g class="diente-u supernumerario" id="diente-33">
+            <rect x="18" y="260" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="269" class="diente-numero">33</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-34">
+            <rect x="18" y="285" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="294" class="diente-numero">34</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-35">
+            <rect x="18" y="310" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="319" class="diente-numero">35</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-36">
+            <rect x="18" y="335" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="344" class="diente-numero">36</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-37">
+            <rect x="18" y="360" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="369" class="diente-numero">37</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-38">
+            <rect x="18" y="385" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="394" class="diente-numero">38</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-39">
+            <rect x="18" y="410" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="419" class="diente-numero">39</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-40">
+            <rect x="18" y="435" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="25" y="444" class="diente-numero">40</text>
+        </g>
+        
+        <!-- Panel derecho -->
+        <rect x="750" y="250" width="40" height="300" rx="5" ry="5" class="panel-extra"/>
+        <text x="770" y="240" class="etiqueta-boca" font-size="9">EXTRAS</text>
+        
+        <g class="diente-u supernumerario" id="diente-41">
+            <rect x="758" y="260" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="269" class="diente-numero">41</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-42">
+            <rect x="758" y="285" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="294" class="diente-numero">42</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-43">
+            <rect x="758" y="310" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="319" class="diente-numero">43</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-44">
+            <rect x="758" y="335" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="344" class="diente-numero">44</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-45">
+            <rect x="758" y="360" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="369" class="diente-numero">45</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-46">
+            <rect x="758" y="385" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="394" class="diente-numero">46</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-47">
+            <rect x="758" y="410" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="419" class="diente-numero">47</text>
+        </g>
+        <g class="diente-u supernumerario" id="diente-48">
+            <rect x="758" y="435" width="14" height="18" rx="2" ry="2" class="diente-forma"/>
+            <text x="765" y="444" class="diente-numero">48</text>
+        </g>
+    </svg>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    function log(mensaje) {
+        console.log(`[ODONTOGRAMA BOCA ABIERTA] ${mensaje}`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        log('Iniciando odontograma vista boca abierta');
+        
+        const dientes = document.querySelectorAll('.diente-u');
+        log(`Configurando ${dientes.length} dientes en forma de U`);
+        
+        dientes.forEach(function(diente, index) {
+            diente.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                log(`Clic en ${diente.id}`);
+                
+                // Quitar selección anterior
+                document.querySelectorAll('.diente-u').forEach(d => {
+                    d.classList.remove('selected');
+                });
+                
+                // Seleccionar este diente
+                diente.classList.add('selected');
+                
+                const numero = diente.id.replace('diente-', '');
+                log(`Diente ${numero} seleccionado`);
+                
+                // Emitir evento compatible
+                const evento = new CustomEvent('dienteSeleccionado', {
+                    detail: { 
+                        numero: numero, 
+                        elemento: diente,
+                        tipo: 'boca-abierta'
+                    },
+                    bubbles: true
+                });
+                
+                document.dispatchEvent(evento);
+                
+                // Feedback visual suave
+                const forma = diente.querySelector('.diente-forma');
+                if (forma) {
+                    const originalFilter = forma.style.filter;
+                    forma.style.filter = 'brightness(1.2)';
+                    setTimeout(() => {
+                        forma.style.filter = originalFilter;
+                    }, 200);
+                }
+            });
+        });
+        
+        log('✅ Odontograma boca abierta listo - U invertida arriba, U normal abajo');
+    });
+})();
+</script>

@@ -1,0 +1,1051 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Odontograma Completo - {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    /* Estilos específicos para el odontograma de 48 dientes */
+    .odontograma-container {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .diagnostico-panel {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .diagnostico-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        margin: 4px 0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+    }
+
+    .diagnostico-item:hover {
+        background: #f8f9fa;
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .diagnostico-item.active {
+        border-color: #007bff;
+        background: #e3f2fd;
+        box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        transform: translateX(8px) scale(1.02);
+    }
+    
+    .diagnostico-item.active::after {
+        content: "✓ SELECCIONADO";
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.7rem;
+        color: #007bff;
+        font-weight: bold;
+    }
+
+    .diagnostico-color {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        margin-right: 10px;
+        border: 2px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .herramientas-panel {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .color-personalizado {
+        width: 100%;
+        height: 40px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .diente-info {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        min-height: 200px;
+    }
+
+    .diente-numero {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007bff;
+    }
+
+    .diente-tipo {
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+
+    .historial-diente {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .historial-item {
+        border-left: 4px solid #007bff;
+        padding: 10px 15px;
+        margin: 10px 0;
+        background: #f8f9fa;
+        border-radius: 0 6px 6px 0;
+    }
+
+    .btn-guardar-cambios {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 1000;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .estado-guardado {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .estado-modificado {
+        color: #ffc107;
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .btn-guardar-cambios {
+            bottom: 20px;
+            right: 20px;
+        }
+    }
+
+    /* Estilos para alertas flotantes */
+    .alert-flotante {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="fas fa-tooth text-primary"></i>
+                        Odontograma Completo (48 Dientes)
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                        <span class="ms-3">
+                            <i class="fas fa-calendar"></i>
+                            {% now "d/m/Y" %}
+                        </span>
+                    </p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'core:paciente_detail' paciente.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al Paciente
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" id="btn-vista-previa">
+                        <i class="fas fa-print"></i> Vista Previa
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="btn-exportar">
+                        <i class="fas fa-download"></i> Exportar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel izquierdo: Herramientas -->
+        <div class="col-lg-3 mb-4">
+            <!-- Diagnósticos disponibles -->
+            <div class="diagnostico-panel mb-4">
+                <h5 class="fw-bold mb-3">
+                    <i class="fas fa-stethoscope text-primary"></i>
+                    Diagnósticos
+                    <small class="d-block text-muted mt-1" style="font-size: 0.8rem;">
+                        ☝️ Selecciona un diente, luego haz clic en un diagnóstico
+                    </small>
+                </h5>
+                <div id="diagnosticos-lista">
+                    {% for diagnostico in diagnosticos %}
+                    <div class="diagnostico-item" 
+                         data-diagnostico-id="{{ diagnostico.id }}"
+                         data-diagnostico-nombre="{{ diagnostico.nombre }}"
+                         data-diagnostico-color="{{ diagnostico.color_hex }}"
+                         data-diagnostico-icono="{{ diagnostico.icono_svg }}"
+                         title="Haz clic para aplicar este diagnóstico al diente seleccionado">
+                        <div class="diagnostico-color" style="background-color: {{ diagnostico.color_hex }};"></div>
+                        <span class="fw-semibold">{{ diagnostico.nombre }}</span>
+                        <i class="fas fa-hand-pointer ms-auto text-muted" style="font-size: 0.8rem;"></i>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Herramientas adicionales -->
+            <div class="herramientas-panel mb-4">
+                <h5 class="fw-bold mb-3">
+                    <i class="fas fa-tools text-primary"></i>
+                    Herramientas
+                </h5>
+                
+                <div class="mb-3">
+                    <label for="color-personalizado" class="form-label fw-semibold">Color Personalizado</label>
+                    <input type="color" class="color-personalizado" id="color-personalizado" value="#ffffff">
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" id="btn-limpiar-diente">
+                        <i class="fas fa-eraser"></i> Limpiar Diente
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" id="btn-deshacer">
+                        <i class="fas fa-undo"></i> Deshacer
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" id="btn-guardar">
+                        <i class="fas fa-save"></i> Guardar Todo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Información del diente seleccionado -->
+            <div class="diente-info">
+                <h5 class="fw-bold mb-3">
+                    <i class="fas fa-info-circle text-primary"></i>
+                    Diente Seleccionado
+                </h5>
+                
+                <div id="diente-seleccionado-info">
+                    <div class="text-center py-4">
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>Cómo usar:</strong>
+                            <ol class="mt-2 mb-0 text-start">
+                                <li>Haz clic en un <strong>diente</strong></li>
+                                <li>Selecciona un <strong>diagnóstico</strong></li>
+                                <li>El diente cambiará de <strong>color</strong></li>
+                                <li>Haz clic en <strong>"Guardar"</strong></li>
+                            </ol>
+                        </div>
+                        <p class="text-muted">
+                            <i class="fas fa-mouse-pointer fa-2x mb-2 d-block"></i>
+                            Ningún diente seleccionado
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel central: Odontograma -->
+        <div class="col-lg-9">
+            <div class="odontograma-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-teeth text-primary"></i>
+                        Vista Odontológica Completa
+                    </h4>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" id="btn-zoom-out">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btn-zoom-reset">
+                            <i class="fas fa-expand"></i> Ajustar
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="btn-zoom-in">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Odontograma SVG limpio basado en el test exitoso -->
+                {% include 'core/partials/odontograma_svg_limpio.html' %}
+            </div>
+
+            <!-- Panel de historial del diente seleccionado -->
+            <div class="card mt-4" id="historial-panel" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history text-primary"></i>
+                        Historial del Diente
+                        <span id="historial-diente-numero" class="badge bg-primary ms-2"></span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="historial-diente" id="historial-contenido">
+                        <!-- Se carga dinámicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botón flotante para guardar cambios -->
+<button type="button" class="btn btn-success btn-lg btn-guardar-cambios" id="btn-guardar-flotante" style="display: none;">
+    <i class="fas fa-save"></i>
+    <span class="d-none d-sm-inline ms-2">Guardar Cambios</span>
+</button>
+
+<!-- Modal para confirmaciones -->
+<div class="modal fade" id="confirmacionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Acción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-accion">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para vista previa e impresión -->
+<div class="modal fade" id="vistaPreviaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vista Previa del Odontograma</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div id="vista-previa-contenido">
+                        <!-- Se clona el odontograma aquí -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btn-imprimir">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando sistema odontograma');
+    let odontograma48 = new Odontograma48Manager({{ paciente.id }});
+});
+
+class Odontograma48Manager {
+    constructor(pacienteId) {
+        this.pacienteId = pacienteId;
+        this.dienteSeleccionado = null;
+        this.diagnosticoSeleccionado = null;
+        this.cambiosPendientes = new Map();
+        this.init();
+    }
+
+    init() {
+        this.cargarDatosOdontograma();
+        this.configurarEventos();
+        this.configurarDiagnosticos();
+    }
+
+    async cargarDatosOdontograma() {
+        try {
+            const response = await fetch(`/api/odontograma/${this.pacienteId}/`);
+            const data = await response.json();
+            
+            if (data.dientes) {
+                this.aplicarEstadosDientes(data.dientes);
+                this.mostrarAlerta('Odontograma cargado correctamente', 'success');
+            }
+        } catch (error) {
+            console.error('Error al cargar odontograma:', error);
+            this.mostrarAlerta('Error al cargar el odontograma', 'danger');
+        }
+    }
+
+    aplicarEstadosDientes(dientes) {
+        console.log('🔄 Aplicando estados de dientes desde la API');
+        
+        for (const [numeroDienteFDI, estado] of Object.entries(dientes)) {
+            // Convertir numeración FDI a secuencial para encontrar el elemento
+            const numeroDienteSecuencial = this.convertirNumeroSecuencial(numeroDienteFDI);
+            const dienteElement = document.getElementById(`diente-${numeroDienteSecuencial}`);
+            
+            console.log('🔄 Convirtiendo diente:', {
+                fdi: numeroDienteFDI,
+                secuencial: numeroDienteSecuencial,
+                elemento_encontrado: !!dienteElement,
+                estado: estado.diagnostico_nombre
+            });
+            
+            if (dienteElement) {
+                this.aplicarEstadoDiente(dienteElement, estado);
+            }
+        }
+    }
+
+    aplicarEstadoDiente(dienteElement, estado) {
+        // Aplicar clase de diagnóstico
+        dienteElement.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        dienteElement.classList.add(estado.diagnostico_nombre.toLowerCase());
+        
+        console.log('Estado aplicado al diente:', dienteElement.id, estado.diagnostico_nombre);
+    }
+
+    aplicarIconoDiente(dienteElement, iconoSvg) {
+        const iconoContainer = dienteElement.querySelector('.icono-container');
+        if (iconoContainer && iconoSvg) {
+            iconoContainer.innerHTML = iconoSvg;
+        }
+    }
+
+    configurarEventos() {
+        // Event listener para el odontograma SVG
+        document.addEventListener('dienteSeleccionado', (e) => {
+            const numeroDiente = e.detail.numero;
+            const dienteElement = e.detail.elemento;
+            
+            console.log('🦷 SISTEMA: Diente seleccionado:', numeroDiente);
+            
+            this.dienteSeleccionado = dienteElement;
+            this.mostrarInformacionDiente(numeroDiente);
+            
+            // Mostrar alerta de confirmación
+            this.mostrarAlerta(`Diente ${numeroDiente} seleccionado`, 'info');
+            
+            // Aplicar diagnóstico si hay uno seleccionado
+            if (this.diagnosticoSeleccionado) {
+                console.log('Aplicando diagnóstico:', this.diagnosticoSeleccionado.nombre);
+                this.aplicarDiagnosticoAlDiente();
+            }
+        });
+
+        // Botones de herramientas (con protección)
+        const btnGuardar = document.getElementById('btn-guardar');
+        if (btnGuardar) {
+            btnGuardar.addEventListener('click', () => {
+                this.guardarCambios();
+            });
+        }
+
+        const btnGuardarFlotante = document.getElementById('btn-guardar-flotante');
+        if (btnGuardarFlotante) {
+            btnGuardarFlotante.addEventListener('click', () => {
+                this.guardarCambios();
+            });
+        }
+
+        const btnLimpiar = document.getElementById('btn-limpiar-diente');
+        if (btnLimpiar) {
+            btnLimpiar.addEventListener('click', () => {
+                this.limpiarDienteSeleccionado();
+            });
+        }
+
+        const btnDeshacer = document.getElementById('btn-deshacer');
+        if (btnDeshacer) {
+            btnDeshacer.addEventListener('click', () => {
+                this.deshacerCambios();
+            });
+        }
+
+        // Eventos de zoom (con protección)
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        if (btnZoomIn) {
+            btnZoomIn.addEventListener('click', () => {
+                this.aplicarZoom(1.2);
+            });
+        }
+
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        if (btnZoomOut) {
+            btnZoomOut.addEventListener('click', () => {
+                this.aplicarZoom(0.8);
+            });
+        }
+
+        const btnZoomReset = document.getElementById('btn-zoom-reset');
+        if (btnZoomReset) {
+            btnZoomReset.addEventListener('click', () => {
+                this.resetearZoom();
+            });
+        }
+
+        // Vista previa (con protección)
+        const btnVistaPrevia = document.getElementById('btn-vista-previa');
+        if (btnVistaPrevia) {
+            btnVistaPrevia.addEventListener('click', () => {
+                this.mostrarVistaPrevia();
+            });
+        }
+
+        const btnImprimir = document.getElementById('btn-imprimir');
+        if (btnImprimir) {
+            btnImprimir.addEventListener('click', () => {
+                this.imprimir();
+            });
+        }
+    }
+
+    configurarDiagnosticos() {
+        document.querySelectorAll('.diagnostico-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                this.seleccionarDiagnostico(e.currentTarget);
+            });
+        });
+
+        // Color personalizado (con protección)
+        const colorPersonalizado = document.getElementById('color-personalizado');
+        if (colorPersonalizado) {
+            colorPersonalizado.addEventListener('change', (e) => {
+                this.aplicarColorPersonalizado(e.target.value);
+            });
+        }
+    }
+
+    seleccionarDiente(dienteElement) {
+        // Remover selección anterior
+        document.querySelectorAll('.diente').forEach(d => d.classList.remove('selected'));
+        
+        // Seleccionar nuevo diente
+        dienteElement.classList.add('selected');
+        this.dienteSeleccionado = dienteElement;
+        
+        const numeroDiente = dienteElement.id.replace('diente-', '');
+        this.mostrarInformacionDiente(numeroDiente);
+        
+        // Aplicar diagnóstico seleccionado si hay uno
+        if (this.diagnosticoSeleccionado) {
+            this.aplicarDiagnosticoADiente();
+        }
+    }
+
+    seleccionarDiagnostico(diagnosticoElement) {
+        console.log('📊 DIAGNÓSTICO: Seleccionado', diagnosticoElement.dataset.diagnosticoNombre);
+        
+        // Remover selección anterior
+        document.querySelectorAll('.diagnostico-item').forEach(d => d.classList.remove('active'));
+        
+        // Seleccionar nuevo diagnóstico
+        diagnosticoElement.classList.add('active');
+        this.diagnosticoSeleccionado = {
+            id: diagnosticoElement.dataset.diagnosticoId,
+            nombre: diagnosticoElement.dataset.diagnosticoNombre,
+            color: diagnosticoElement.dataset.diagnosticoColor,
+            icono: diagnosticoElement.dataset.diagnosticoIcono
+        };
+        
+        console.log('📊 Diagnóstico configurado:', this.diagnosticoSeleccionado);
+        
+        // Si hay un diente seleccionado, aplicar inmediatamente
+        if (this.dienteSeleccionado) {
+            console.log('🚀 Aplicando diagnóstico automáticamente');
+            this.aplicarDiagnosticoAlDiente();
+        } else {
+            this.mostrarAlerta('Primero selecciona un diente, luego el diagnóstico', 'warning');
+        }
+    }
+
+    aplicarDiagnosticoADiente() {
+        this.aplicarDiagnosticoAlDiente();
+    }
+    
+    convertirNumeroFDI(numeroSecuencial) {
+        // Convertir numeración secuencial (1-48) a FDI
+        const num = parseInt(numeroSecuencial);
+        
+        // Dientes 1-16: Arcada superior
+        if (num >= 1 && num <= 8) {
+            // Superior derecho: 1->18, 2->17, 3->16, 4->15, 5->14, 6->13, 7->12, 8->11
+            return 19 - num;
+        } else if (num >= 9 && num <= 16) {
+            // Superior izquierdo: 9->21, 10->22, 11->23, 12->24, 13->25, 14->26, 15->27, 16->28
+            return num + 12;
+        }
+        // Dientes 17-32: Arcada inferior
+        else if (num >= 17 && num <= 24) {
+            // Inferior derecho: 17->48, 18->47, 19->46, 20->45, 21->44, 22->43, 23->42, 24->41
+            return 65 - num;
+        } else if (num >= 25 && num <= 32) {
+            // Inferior izquierdo: 25->31, 26->32, 27->33, 28->34, 29->35, 30->36, 31->37, 32->38
+            return num + 6;
+        }
+        // Supernumerarios 33-48
+        else if (num >= 33 && num <= 48) {
+            // Mapeo directo por ahora - necesitarás ajustar según tu sistema
+            const supernumerarios = {
+                33: 19, 34: 110, 35: 29, 36: 210,
+                37: 39, 38: 310, 39: 49, 40: 410,
+                41: 19, 42: 110, 43: 29, 44: 210,
+                45: 39, 46: 310, 47: 49, 48: 410
+            };
+            return supernumerarios[num] || num;
+        }
+        
+        return num; // Fallback
+    }
+    
+    convertirNumeroSecuencial(numeroFDI) {
+        // Convertir numeración FDI a secuencial (1-48)
+        const num = parseInt(numeroFDI);
+        
+        // Cuadrante I (11-18) -> Superior derecho (8-1)
+        if (num >= 11 && num <= 18) {
+            return 19 - num;
+        }
+        // Cuadrante II (21-28) -> Superior izquierdo (9-16)
+        else if (num >= 21 && num <= 28) {
+            return num - 12;
+        }
+        // Cuadrante IV (41-48) -> Inferior derecho (24-17)
+        else if (num >= 41 && num <= 48) {
+            return 65 - num;
+        }
+        // Cuadrante III (31-38) -> Inferior izquierdo (25-32)
+        else if (num >= 31 && num <= 38) {
+            return num - 6;
+        }
+        // Supernumerarios
+        else if (num == 19) return 33;
+        else if (num == 110) return 34;
+        else if (num == 29) return 35;
+        else if (num == 210) return 36;
+        else if (num == 39) return 37;
+        else if (num == 310) return 38;
+        else if (num == 49) return 39;
+        else if (num == 410) return 40;
+        
+        return num; // Fallback
+    }
+    
+    aplicarDiagnosticoAlDiente() {
+        if (!this.dienteSeleccionado || !this.diagnosticoSeleccionado) return;
+        
+        const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+        
+        console.log('📊 Aplicando diagnóstico:', {
+            diente: numeroDiente,
+            diagnostico: this.diagnosticoSeleccionado.nombre,
+            elemento: this.dienteSeleccionado
+        });
+        
+        // Aplicar clase de diagnóstico al elemento SVG
+        this.dienteSeleccionado.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        this.dienteSeleccionado.classList.add(this.diagnosticoSeleccionado.nombre.toLowerCase());
+        
+        // Registrar el cambio
+        this.cambiosPendientes.set(numeroDiente, {
+            diagnostico_id: this.diagnosticoSeleccionado.id,
+            color_seleccionado: this.diagnosticoSeleccionado.color
+        });
+        
+        this.mostrarBotonGuardar();
+        this.mostrarAlerta(`✨ Diagnóstico "${this.diagnosticoSeleccionado.nombre}" aplicado al diente ${numeroDiente}`, 'success');
+        
+        // Efecto visual adicional
+        const forma = this.dienteSeleccionado.querySelector('.diente-forma');
+        if (forma) {
+            // Animación de confirmación
+            forma.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                forma.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        console.log('✅ Diagnóstico aplicado exitosamente');
+    }
+    
+    aplicarDiagnosticoADienteFuncional() {
+        if (!this.dienteSeleccionado || !this.diagnosticoSeleccionado) return;
+        
+        const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+        
+        // Buscar el elemento corona dentro del diente
+        const corona = this.dienteSeleccionado.querySelector('.diente-corona');
+        
+        if (corona) {
+            // Aplicar color al elemento corona
+            corona.style.fill = this.diagnosticoSeleccionado.color;
+            
+            // Aplicar clase de diagnóstico al diente contenedor
+            this.dienteSeleccionado.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+            this.dienteSeleccionado.classList.add(this.diagnosticoSeleccionado.nombre.toLowerCase());
+            
+            // Registrar el cambio
+            this.cambiosPendientes.set(numeroDiente, {
+                diagnostico_id: this.diagnosticoSeleccionado.id,
+                color_seleccionado: this.diagnosticoSeleccionado.color
+            });
+            
+            this.mostrarBotonGuardar();
+            this.mostrarAlerta(`Diagnóstico "${this.diagnosticoSeleccionado.nombre}" aplicado al diente ${numeroDiente}`, 'success');
+            
+            console.log('Diagnóstico aplicado:', {
+                diente: numeroDiente,
+                diagnostico: this.diagnosticoSeleccionado.nombre,
+                color: this.diagnosticoSeleccionado.color
+            });
+        } else {
+            console.error('No se encontró el elemento corona para el diente:', numeroDiente);
+        }
+    }
+    
+    aplicarDiagnosticoADienteSimple() {
+        // Método de compatibilidad - redirigir al funcional
+        this.aplicarDiagnosticoADienteFuncional();
+    }
+    
+    aplicarDiagnosticoADienteAnatomico() {
+        if (!this.dienteSeleccionado || !this.diagnosticoSeleccionado) return;
+
+        const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+        
+        // Usar el sistema anatómico para aplicar el diagnóstico
+        if (window.OdontogramaAnatomico) {
+            const instancia = document.querySelector('#odontograma-anatomico-container')?._instance;
+            if (instancia) {
+                instancia.aplicarDiagnostico(
+                    numeroDiente, 
+                    this.diagnosticoSeleccionado.nombre, 
+                    this.diagnosticoSeleccionado.color
+                );
+            }
+        }
+        
+        // Aplicar directamente a las clases del elemento
+        this.dienteSeleccionado.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        this.dienteSeleccionado.classList.add(this.diagnosticoSeleccionado.nombre.toLowerCase());
+        
+        // Aplicar color al path corona
+        const corona = this.dienteSeleccionado.querySelector('.diente-corona');
+        if (corona) {
+            corona.style.fill = this.diagnosticoSeleccionado.color;
+        }
+
+        // Guardar cambio pendiente
+        this.cambiosPendientes.set(numeroDiente, {
+            diagnostico_id: this.diagnosticoSeleccionado.id,
+            color_seleccionado: this.diagnosticoSeleccionado.color
+        });
+
+        this.mostrarBotonGuardar();
+        this.mostrarInformacionDiente(numeroDiente);
+    }
+
+    aplicarColorPersonalizado(color) {
+        if (!this.dienteSeleccionado) {
+            this.mostrarAlerta('Selecciona un diente primero', 'warning');
+            return;
+        }
+
+        // Aplicar al diente anatómico
+        const corona = this.dienteSeleccionado.querySelector('.diente-corona');
+        if (corona) {
+            corona.style.fill = color;
+        }
+
+        const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+        const cambio = this.cambiosPendientes.get(numeroDiente) || {};
+        cambio.color_seleccionado = color;
+        this.cambiosPendientes.set(numeroDiente, cambio);
+
+        this.mostrarBotonGuardar();
+    }
+
+    mostrarInformacionDiente(numeroDiente) {
+        const info = document.getElementById('diente-seleccionado-info');
+        const cuadrante = this.determinarCuadrante(parseInt(numeroDiente));
+        const tipoDiente = this.determinarTipoDiente(parseInt(numeroDiente));
+        const esSupernumerario = [19, 29, 39, 49, 110, 210, 310, 410].includes(parseInt(numeroDiente));
+
+        info.innerHTML = `
+            <div class="text-center mb-3">
+                <span class="diente-numero">${numeroDiente}</span>
+                <span class="diente-tipo ${esSupernumerario ? 'bg-warning' : 'bg-secondary'} text-white">
+                    ${esSupernumerario ? 'Supernumerario' : tipoDiente}
+                </span>
+            </div>
+            <div class="row text-center">
+                <div class="col-6">
+                    <strong>Cuadrante</strong><br>
+                    <span class="badge bg-primary">${cuadrante}</span>
+                </div>
+                <div class="col-6">
+                    <strong>Estado</strong><br>
+                    <span class="badge ${this.cambiosPendientes.has(numeroDiente) ? 'bg-warning' : 'bg-success'}">
+                        ${this.cambiosPendientes.has(numeroDiente) ? 'Modificado' : 'Guardado'}
+                    </span>
+                </div>
+            </div>
+        `;
+
+        // Mostrar historial del diente
+        this.cargarHistorialDiente(numeroDiente);
+    }
+
+    async cargarHistorialDiente(numeroDiente) {
+        // Aquí puedes implementar la carga del historial específico del diente
+        const panel = document.getElementById('historial-panel');
+        const numero = document.getElementById('historial-diente-numero');
+        const contenido = document.getElementById('historial-contenido');
+        
+        numero.textContent = numeroDiente;
+        contenido.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-clock fa-2x mb-2 d-block"></i>
+                Historial del diente ${numeroDiente}
+                <br><small>Funcionalidad en desarrollo</small>
+            </div>
+        `;
+        
+        panel.style.display = 'block';
+    }
+
+    determinarCuadrante(numeroDiente) {
+        if ([19, 110].includes(numeroDiente) || (11 <= numeroDiente && numeroDiente <= 18)) return 'I';
+        if ([29, 210].includes(numeroDiente) || (21 <= numeroDiente && numeroDiente <= 28)) return 'II';
+        if ([39, 310].includes(numeroDiente) || (31 <= numeroDiente && numeroDiente <= 38)) return 'III';
+        if ([49, 410].includes(numeroDiente) || (41 <= numeroDiente && numeroDiente <= 48)) return 'IV';
+        return '?';
+    }
+
+    determinarTipoDiente(numeroDiente) {
+        const ultimo = numeroDiente % 10;
+        switch (ultimo) {
+            case 1:
+            case 2: return 'Incisivo';
+            case 3: return 'Canino';
+            case 4:
+            case 5: return 'Premolar';
+            case 6:
+            case 7:
+            case 8: return 'Molar';
+            default: return 'Especial';
+        }
+    }
+
+    async guardarCambios() {
+        console.log('💾 GUARDAR: Iniciando proceso, cambios:', this.cambiosPendientes.size);
+        console.log('💾 Cambios pendientes:', Array.from(this.cambiosPendientes.entries()));
+        
+        if (this.cambiosPendientes.size === 0) {
+            console.log('⚠️ No hay cambios para guardar');
+            this.mostrarAlerta('No hay cambios para guardar', 'info');
+            return;
+        }
+
+        try {
+            for (const [numeroDiente, cambio] of this.cambiosPendientes) {
+                const numeroDienteFDI = this.convertirNumeroFDI(numeroDiente);
+                
+                console.log('🚀 ENVIANDO AL SERVIDOR:', {
+                    url: `/api/odontograma/${this.pacienteId}/update/`,
+                    diente_secuencial: numeroDiente,
+                    diente_fdi: numeroDienteFDI,
+                    diagnostico_id: cambio.diagnostico_id,
+                    color: cambio.color_seleccionado
+                });
+                
+                const response = await fetch(`/api/odontograma/${this.pacienteId}/update/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        numero_diente: numeroDienteFDI,  // Usar numeración FDI
+                        diagnostico_id: cambio.diagnostico_id,
+                        color_seleccionado: cambio.color_seleccionado
+                    })
+                });
+                
+                console.log('📝 RESPUESTA DEL SERVIDOR:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    ok: response.ok
+                });
+                
+                const responseData = await response.json();
+                console.log('📄 DATOS DE RESPUESTA:', responseData);
+
+                if (!response.ok) {
+                    throw new Error(`Error al guardar diente ${numeroDiente}: ${responseData.message || response.statusText}`);
+                }
+            }
+
+            this.cambiosPendientes.clear();
+            this.ocultarBotonGuardar();
+            this.mostrarAlerta('Cambios guardados correctamente', 'success');
+            
+            // Actualizar información del diente seleccionado
+            if (this.dienteSeleccionado) {
+                const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+                this.mostrarInformacionDiente(numeroDiente);
+            }
+
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            this.mostrarAlerta('Error al guardar los cambios', 'danger');
+        }
+    }
+
+    limpiarDienteSeleccionado() {
+        if (!this.dienteSeleccionado) {
+            this.mostrarAlerta('Selecciona un diente primero', 'warning');
+            return;
+        }
+
+        // Limpiar diente anatómico
+        const corona = this.dienteSeleccionado.querySelector('.diente-corona');
+        if (corona) {
+            corona.style.fill = '#ffffff';
+        }
+        
+        // Aplicar clase sano
+        this.dienteSeleccionado.classList.remove('caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        this.dienteSeleccionado.classList.add('sano');
+
+        const numeroDiente = this.dienteSeleccionado.id.replace('diente-', '');
+        this.cambiosPendientes.set(numeroDiente, {
+            diagnostico_id: 1, // Asumiendo que ID 1 es SANO
+            color_seleccionado: '#ffffff'
+        });
+
+        this.mostrarBotonGuardar();
+        this.mostrarInformacionDiente(numeroDiente);
+    }
+
+    deshacerCambios() {
+        if (this.cambiosPendientes.size === 0) {
+            this.mostrarAlerta('No hay cambios para deshacer', 'info');
+            return;
+        }
+
+        this.cambiosPendientes.clear();
+        this.ocultarBotonGuardar();
+        this.cargarDatosOdontograma(); // Recargar estado original
+        this.mostrarAlerta('Cambios deshecho', 'info');
+    }
+
+    mostrarBotonGuardar() {
+        console.log('💾 GUARDAR: Mostrando botón, cambios pendientes:', this.cambiosPendientes.size);
+        console.log('💾 Cambios:', Array.from(this.cambiosPendientes.entries()));
+        
+        const boton = document.getElementById('btn-guardar-flotante');
+        if (boton) {
+            boton.style.display = 'block';
+            console.log('✅ Botón guardar mostrado');
+        } else {
+            console.error('❌ Botón guardar no encontrado');
+        }
+    }
+
+    ocultarBotonGuardar() {
+        document.getElementById('btn-guardar-flotante').style.display = 'none';
+    }
+
+    aplicarZoom(factor) {
+        const svg = document.getElementById('odontograma-anatomico-svg');
+        if (svg) {
+            const currentScale = parseFloat(svg.style.transform?.match(/scale\(([\d.]+)\)/)?.[1] || 1);
+            const newScale = Math.max(0.5, Math.min(3, currentScale * factor)); // Limitar zoom entre 0.5x y 3x
+            svg.style.transform = `scale(${newScale})`;
+        }
+    }
+
+    resetearZoom() {
+        const svg = document.getElementById('odontograma-anatomico-svg');
+        if (svg) {
+            svg.style.transform = 'scale(1)';
+        }
+    }
+
+    mostrarVistaPrevia() {
+        const odontograma = document.getElementById('odontograma-anatomico-svg');
+        const vistaPrevia = document.getElementById('vista-previa-contenido');
+        
+        if (odontograma) {
+            // Clonar el odontograma para vista previa
+            const clon = odontograma.cloneNode(true);
+            clon.style.transform = 'scale(1)';
+            clon.style.width = '100%';
+            clon.style.height = 'auto';
+            clon.style.maxHeight = 'none';
+            
+            vistaPrevia.innerHTML = '';
+            vistaPrevia.appendChild(clon);
+            
+            const modal = new bootstrap.Modal(document.getElementById('vistaPreviaModal'));
+            modal.show();
+        } else {
+            this.mostrarAlerta('No se pudo cargar la vista previa', 'warning');
+        }
+    }
+
+    imprimir() {
+        window.print();
+    }
+
+    mostrarAlerta(mensaje, tipo = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${tipo} alert-flotante alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    }
+}
+</script>
+{% endblock %}

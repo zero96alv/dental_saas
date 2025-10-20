@@ -1,101 +1,813 @@
 {% extends "core/base.html" %}
+{% load static %}
 
-{% block title %}Listado de Pagos{% endblock %}
+{% block title %}Gestión de Pagos{% endblock %}
+
+{% block extra_css %}
+<style>
+/* === SISTEMA DE BADGES DE PAGOS === */
+.payment-badge {
+    font-size: 0.8em;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.4rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.method-efectivo {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.method-tarjeta {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.method-transferencia {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.method-cheque {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* === TABLA HÍBRIDA DE PAGOS === */
+.payments-table {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9ff;
+    transition: background-color 0.2s ease;
+}
+
+.payment-row {
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.payment-row:hover {
+    border-left-color: #0d6efd;
+}
+
+.payment-row.high-amount {
+    border-left-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.payment-row.overdue {
+    border-left-color: #dc3545;
+    background-color: #fff5f5;
+}
+
+.expand-btn {
+    transition: transform 0.3s ease;
+    color: #6c757d;
+    border: none;
+    background: none;
+    padding: 0.25rem;
+}
+
+.expand-btn:hover {
+    color: #0d6efd;
+    transform: scale(1.1);
+}
+
+.expand-btn.expanded {
+    transform: rotate(90deg);
+    color: #0d6efd;
+}
+
+/* === FILA DE DETALLES EXPANDIBLE === */
+.details-row {
+    display: none;
+    background: #f8f9fa;
+    border-left: 3px solid #e9ecef;
+}
+
+.details-row.show {
+    display: table-row;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.details-content {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+}
+
+.detail-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.detail-card:last-child {
+    margin-bottom: 0;
+}
+
+/* === ESTADÍSTICAS === */
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-left: 4px solid #0d6efd;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+}
+
+.metric-card.success {
+    border-left-color: #28a745;
+}
+
+.metric-card.warning {
+    border-left-color: #ffc107;
+}
+
+.metric-card.danger {
+    border-left-color: #dc3545;
+}
+
+.metric-number {
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* === FILTROS === */
+.filters-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* === BADGES Y ELEMENTOS === */
+.patient-badge {
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.amount-badge {
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.amount-high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.amount-medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.amount-low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* === ACCIONES RÁPIDAS === */
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8em;
+    border-radius: 0.25rem;
+    margin: 0 0.1rem;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .payments-table {
+        font-size: 0.9em;
+    }
+    
+    .metric-number {
+        font-size: 1.5rem;
+    }
+    
+    .details-content {
+        padding: 1rem;
+    }
+}
+
+/* === UTILIDADES === */
+.text-nowrap-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-cash-coin me-2"></i> Listado de Pagos</h2>
-        <a href="{% url 'core:pago_create' %}" class="btn btn-primary">
-            <i class="bi bi-plus-circle-fill me-1"></i> Registrar Nuevo Pago
-        </a>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-primary mb-1">
+                <i class="fas fa-credit-card me-2"></i>Gestión de Pagos
+            </h1>
+            <p class="text-muted mb-0">Control integral de pagos, cobros y transacciones</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'core:dashboard_financiero' %}" class="btn btn-outline-info">
+                <i class="fas fa-chart-line me-2"></i>Dashboard Financiero
+            </a>
+            <a href="{% url 'core:registrar_abono' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Nuevo Pago
+            </a>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-collapse">
+                <i class="fas fa-filter me-2"></i>Filtros
+            </button>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
+    <!-- Estadísticas -->
+    <div class="stats-card p-4 mb-4">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="metric-card success">
+                    <div class="metric-number text-success">{{ total_pagos|default:"0" }}</div>
+                    <div class="text-muted mt-2">Total Pagos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-number text-primary">${{ total_ingresos|floatformat:2|default:"0.00" }}</div>
+                    <div class="text-muted mt-2">Total Ingresos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card warning">
+                    <div class="metric-number text-warning">${{ promedio_pago|floatformat:2|default:"0.00" }}</div>
+                    <div class="text-muted mt-2">Promedio por Pago</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card danger">
+                    <div class="metric-number text-info">{{ pagos_hoy|default:"0" }}</div>
+                    <div class="text-muted mt-2">Pagos Hoy</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="collapse" id="filtros-collapse">
+        <div class="filters-container">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Buscar paciente</label>
+                    <input type="text" name="busqueda" class="form-control" 
+                           placeholder="Nombre del paciente..." 
+                           value="{{ request.GET.busqueda }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Método de Pago</label>
+                    <select name="metodo_pago" class="form-select">
+                        <option value="">Todos los métodos</option>
+                        <option value="efectivo" {% if request.GET.metodo_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                        <option value="tarjeta" {% if request.GET.metodo_pago == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
+                        <option value="transferencia" {% if request.GET.metodo_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                        <option value="cheque" {% if request.GET.metodo_pago == 'cheque' %}selected{% endif %}>Cheque</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Fecha Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control" value="{{ request.GET.fecha_desde }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                    <a href="{% url 'core:pago_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla Híbrida de Pagos -->
+    <div class="payments-table">
+        {% if pagos %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">Fecha</th>
-                            <th scope="col">Cita</th>
-                            <th scope="col">Paciente</th>
-                            <th scope="col">Monto</th>
-                            <th scope="col">Método</th>
-                            <th scope="col" class="text-end">Acciones</th>
+                            <th width="5%"></th>
+                            <th width="15%">
+                                <i class="fas fa-calendar me-2"></i>Fecha
+                            </th>
+                            <th width="25%">
+                                <i class="fas fa-user me-2"></i>Paciente
+                            </th>
+                            <th width="15%" class="text-center">
+                                <i class="fas fa-dollar-sign me-2"></i>Monto
+                            </th>
+                            <th width="15%" class="text-center">
+                                <i class="fas fa-credit-card me-2"></i>Método
+                            </th>
+                            <th width="20%">
+                                <i class="fas fa-stethoscope me-2"></i>Cita
+                            </th>
+                            <th width="5%" class="text-center">
+                                <i class="fas fa-cogs"></i>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pago in pagos %}
-                        <tr>
-                            <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
-                            <td>
-                                {% if pago.cita %}
-                                    <a href="{% url 'core:cita_detail' pk=pago.cita.id %}">
-                                        Cita #{{ pago.cita.id }} del {{ pago.cita.fecha_hora|date:"d/m/Y" }}
-                                    </a>
-                                {% else %}
-                                    <span class="text-muted">Sin cita asociada</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if pago.cita.paciente %}
-                                    <a href="{% url 'core:paciente_detail' pago.cita.paciente.pk %}">
-                                        {{ pago.cita.paciente }}
-                                    </a>
-                                {% else %}
-                                    <span class="text-muted">Paciente no asignado</span>
-                                {% endif %}
-                            </td>
-                            <td>${{ pago.monto|floatformat:2 }}</td>
-                            <td>{{ pago.metodo_pago }}</td>
-                            <td class="text-end">
-                                <a href="{% url 'core:recibo_pago' pago.pk %}" class="btn btn-sm btn-info" title="Ver Recibo">
-                                    <i class="bi bi-receipt"></i>
-                                </a>
-                                <a href="{% url 'core:pago_edit' pago.pk %}" class="btn btn-sm btn-warning" title="Editar">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </a>
-                                <a href="{% url 'core:pago_delete' pago.pk %}" class="btn btn-sm btn-danger" title="Eliminar">
-                                    <i class="bi bi-trash-fill"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">No hay pagos registrados.</td>
-                        </tr>
+                            <!-- Fila Principal -->
+                            <tr class="payment-row 
+                                {% if pago.monto > 3000 %}high-amount
+                                {% elif pago.fecha_pago.date < date_threshold %}overdue{% endif %}" 
+                                data-pago-id="{{ pago.pk }}">
+                                
+                                <!-- Botón Expandir -->
+                                <td class="text-center">
+                                    <button class="expand-btn" data-bs-toggle="tooltip" title="Ver detalles">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </td>
+                                
+                                <!-- Fecha -->
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-semibold">{{ pago.fecha_pago|date:"d/m/Y" }}</span>
+                                        <small class="text-muted">{{ pago.fecha_pago|date:"H:i" }}</small>
+                                    </div>
+                                </td>
+                                
+                                <!-- Paciente -->
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-user-circle fa-lg text-primary"></i>
+                                        </div>
+                                        <div>
+                                            {% if pago.cita and pago.cita.paciente %}
+                                                <div class="fw-semibold text-nowrap-truncate">
+                                                    {{ pago.cita.paciente.nombre }} {{ pago.cita.paciente.apellido }}
+                                                </div>
+                                                <small class="text-muted">
+                                                    {{ pago.cita.paciente.email|default:"Sin email" }}
+                                                </small>
+                                            {% else %}
+                                                <span class="text-muted">Pago directo</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Monto -->
+                                <td class="text-center">
+                                    <span class="amount-badge 
+                                        {% if pago.monto > 3000 %}amount-high
+                                        {% elif pago.monto > 1000 %}amount-medium
+                                        {% else %}amount-low{% endif %}">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        {{ pago.monto|floatformat:2 }}
+                                    </span>
+                                </td>
+                                
+                                <!-- Método de Pago -->
+                                <td class="text-center">
+                                    <span class="payment-badge method-{{ pago.metodo_pago|lower }}">
+                                        {% if pago.metodo_pago == 'efectivo' %}
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        {% elif pago.metodo_pago == 'tarjeta' %}
+                                            <i class="fas fa-credit-card"></i>
+                                        {% elif pago.metodo_pago == 'transferencia' %}
+                                            <i class="fas fa-exchange-alt"></i>
+                                        {% else %}
+                                            <i class="fas fa-money-check"></i>
+                                        {% endif %}
+                                        {{ pago.metodo_pago|title }}
+                                    </span>
+                                </td>
+                                
+                                <!-- Cita -->
+                                <td>
+                                    {% if pago.cita %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-2">
+                                                <i class="fas fa-calendar-check text-success"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold">Cita #{{ pago.cita.id }}</span>
+                                                <br><small class="text-muted">{{ pago.cita.fecha_hora|date:"d/m/Y H:i" }}</small>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">
+                                            <i class="fas fa-minus-circle me-1"></i>
+                                            Sin cita
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Acciones -->
+                                <td class="text-center">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:recibo_pago' pago.pk %}">
+                                                    <i class="fas fa-receipt me-2"></i>Ver Recibo
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:generar_recibo_pdf' pago.pk %}" target="_blank">
+                                                    <i class="fas fa-file-pdf me-2"></i>Descargar PDF
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:pago_edit' pago.pk %}">
+                                                    <i class="fas fa-edit me-2"></i>Editar
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="{% url 'core:pago_delete' pago.pk %}">
+                                                    <i class="fas fa-trash me-2"></i>Eliminar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Fila de Detalles Expandible -->
+                            <tr class="details-row" data-pago-id="{{ pago.pk }}">
+                                <td colspan="7">
+                                    <div class="details-content">
+                                        <div class="row">
+                                            <!-- Detalles del Pago -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-money-bill-wave me-2"></i>Detalles del Pago
+                                                    </h6>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>ID de Pago:</strong>
+                                                        <span class="ms-2">#{{ pago.id }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Fecha completa:</strong>
+                                                        <span class="ms-2">{{ pago.fecha_pago|date:"d/m/Y H:i:s" }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Monto exacto:</strong>
+                                                        <span class="ms-2 text-success fw-bold">${{ pago.monto }}</span>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Método:</strong>
+                                                        <span class="ms-2">{{ pago.metodo_pago|title }}</span>
+                                                    </div>
+                                                    
+                                                    {% if pago.descripcion %}
+                                                        <div class="mb-2">
+                                                            <strong>Notas:</strong>
+                                                            <p class="mt-1 text-muted">{{ pago.descripcion }}</p>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Información del Paciente -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-user me-2"></i>Información del Paciente
+                                                    </h6>
+                                                    
+                                                    {% if pago.cita and pago.cita.paciente %}
+                                                        <div class="mb-2">
+                                                            <strong>Nombre completo:</strong>
+                                                            <div>{{ pago.cita.paciente.nombre }} {{ pago.cita.paciente.apellido }}</div>
+                                                        </div>
+                                                        
+                                                        {% if pago.cita.paciente.email %}
+                                                            <div class="mb-2">
+                                                                <strong>Email:</strong>
+                                                                <div>{{ pago.cita.paciente.email }}</div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        {% if pago.cita.paciente.telefono %}
+                                                            <div class="mb-2">
+                                                                <strong>Teléfono:</strong>
+                                                                <div>{{ pago.cita.paciente.telefono }}</div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-2">
+                                                            <strong>Saldo pendiente:</strong>
+                                                            <div class="text-warning fw-bold">${{ pago.cita.paciente.saldo_pendiente|floatformat:2|default:"0.00" }}</div>
+                                                        </div>
+                                                    {% else %}
+                                                        <p class="text-muted">Pago directo sin paciente asociado</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Detalles de la Cita -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-calendar-check me-2"></i>Detalles de la Cita
+                                                    </h6>
+                                                    
+                                                    {% if pago.cita %}
+                                                        <div class="mb-2">
+                                                            <strong>ID de Cita:</strong>
+                                                            <span class="ms-2">#{{ pago.cita.id }}</span>
+                                                        </div>
+                                                        
+                                                        <div class="mb-2">
+                                                            <strong>Fecha y hora:</strong>
+                                                            <div>{{ pago.cita.fecha_hora|date:"d/m/Y H:i" }}</div>
+                                                        </div>
+                                                        
+                                                        {% if pago.cita.dentista %}
+                                                            <div class="mb-2">
+                                                                <strong>Dentista:</strong>
+                                                                <div>{{ pago.cita.dentista.first_name }} {{ pago.cita.dentista.last_name }}</div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        <div class="mb-2">
+                                                            <strong>Estado:</strong>
+                                                            <span class="badge bg-{% if pago.cita.estado == 'completada' %}success{% elif pago.cita.estado == 'pendiente' %}warning{% else %}secondary{% endif %} ms-2">
+                                                                {{ pago.cita.estado|title }}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div class="mb-2">
+                                                            <strong>Total de la cita:</strong>
+                                                            <div class="text-info fw-bold">${{ pago.cita.total|floatformat:2|default:"0.00" }}</div>
+                                                        </div>
+                                                    {% else %}
+                                                        <p class="text-muted">Pago no asociado a ninguna cita específica</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Acciones Rápidas -->
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="action-buttons text-end">
+                                                    <a href="{% url 'core:recibo_pago' pago.pk %}" class="btn btn-outline-info btn-sm">
+                                                        <i class="fas fa-receipt me-1"></i>Ver Recibo
+                                                    </a>
+                                                    <a href="{% url 'core:generar_recibo_pdf' pago.pk %}" class="btn btn-outline-danger btn-sm" target="_blank">
+                                                        <i class="fas fa-file-pdf me-1"></i>Descargar PDF
+                                                    </a>
+                                                    <a href="{% url 'core:pago_edit' pago.pk %}" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-edit me-1"></i>Editar
+                                                    </a>
+                                                    {% if pago.cita and pago.cita.paciente %}
+                                                        <a href="{% url 'core:paciente_detail' pago.cita.paciente.pk %}" class="btn btn-outline-success btn-sm">
+                                                            <i class="fas fa-user me-1"></i>Ver Paciente
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-
-            {% if is_paginated %}
-            <nav aria-label="Paginación">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
-                    {% else %}
-                        <li class="page-item disabled"><a class="page-link" href="#">&laquo;</a></li>
-                    {% endif %}
-                    
-                    {% for i in paginator.page_range %}
-                        {% if page_obj.number == i %}
-                            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
-                        {% else %}
-                            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
-                    {% else %}
-                        <li class="page-item disabled"><a class="page-link" href="#">&raquo;</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-        </div>
+        {% else %}
+            <!-- Estado vacío -->
+            <div class="text-center py-5">
+                <i class="fas fa-receipt fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No hay pagos registrados</h4>
+                <p class="text-muted">Comience registrando los primeros pagos del sistema</p>
+                <a href="{% url 'core:registrar_abono' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus me-2"></i>Registrar Primer Pago
+                </a>
+            </div>
+        {% endif %}
     </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Paginación de pagos">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === FUNCIONALIDAD DE EXPANSIÓN DE FILAS ===
+    const expandButtons = document.querySelectorAll('.expand-btn');
+    const paymentRows = document.querySelectorAll('.payment-row');
+    
+    // Manejar clicks en los botones de expansión
+    expandButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const row = this.closest('.payment-row');
+            const pagoId = row.dataset.pagoId;
+            const detailsRow = document.querySelector(`.details-row[data-pago-id="${pagoId}"]`);
+            const icon = this.querySelector('i');
+            
+            // Toggle la fila de detalles
+            if (detailsRow.classList.contains('show')) {
+                // Cerrar detalles
+                detailsRow.classList.remove('show');
+                this.classList.remove('expanded');
+                icon.className = 'fas fa-chevron-right';
+                
+                // Animación suave
+                setTimeout(() => {
+                    detailsRow.style.display = 'none';
+                }, 300);
+            } else {
+                // Abrir detalles
+                detailsRow.style.display = 'table-row';
+                setTimeout(() => {
+                    detailsRow.classList.add('show');
+                }, 10);
+                
+                this.classList.add('expanded');
+                icon.className = 'fas fa-chevron-down';
+            }
+        });
+    });
+    
+    // Hacer las filas clickeables para expandir
+    paymentRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // No expandir si se clickea en dropdown o botones
+            if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            
+            const expandBtn = this.querySelector('.expand-btn');
+            if (expandBtn) {
+                expandBtn.click();
+            }
+        });
+        
+        // Cambiar cursor para indicar que es clickeable
+        row.style.cursor = 'pointer';
+    });
+    
+    // === AUTO-SUBMIT DE BÚSQUEDA CON DEBOUNCE ===
+    const searchInput = document.querySelector('input[name="busqueda"]');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                this.form.submit();
+            }, 800);
+        });
+    }
+    
+    // === FILTROS DINÁMICOS ===
+    const filterSelects = document.querySelectorAll('select[name="metodo_pago"], input[name="fecha_desde"]');
+    filterSelects.forEach(filter => {
+        filter.addEventListener('change', function() {
+            // Auto-submit el formulario
+            this.form.submit();
+        });
+    });
+    
+    // === ANIMACIÓN DE ENTRADA ===
+    const tableRows = document.querySelectorAll('.payment-row');
+    tableRows.forEach((row, index) => {
+        row.style.animationDelay = `${index * 0.05}s`;
+        row.classList.add('fade-in');
+    });
+    
+    // === TOOLTIPS ===
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // === TECLADO SHORTCUTS ===
+    document.addEventListener('keydown', function(e) {
+        // ESC para colapsar todas las filas expandidas
+        if (e.key === 'Escape') {
+            const expandedRows = document.querySelectorAll('.details-row.show');
+            expandedRows.forEach(row => {
+                const pagoId = row.dataset.pagoId;
+                const expandBtn = document.querySelector(`.payment-row[data-pago-id="${pagoId}"] .expand-btn`);
+                if (expandBtn) {
+                    expandBtn.click();
+                }
+            });
+        }
+    });
+    
+    console.log('💳 Vista híbrida de pagos cargada exitosamente');
+    console.log(`📊 Total de pagos mostrados: ${paymentRows.length}`);
+});
+</script>
 {% endblock %}

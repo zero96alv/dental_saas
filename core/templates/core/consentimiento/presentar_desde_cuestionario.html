@@ -1,0 +1,322 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Presentar Consentimiento - {{ cuestionario.paciente }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.documento-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.documento-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+.documento-card.selected {
+    border: 2px solid #007bff;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3f8ff 100%);
+}
+.tipo-badge {
+    font-size: 0.9em;
+    padding: 4px 8px;
+}
+.recomendado-badge {
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-file-contract text-primary"></i>
+                                Presentar Consentimiento Informado
+                            </h2>
+                            <p class="text-muted mb-0">
+                                Paciente: <strong>{{ cuestionario.paciente.nombre }} {{ cuestionario.paciente.apellido }}</strong> | 
+                                Cuestionario completado: <strong>{{ cuestionario.fecha_completado|date:"d/m/Y H:i" }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <a href="{% url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Volver al Cuestionario
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Información del cuestionario -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-clipboard-list"></i> Información del Cuestionario
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row">
+                                    <dt class="col-sm-6">Paciente:</dt>
+                                    <dd class="col-sm-6">{{ cuestionario.paciente.nombre }} {{ cuestionario.paciente.apellido }}</dd>
+                                    
+                                    <dt class="col-sm-6">Edad:</dt>
+                                    <dd class="col-sm-6">{{ cuestionario.paciente.edad }} años</dd>
+                                    
+                                    <dt class="col-sm-6">Completado:</dt>
+                                    <dd class="col-sm-6">{{ cuestionario.fecha_completado|date:"d/m/Y" }}</dd>
+                                    
+                                    <dt class="col-sm-6">Alertas:</dt>
+                                    <dd class="col-sm-6">
+                                        {% if cuestionario.tiene_alertas %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle"></i> Sí
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> No
+                                            </span>
+                                        {% endif %}
+                                    </dd>
+                                    
+                                    <dt class="col-sm-6">Revisión:</dt>
+                                    <dd class="col-sm-6">
+                                        {% if cuestionario.revision_medica %}
+                                            <span class="badge bg-success">Revisado</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        {% endif %}
+                                    </dd>
+                                </dl>
+
+                                <hr>
+
+                                <h6>Tipo Recomendado</h6>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <strong>{{ tipo_recomendado }}</strong>
+                                    <br><small>Basado en las respuestas del cuestionario</small>
+                                </div>
+
+                                <div class="form-group mt-3">
+                                    <label for="dentista" class="form-label">Dentista Presentador</label>
+                                    <select name="dentista" id="dentista" class="form-select">
+                                        <option value="">Seleccionar dentista...</option>
+                                        {% for dentista in dentistas %}
+                                            <option value="{{ dentista.id }}">{{ dentista.nombre }} {{ dentista.apellido }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">Dentista responsable de presentar el consentimiento</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selección de documento -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-file-pdf"></i> Seleccionar Documento de Consentimiento
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for value, display in tipos_documento %}
+                                        <div class="col-md-6 col-lg-4 mb-3">
+                                            <div class="documento-card card h-100 {% if value == tipo_recomendado %}selected{% endif %}" 
+                                                 data-tipo="{{ value }}" onclick="seleccionarDocumento('{{ value }}')">
+                                                <div class="card-header p-2 text-center">
+                                                    {% if value == tipo_recomendado %}
+                                                        <span class="badge bg-primary recomendado-badge">
+                                                            <i class="fas fa-star"></i> Recomendado
+                                                        </span>
+                                                    {% endif %}
+                                                    <h6 class="mb-0 mt-1">{{ display }}</h6>
+                                                </div>
+                                                <div class="card-body p-3">
+                                                    <div class="text-center">
+                                                        {% if value == 'GENERAL' %}
+                                                            <i class="fas fa-file-medical fa-2x text-primary mb-2"></i>
+                                                            <p class="small text-muted mb-0">Procedimientos dentales rutinarios y generales</p>
+                                                        {% elif value == 'CIRUGIA' %}
+                                                            <i class="fas fa-scalpel fa-2x text-danger mb-2"></i>
+                                                            <p class="small text-muted mb-0">Extracciones y procedimientos quirúrgicos</p>
+                                                        {% elif value == 'ORTODONTICA' %}
+                                                            <i class="fas fa-teeth fa-2x text-info mb-2"></i>
+                                                            <p class="small text-muted mb-0">Brackets, alineadores y ortodoncia</p>
+                                                        {% elif value == 'ENDODONCIA' %}
+                                                            <i class="fas fa-tooth fa-2x text-warning mb-2"></i>
+                                                            <p class="small text-muted mb-0">Tratamientos de conductos radiculares</p>
+                                                        {% elif value == 'IMPLANTES' %}
+                                                            <i class="fas fa-cog fa-2x text-secondary mb-2"></i>
+                                                            <p class="small text-muted mb-0">Implantes y prótesis dentales</p>
+                                                        {% elif value == 'ESTETICA' %}
+                                                            <i class="fas fa-smile fa-2x text-success mb-2"></i>
+                                                            <p class="small text-muted mb-0">Blanqueamiento y estética dental</p>
+                                                        {% else %}
+                                                            <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+                                                            <p class="small text-muted mb-0">Otros procedimientos especializados</p>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Campo oculto para el tipo seleccionado -->
+                                <input type="hidden" name="tipo_documento" id="tipo_documento" value="{{ tipo_recomendado }}">
+
+                                <!-- Información del documento seleccionado -->
+                                <div class="alert alert-light mt-3" id="info-documento">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-info-circle text-primary"></i> 
+                                                Documento Seleccionado
+                                            </h6>
+                                            <p class="mb-0" id="documento-descripcion">
+                                                Se presentará el consentimiento informado para <strong id="tipo-seleccionado">{{ tipo_recomendado }}</strong>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            <span class="badge bg-success" id="documento-estado">
+                                                <i class="fas fa-check-circle"></i> Disponible
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Botones de acción -->
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div>
+                                        <a href="{% url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
+                                           class="btn btn-outline-secondary">
+                                            <i class="fas fa-times"></i> Cancelar
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary btn-lg" id="btn-presentar">
+                                            <i class="fas fa-file-contract"></i> Presentar Consentimiento
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar con el tipo recomendado seleccionado
+    const tipoRecomendado = '{{ tipo_recomendado }}';
+    
+    function seleccionarDocumento(tipo) {
+        // Remover selección anterior
+        document.querySelectorAll('.documento-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Seleccionar nuevo documento
+        const cardSeleccionada = document.querySelector(`[data-tipo="${tipo}"]`);
+        cardSeleccionada.classList.add('selected');
+        
+        // Actualizar campo oculto
+        document.getElementById('tipo_documento').value = tipo;
+        
+        // Actualizar información mostrada
+        const tipoTexto = cardSeleccionada.querySelector('h6').textContent;
+        document.getElementById('tipo-seleccionado').textContent = tipoTexto;
+        
+        // Actualizar descripción
+        let descripcion = '';
+        switch(tipo) {
+            case 'GENERAL':
+                descripcion = 'Para procedimientos dentales rutinarios y generales';
+                break;
+            case 'CIRUGIA':
+                descripcion = 'Para extracciones y procedimientos quirúrgicos orales';
+                break;
+            case 'ORTODONTICA':
+                descripcion = 'Para tratamientos de ortodoncia y brackets';
+                break;
+            case 'ENDODONCIA':
+                descripcion = 'Para tratamientos de conductos radiculares';
+                break;
+            case 'IMPLANTES':
+                descripcion = 'Para colocación de implantes dentales';
+                break;
+            case 'ESTETICA':
+                descripcion = 'Para blanqueamiento y procedimientos estéticos';
+                break;
+            default:
+                descripcion = 'Para procedimientos especializados';
+        }
+        
+        document.getElementById('documento-descripcion').innerHTML = 
+            `Se presentará el consentimiento informado <strong>${descripcion}</strong>`;
+    }
+    
+    // Hacer la función global para los onclick
+    window.seleccionarDocumento = seleccionarDocumento;
+    
+    // Validar formulario antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const dentista = document.getElementById('dentista').value;
+        const tipo = document.getElementById('tipo_documento').value;
+        
+        if (!dentista) {
+            e.preventDefault();
+            alert('Por favor, seleccione el dentista que presentará el consentimiento.');
+            document.getElementById('dentista').focus();
+            return false;
+        }
+        
+        if (!tipo) {
+            e.preventDefault();
+            alert('Por favor, seleccione un tipo de documento.');
+            return false;
+        }
+        
+        // Confirmar acción
+        const confirmacion = confirm(
+            `¿Está seguro de presentar el consentimiento informado para ${tipo} al paciente {{ cuestionario.paciente.nombre }} {{ cuestionario.paciente.apellido }}?`
+        );
+        
+        if (!confirmacion) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Deshabilitar botón para evitar doble envío
+        const btnPresentar = document.getElementById('btn-presentar');
+        btnPresentar.disabled = true;
+        btnPresentar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Presentando...';
+    });
+});
+</script>
+{% endblock %}

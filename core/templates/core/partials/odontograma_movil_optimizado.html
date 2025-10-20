@@ -1,0 +1,469 @@
+{% load math_filters %}
+<div id="odontograma-movil" class="odontograma-movil">
+    <style>
+        .odontograma-movil {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            font-family: 'Arial', sans-serif;
+            background: #f8f6f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow-x: auto;
+        }
+        
+        .odontograma-movil svg {
+            width: 100%;
+            min-width: 800px;
+            height: auto;
+            background: #f8f6f0;
+            border-radius: 8px;
+        }
+        
+        /* Fondo de encías */
+        .encia-superior, .encia-inferior {
+            fill: #d4a574;
+            opacity: 0.85;
+        }
+        
+        /* Líneas de división */
+        .linea-division {
+            stroke: #2c3e50;
+            stroke-width: 2;
+            opacity: 0.7;
+        }
+        
+        /* Dientes optimizados para móvil - SIN ANIMACIONES */
+        .diente-movil {
+            cursor: pointer;
+            pointer-events: all;
+        }
+        
+        .diente-movil:hover {
+            filter: drop-shadow(0 0 6px rgba(52, 152, 219, 0.6));
+        }
+        
+        .diente-movil.selected {
+            filter: drop-shadow(0 0 10px rgba(241, 196, 15, 1));
+        }
+        
+        .diente-movil > * {
+            pointer-events: none;
+        }
+        
+        /* Superficies dentales más grandes para móvil */
+        .superficie-dental {
+            fill: #ffffff;
+            stroke: #2c3e50;
+            stroke-width: 2;
+            pointer-events: all;
+        }
+        
+        /* Tipos de dientes con formas distintivas */
+        .incisivo .superficie-dental {
+            fill: #ffffff;
+        }
+        
+        .canino .superficie-dental {
+            fill: #fefefe;
+        }
+        
+        .premolar .superficie-dental {
+            fill: #fdfdfd;
+        }
+        
+        .molar .superficie-dental {
+            fill: #fcfcfc;
+        }
+
+        /* Escalado para reducir traslapes */
+        g.diente-movil.incisivo {
+            transform-box: fill-box;
+            transform-origin: center;
+            transform: scale(0.78);
+        }
+        g.diente-movil.canino {
+            transform-box: fill-box;
+            transform-origin: center;
+            transform: scale(0.9);
+        }
+        g.diente-movil.premolar {
+            transform-box: fill-box;
+            transform-origin: center;
+            transform: scale(0.94);
+        }
+        g.diente-movil.molar {
+            transform-box: fill-box;
+            transform-origin: center;
+            transform: scale(0.96);
+        }
+        
+        /* Numeración más visible */
+        .numero-diente {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            fill: #2c3e50;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        /* Estados clínicos */
+        .diente-movil.sano .superficie-dental { fill: #27ae60; }
+        .diente-movil.caries .superficie-dental { fill: #e74c3c; }
+        .diente-movil.obturada .superficie-dental { fill: #f39c12; }
+        .diente-movil.corona .superficie-dental { fill: #3498db; }
+        .diente-movil.extraida .superficie-dental { 
+            fill: #95a5a6; 
+            stroke-dasharray: 4,3;
+            opacity: 0.7;
+        }
+        .diente-movil.implante .superficie-dental { fill: #1abc9c; }
+        .diente-movil.endodoncia .superficie-dental { fill: #e91e63; }
+        
+        /* Etiquetas */
+        .etiqueta {
+            font-family: 'Arial', sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            fill: #2c3e50;
+            text-anchor: middle;
+        }
+        
+        .etiqueta-direccion {
+            font-size: 12px;
+            font-weight: 600;
+            fill: #34495e;
+        }
+    </style>
+    
+    <div class="text-center mb-3">
+        <h4 style="color: #2c3e50; margin-bottom: 8px; font-weight: 700;">
+            🦷 Odontograma Clínico Móvil
+        </h4>
+        <p style="color: #34495e; font-size: 0.9rem; margin-bottom: 5px;">
+            Vista Oclusal Optimizada - Sistema FDI
+        </p>
+        <p style="color: #7f8c8d; font-size: 0.8rem;">
+            Diseño responsivo para dispositivos móviles
+        </p>
+    </div>
+    
+    <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fondo -->
+        <rect width="900" height="500" fill="#f8f6f0"/>
+        
+        <!-- Encías -->
+        <ellipse cx="450" cy="200" rx="350" ry="120" class="encia-superior"/>
+        <ellipse cx="450" cy="350" rx="350" ry="120" class="encia-inferior"/>
+        
+        <!-- Líneas de división centradas entre incisivos centrales -->
+        <line x1="450" y1="60" x2="450" y2="480" class="linea-division"/>
+        <line x1="100" y1="275" x2="800" y2="275" class="linea-division"/>
+        
+        <!-- Etiquetas -->
+        <text x="450" y="50" class="etiqueta">Superior</text>
+        <text x="450" y="495" class="etiqueta">Inferior</text>
+        <text x="130" y="260" class="etiqueta-direccion">Derecha Paciente</text>
+        <text x="770" y="260" class="etiqueta-direccion">Izquierda Paciente</text>
+        <text x="130" y="290" class="etiqueta-direccion">Derecha Paciente</text>
+        <text x="770" y="290" class="etiqueta-direccion">Izquierda Paciente</text>
+        
+        <!-- ============ CUADRANTE SUPERIOR DERECHO (18-11) ============ -->
+        
+        <!-- 18 - Tercer Molar Superior Derecho -->
+        <g class="diente-movil molar" id="diente-18">
+            <path d="M 90 175 Q 100 165 115 170 Q 125 165 130 175 Q 130 190 120 195 Q 105 200 95 195 Q 85 185 90 175 Z" class="superficie-dental"/>
+            <text x="107" y="215" class="numero-diente">18</text>
+        </g>
+        
+        <!-- 17 - Segundo Molar Superior Derecho -->
+        <g class="diente-movil molar" id="diente-17">
+            <path d="M 150 155 Q 160 145 175 150 Q 185 145 190 155 Q 190 170 180 175 Q 165 180 155 175 Q 145 165 150 155 Z" class="superficie-dental"/>
+            <text x="167" y="195" class="numero-diente">17</text>
+        </g>
+        
+        <!-- 16 - Primer Molar Superior Derecho -->
+        <g class="diente-movil molar" id="diente-16">
+            <path d="M 210 135 Q 220 125 235 130 Q 245 125 250 135 Q 250 150 240 155 Q 225 160 215 155 Q 205 145 210 135 Z" class="superficie-dental"/>
+            <text x="227" y="175" class="numero-diente">16</text>
+        </g>
+        
+        <!-- 15 - Segundo Premolar Superior Derecho -->
+        <g class="diente-movil premolar" id="diente-15">
+            <path d="M 260 115 Q 268 105 280 110 Q 288 105 292 115 Q 292 127 284 132 Q 274 135 266 132 Q 258 125 260 115 Z" class="superficie-dental"/>
+            <text x="276" y="155" class="numero-diente">15</text>
+        </g>
+        
+        <!-- 14 - Primer Premolar Superior Derecho -->
+        <g class="diente-movil premolar" id="diente-14">
+            <path d="M 305 100 Q 313 90 325 95 Q 333 90 337 100 Q 337 112 329 117 Q 319 120 311 117 Q 303 110 305 100 Z" class="superficie-dental"/>
+            <text x="321" y="140" class="numero-diente">14</text>
+        </g>
+        
+        <!-- 13 - Canino Superior Derecho -->
+        <g class="diente-movil canino" id="diente-13">
+            <path d="M 355 90 Q 365 70 380 90 Q 378 110 365 115 Q 357 110 355 90 Z" class="superficie-dental"/>
+            <text x="367" y="135" class="numero-diente">13</text>
+        </g>
+        
+        <!-- 12 - Incisivo Lateral Superior Derecho -->
+        <g class="diente-movil incisivo" id="diente-12">
+            <path d="M 385 85 Q 390 75 400 80 Q 405 75 410 85 Q 410 103 405 108 Q 395 110 390 108 Q 385 100 385 85 Z" class="superficie-dental"/>
+            <text x="397" y="130" class="numero-diente">12</text>
+        </g>
+        
+        <!-- 11 - Incisivo Central Superior Derecho -->
+        <g class="diente-movil incisivo" id="diente-11">
+            <path d="M 415 83 Q 420 73 430 78 Q 440 73 445 83 Q 445 103 440 108 Q 430 110 420 108 Q 415 100 415 83 Z" class="superficie-dental"/>
+            <text x="430" y="130" class="numero-diente">11</text>
+        </g>
+        
+        <!-- ============ CUADRANTE SUPERIOR IZQUIERDO (21-28) ============ -->
+        
+        <!-- 21 - Incisivo Central Superior Izquierdo -->
+        <g class="diente-movil incisivo" id="diente-21">
+            <path d="M 455 83 Q 460 73 470 78 Q 480 73 485 83 Q 485 103 480 108 Q 470 110 460 108 Q 455 100 455 83 Z" class="superficie-dental"/>
+            <text x="470" y="130" class="numero-diente">21</text>
+        </g>
+        
+        <!-- 22 - Incisivo Lateral Superior Izquierdo -->
+        <g class="diente-movil incisivo" id="diente-22">
+            <path d="M 490 85 Q 495 75 505 80 Q 510 75 515 85 Q 515 103 510 108 Q 500 110 495 108 Q 490 100 490 85 Z" class="superficie-dental"/>
+            <text x="502" y="130" class="numero-diente">22</text>
+        </g>
+        
+        <!-- 23 - Canino Superior Izquierdo -->
+        <g class="diente-movil canino" id="diente-23">
+            <path d="M 520 90 Q 530 70 545 90 Q 543 110 530 115 Q 522 110 520 90 Z" class="superficie-dental"/>
+            <text x="532" y="135" class="numero-diente">23</text>
+        </g>
+        
+        <!-- 24 - Primer Premolar Superior Izquierdo -->
+        <g class="diente-movil premolar" id="diente-24">
+            <path d="M 563 100 Q 571 90 583 95 Q 591 90 595 100 Q 595 112 587 117 Q 577 120 569 117 Q 561 110 563 100 Z" class="superficie-dental"/>
+            <text x="579" y="140" class="numero-diente">24</text>
+        </g>
+        
+        <!-- 25 - Segundo Premolar Superior Izquierdo -->
+        <g class="diente-movil premolar" id="diente-25">
+            <path d="M 608 115 Q 616 105 628 110 Q 636 105 640 115 Q 640 127 632 132 Q 622 135 614 132 Q 606 125 608 115 Z" class="superficie-dental"/>
+            <text x="624" y="155" class="numero-diente">25</text>
+        </g>
+        
+        <!-- 26 - Primer Molar Superior Izquierdo -->
+        <g class="diente-movil molar" id="diente-26">
+            <path d="M 650 135 Q 660 125 675 130 Q 685 125 690 135 Q 690 150 680 155 Q 665 160 655 155 Q 645 145 650 135 Z" class="superficie-dental"/>
+            <text x="667" y="175" class="numero-diente">26</text>
+        </g>
+        
+        <!-- 27 - Segundo Molar Superior Izquierdo -->
+        <g class="diente-movil molar" id="diente-27">
+            <path d="M 710 155 Q 720 145 735 150 Q 745 145 750 155 Q 750 170 740 175 Q 725 180 715 175 Q 705 165 710 155 Z" class="superficie-dental"/>
+            <text x="727" y="195" class="numero-diente">27</text>
+        </g>
+        
+        <!-- 28 - Tercer Molar Superior Izquierdo -->
+        <g class="diente-movil molar" id="diente-28">
+            <path d="M 770 175 Q 780 165 795 170 Q 805 165 810 175 Q 810 190 800 195 Q 785 200 775 195 Q 765 185 770 175 Z" class="superficie-dental"/>
+            <text x="787" y="215" class="numero-diente">28</text>
+        </g>
+        
+        <!-- ============ CUADRANTE INFERIOR DERECHO (48-41) ============ -->
+        
+        <!-- 48 - Tercer Molar Inferior Derecho -->
+        <g class="diente-movil molar" id="diente-48">
+            <path d="M 90 375 Q 95 385 110 380 Q 125 385 130 375 Q 130 360 120 355 Q 105 350 95 355 Q 85 365 90 375 Z" class="superficie-dental"/>
+            <text x="107" y="335" class="numero-diente">48</text>
+        </g>
+        
+        <!-- 47 - Segundo Molar Inferior Derecho -->
+        <g class="diente-movil molar" id="diente-47">
+            <path d="M 150 395 Q 155 405 170 400 Q 185 405 190 395 Q 190 380 180 375 Q 165 370 155 375 Q 145 385 150 395 Z" class="superficie-dental"/>
+            <text x="167" y="355" class="numero-diente">47</text>
+        </g>
+        
+        <!-- 46 - Primer Molar Inferior Derecho -->
+        <g class="diente-movil molar" id="diente-46">
+            <path d="M 210 415 Q 215 425 230 420 Q 245 425 250 415 Q 250 400 240 395 Q 225 390 215 395 Q 205 405 210 415 Z" class="superficie-dental"/>
+            <text x="227" y="375" class="numero-diente">46</text>
+        </g>
+        
+        <!-- 45 - Segundo Premolar Inferior Derecho -->
+        <g class="diente-movil premolar" id="diente-45">
+            <path d="M 260 435 Q 266 445 280 440 Q 288 445 292 435 Q 292 423 284 418 Q 274 415 266 418 Q 258 425 260 435 Z" class="superficie-dental"/>
+            <text x="276" y="395" class="numero-diente">45</text>
+        </g>
+        
+        <!-- 44 - Primer Premolar Inferior Derecho -->
+        <g class="diente-movil premolar" id="diente-44">
+            <path d="M 305 450 Q 311 460 325 455 Q 333 460 337 450 Q 337 438 329 433 Q 319 430 311 433 Q 303 440 305 450 Z" class="superficie-dental"/>
+            <text x="321" y="410" class="numero-diente">44</text>
+        </g>
+        
+        <!-- 43 - Canino Inferior Derecho -->
+        <g class="diente-movil canino" id="diente-43">
+            <path d="M 355 460 Q 365 480 380 460 Q 378 440 365 435 Q 357 440 355 460 Z" class="superficie-dental"/>
+            <text x="367" y="415" class="numero-diente">43</text>
+        </g>
+        
+        <!-- 42 - Incisivo Lateral Inferior Derecho -->
+        <g class="diente-movil incisivo" id="diente-42">
+            <path d="M 385 465 Q 390 475 400 470 Q 405 475 410 465 Q 410 447 405 442 Q 395 440 390 442 Q 385 450 385 465 Z" class="superficie-dental"/>
+            <text x="397" y="420" class="numero-diente">42</text>
+        </g>
+        
+        <!-- 41 - Incisivo Central Inferior Derecho -->
+        <g class="diente-movil incisivo" id="diente-41">
+            <path d="M 415 467 Q 420 477 430 472 Q 440 477 445 467 Q 445 447 440 442 Q 430 440 420 442 Q 415 450 415 467 Z" class="superficie-dental"/>
+            <text x="430" y="420" class="numero-diente">41</text>
+        </g>
+        
+        <!-- ============ CUADRANTE INFERIOR IZQUIERDO (31-38) ============ -->
+        
+        <!-- 31 - Incisivo Central Inferior Izquierdo -->
+        <g class="diente-movil incisivo" id="diente-31">
+            <path d="M 455 467 Q 460 477 470 472 Q 480 477 485 467 Q 485 447 480 442 Q 470 440 460 442 Q 455 450 455 467 Z" class="superficie-dental"/>
+            <text x="470" y="420" class="numero-diente">31</text>
+        </g>
+        
+        <!-- 32 - Incisivo Lateral Inferior Izquierdo -->
+        <g class="diente-movil incisivo" id="diente-32">
+            <path d="M 490 465 Q 495 475 505 470 Q 510 475 515 465 Q 515 447 510 442 Q 500 440 495 442 Q 490 450 490 465 Z" class="superficie-dental"/>
+            <text x="502" y="420" class="numero-diente">32</text>
+        </g>
+        
+        <!-- 33 - Canino Inferior Izquierdo -->
+        <g class="diente-movil canino" id="diente-33">
+            <path d="M 520 460 Q 530 480 545 460 Q 543 440 530 435 Q 522 440 520 460 Z" class="superficie-dental"/>
+            <text x="532" y="415" class="numero-diente">33</text>
+        </g>
+        
+        <!-- 34 - Primer Premolar Inferior Izquierdo -->
+        <g class="diente-movil premolar" id="diente-34">
+            <path d="M 563 450 Q 569 460 583 455 Q 591 460 595 450 Q 595 438 587 433 Q 577 430 569 433 Q 561 440 563 450 Z" class="superficie-dental"/>
+            <text x="579" y="410" class="numero-diente">34</text>
+        </g>
+        
+        <!-- 35 - Segundo Premolar Inferior Izquierdo -->
+        <g class="diente-movil premolar" id="diente-35">
+            <path d="M 608 435 Q 614 445 628 440 Q 636 445 640 435 Q 640 423 632 418 Q 622 415 614 418 Q 606 425 608 435 Z" class="superficie-dental"/>
+            <text x="624" y="395" class="numero-diente">35</text>
+        </g>
+        
+        <!-- 36 - Primer Molar Inferior Izquierdo -->
+        <g class="diente-movil molar" id="diente-36">
+            <path d="M 650 415 Q 655 425 670 420 Q 685 425 690 415 Q 690 400 680 395 Q 665 390 655 395 Q 645 405 650 415 Z" class="superficie-dental"/>
+            <text x="667" y="375" class="numero-diente">36</text>
+        </g>
+        
+        <!-- 37 - Segundo Molar Inferior Izquierdo -->
+        <g class="diente-movil molar" id="diente-37">
+            <path d="M 710 395 Q 715 405 730 400 Q 745 405 750 395 Q 750 380 740 375 Q 725 370 715 375 Q 705 385 710 395 Z" class="superficie-dental"/>
+            <text x="727" y="355" class="numero-diente">37</text>
+        </g>
+        
+        <!-- 38 - Tercer Molar Inferior Izquierdo -->
+        <g class="diente-movil molar" id="diente-38">
+            <path d="M 770 375 Q 775 385 790 380 Q 805 385 810 375 Q 810 360 800 355 Q 785 350 775 355 Q 765 365 770 375 Z" class="superficie-dental"/>
+            <text x="787" y="335" class="numero-diente">38</text>
+        </g>
+        
+    </svg>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    function log(mensaje) {
+        console.log(`[ODONTOGRAMA MÓVIL] ${mensaje}`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        log('Iniciando odontograma optimizado para móvil');
+        
+        const dientes = document.querySelectorAll('.diente-movil');
+        log(`Configurando ${dientes.length} dientes para dispositivos móviles`);
+        
+        dientes.forEach(function(diente) {
+            const dienteId = diente.id;
+            const numeroFDI = dienteId.replace('diente-', '');
+            const cuadrante = Math.floor(numeroFDI / 10);
+            const posicion = numeroFDI % 10;
+            
+            // Determinar tipo de diente
+            let tipoDiente = '';
+            if (posicion === 1 || posicion === 2) {
+                tipoDiente = 'Incisivo';
+            } else if (posicion === 3) {
+                tipoDiente = 'Canino';
+            } else if (posicion === 4 || posicion === 5) {
+                tipoDiente = 'Premolar';
+            } else if (posicion === 6 || posicion === 7 || posicion === 8) {
+                tipoDiente = 'Molar';
+            }
+            
+            // Event listeners optimizados para móvil
+            diente.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                log(`Diente seleccionado: FDI ${numeroFDI} (${tipoDiente})`);
+                
+                // Limpiar selecciones anteriores
+                document.querySelectorAll('.diente-movil').forEach(d => {
+                    d.classList.remove('selected');
+                });
+                
+                // Seleccionar diente actual
+                diente.classList.add('selected');
+                
+                // Feedback háptico en móviles compatibles
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+                
+                // Evento personalizado
+                const evento = new CustomEvent('dienteMovilSeleccionado', {
+                    detail: {
+                        numeroFDI: numeroFDI,
+                        cuadrante: cuadrante,
+                        posicion: posicion,
+                        tipoDiente: tipoDiente,
+                        elemento: diente
+                    }
+                });
+                
+                document.dispatchEvent(evento);
+            });
+            
+            // Solo eventos básicos sin animaciones
+        });
+        
+        log('Odontograma móvil inicializado correctamente');
+    });
+    
+    // Funciones globales
+    window.aplicarDiagnosticoMovil = function(numeroFDI, diagnostico) {
+        const diente = document.getElementById(`diente-${numeroFDI}`);
+        if (diente) {
+            diente.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+            if (diagnostico) {
+                diente.classList.add(diagnostico);
+                log(`Diagnóstico aplicado: Diente ${numeroFDI} - ${diagnostico}`);
+            }
+        }
+    };
+    
+    window.limpiarSeleccionMovil = function() {
+        document.querySelectorAll('.diente-movil').forEach(diente => {
+            diente.classList.remove('selected', 'sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        });
+        log('Selección limpiada');
+    };
+    
+})();
+</script>

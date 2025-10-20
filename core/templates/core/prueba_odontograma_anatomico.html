@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-prueba {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        .card-prueba {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .diagnosticos-panel {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn-diagnostico {
+            margin: 5px;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-diagnostico:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .info-diente {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .alert-demo {
+            border-radius: 15px;
+            border: none;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header-prueba">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h1 class="display-4 mb-3">🦷 Odontogramas Profesionales - Prueba</h1>
+                    <p class="lead">{{ descripcion }}</p>
+                    
+                    <!-- Selector de odontograma -->
+                    <div class="btn-group flex-wrap" role="group" aria-label="Selector de odontograma">
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-boca-abierta" value="boca-abierta" checked>
+                        <label class="btn btn-outline-light" for="tipo-boca-abierta">
+                            <i class="fas fa-teeth-open"></i> Boca Abierta Ovalada
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-fdi-universal" value="fdi-universal">
+                        <label class="btn btn-outline-light" for="tipo-fdi-universal">
+                            <i class="fas fa-th-large"></i> FDI Universal (Vista Oclusal)
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-clinico-profesional" value="clinico-profesional">
+                        <label class="btn btn-outline-light" for="tipo-clinico-profesional">
+                            <i class="fas fa-user-md"></i> Clínico Profesional
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-clinico-mejorado" value="clinico-mejorado">
+                        <label class="btn btn-outline-light" for="tipo-clinico-mejorado">
+                            <i class="fas fa-crown"></i> Clínico Mejorado
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-oclusal-anatomico" value="oclusal-anatomico">
+                        <label class="btn btn-outline-light" for="tipo-oclusal-anatomico">
+                            <i class="fas fa-eye"></i> Oclusal Anatómico
+                        </label>
+                        
+                        <input type="radio" class="btn-check" name="odontograma-tipo" id="tipo-3d-realista" value="3d-realista">
+                        <label class="btn btn-outline-light" for="tipo-3d-realista">
+                            <i class="fas fa-cube"></i> 3D Ultra Realista
+                        </label>
+                    </div>
+                    <div class="alert alert-warning alert-demo d-inline-block">
+                        ⚠️ <strong>MODO PRUEBA</strong> - Esta página es solo para evaluar el diseño
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Panel de diagnósticos -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card card-prueba">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🔧 Panel de Diagnósticos</h5>
+                    </div>
+                    <div class="card-body diagnosticos-panel">
+                        <p class="text-muted small">Selecciona un diente del odontograma y luego un diagnóstico:</p>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success btn-diagnostico" data-diagnostico="sano">
+                                ✅ Sano
+                            </button>
+                            <button class="btn btn-danger btn-diagnostico" data-diagnostico="caries">
+                                🦠 Caries
+                            </button>
+                            <button class="btn btn-warning btn-diagnostico" data-diagnostico="obturada">
+                                🟡 Obturada
+                            </button>
+                            <button class="btn btn-info btn-diagnostico" data-diagnostico="corona">
+                                👑 Corona
+                            </button>
+                            <button class="btn btn-secondary btn-diagnostico" data-diagnostico="extraida">
+                                ❌ Extraída
+                            </button>
+                            <button class="btn btn-primary btn-diagnostico" data-diagnostico="implante">
+                                🔧 Implante
+                            </button>
+                            <button class="btn" style="background-color: #e83e8c; color: white;" data-diagnostico="endodoncia">
+                                🏥 Endodoncia
+                            </button>
+                        </div>
+
+                        <div class="info-diente" id="info-diente" style="display: none;">
+                            <h6 class="text-primary">Diente Seleccionado:</h6>
+                            <p id="diente-info-texto" class="mb-0">Ninguno</p>
+                        </div>
+
+                        <hr>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-success" id="btn-guardar-demo" disabled>
+                                💾 Guardar Cambios (Demo)
+                            </button>
+                            <button class="btn btn-outline-secondary" id="btn-limpiar-demo">
+                                🧹 Limpiar Selección
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de información del paciente -->
+                <div class="card card-prueba">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">👤 Paciente Demo</h6>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Nombre:</strong> {{ paciente_demo.nombre }}</p>
+                        <p class="mb-0"><strong>ID:</strong> {{ paciente_demo.numero_identificacion }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Odontograma -->
+            <div class="col-lg-9 col-md-8">
+                <div class="card card-prueba">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 odontograma-title">🦷 Odontograma - Boca Abierta Ovalada</h5>
+                        <small class="text-light odontograma-descripcion">Vista anatómica realista</small>
+                    </div>
+                    <div class="card-body p-0">
+                        
+                        <!-- Contenedor del odontograma de boca abierta -->
+                        <div id="odontograma-boca-abierta" class="odontograma-container">
+                            {% include 'core/partials/odontograma_boca_abierta.html' %}
+                        </div>
+                        
+                        <!-- Contenedor del odontograma FDI Universal -->
+                        <div id="odontograma-fdi-universal" class="odontograma-container" style="display: none;">
+                            {% include 'core/partials/odontograma_fdi_universal.html' %}
+                        </div>
+                        
+                        <!-- Contenedor del odontograma Clínico Profesional -->
+                        <div id="odontograma-clinico-profesional" class="odontograma-container" style="display: none;">
+                            {% include 'core/partials/odontograma_clinico_exacto.html' %}
+                        </div>
+                        
+                        <!-- Contenedor del odontograma Clínico Mejorado -->
+                        <div id="odontograma-clinico-mejorado" class="odontograma-container" style="display: none;">
+                            {% include 'core/partials/odontograma_clinico_mejorado.html' %}
+                        </div>
+                        
+                        <!-- Contenedor del odontograma Oclusal Anatómico -->
+                        <div id="odontograma-oclusal-anatomico" class="odontograma-container" style="display: none;">
+                            {% include 'core/partials/odontograma_oclusal_anatomico.html' %}
+                        </div>
+                        
+                        <!-- Contenedor del odontograma 3D Ultra Realista -->
+                        <div id="odontograma-3d-realista" class="odontograma-container" style="display: none;">
+                            {% include 'core/partials/odontograma_3d_realista.html' %}
+                        </div>
+                        
+                        <!-- Panel de instrucciones -->
+                        <div class="alert alert-info alert-demo m-3">
+                            <h6>📋 Instrucciones de prueba:</h6>
+                            <div class="instrucciones-boca-abierta">
+                                <ol class="mb-0">
+                                    <li>Selecciona el tipo de odontograma en el header</li>
+                                    <li>Haz clic en cualquier diente del odontograma</li>
+                                    <li>Selecciona un diagnóstico del panel izquierdo</li>
+                                    <li>Observa como cambia el color del diente</li>
+                                    <li>Haz clic en "Guardar Cambios" para probar la funcionalidad</li>
+                                </ol>
+                            </div>
+                            <div class="instrucciones-fdi-universal" style="display: none;">
+                                <ol class="mb-0">
+                                    <li><strong>Vista Oclusal FDI:</strong> Perspectiva desde arriba como en el consultorio</li>
+                                    <li><strong>Cuadrantes:</strong> División clara con líneas centrales</li>
+                                    <li><strong>Numeración:</strong> Sistema de dos dígitos (cuadrante + posición)</li>
+                                    <li>Haz clic en cualquier diente para ver información detallada</li>
+                                    <li>Aplica diagnósticos usando el panel lateral</li>
+                                </ol>
+                            </div>
+                            <div class="instrucciones-clinico-profesional" style="display: none;">
+                                <ol class="mb-0">
+                                    <li><strong>Diseño Clínico:</strong> Réplica exacta del formato profesional usado en clínicas</li>
+                                    <li><strong>Paneles Laterales:</strong> Espacios para anotaciones por cuadrante</li>
+                                    <li><strong>Superficies Oclusales:</strong> Representación real de la anatomía dental</li>
+                                    <li><strong>Líneas de Cúspides:</strong> Detalles anatómicos en molares y premolares</li>
+                                    <li>Formato idéntico al usado en historias clínicas reales</li>
+                                </ol>
+                            </div>
+                            <div class="instrucciones-clinico-mejorado" style="display: none;">
+                                <ol class="mb-0">
+                                    <li><strong>Diseño Limpio:</strong> Odontograma clínico sin paneles laterales, más enfocado</li>
+                                    <li><strong>Formas Anatómicas:</strong> Dientes con formas realistas por tipo (incisivos, caninos, premolares, molares)</li>
+                                    <li><strong>Encías Naturales:</strong> Representación realista de la forma de herradura de la boca</li>
+                                    <li><strong>Vista Oclusal:</strong> Perspectiva desde arriba como ve el dentista durante el examen</li>
+                                    <li><strong>Cúspides Detalladas:</strong> Líneas anatómicas en molares y premolares para mayor realismo</li>
+                                    <li>Diseño profesional optimizado para mejor visualización y usabilidad</li>
+                                </ol>
+                            </div>
+                            <div class="instrucciones-oclusal-anatomico" style="display: none;">
+                                <ol class="mb-0">
+                                    <li><strong>👁️ Vista Oclusal Real:</strong> Reproducción exacta de lo que ve el dentista al mirar desde arriba</li>
+                                    <li><strong>🦷 Anatomía Auténtica:</strong> Cada diente tiene su forma oclusal específica según su tipo</li>
+                                    <li><strong>🕰️ Cúspides Reales:</strong> Molares con múltiples cúspides, premolares ovalados, caninos puntiagudos</li>
+                                    <li><strong>🌀 Fisuras Centrales:</strong> Líneas anatómicas internas que muestran la morfología real</li>
+                                    <li><strong>📰 Proporciones Correctas:</strong> Tamaños relativos reales entre incisivos, premolares y molares</li>
+                                    <li><strong>🎨 Gradientes Naturales:</strong> Encías con textura y coloración realista</li>
+                                    <li>Diseño fiel a la anatomía dental como se ve en exámenes clínicos reales</li>
+                                </ol>
+                            </div>
+                            <div class="instrucciones-3d-realista" style="display: none;">
+                                <ol class="mb-0">
+                                    <li><strong>🎨 Efectos 3D:</strong> Gradientes radiales y sombras que simulan profundidad y relieve real</li>
+                                    <li><strong>🥌 Proporciones Exactas:</strong> Arcadas con forma de herradura anatómicamente correcta</li>
+                                    <li><strong>🌈 Colores Naturales:</strong> Tonos beige/crema que replican el color real de los dientes</li>
+                                    <li><strong>✨ Molares Complejos:</strong> Múltiples cúspides con fisuras centrales y secundarias detalladas</li>
+                                    <li><strong>🔶 Caninos Puntiagudos:</strong> Formas triangulares realistas con cúspides prominentes</li>
+                                    <li><strong>🟢 Premolares Ovalados:</strong> Formas elípticas con dos cúspides principales</li>
+                                    <li><strong>🗪️ Incisivos Rectangulares:</strong> Bordes incisales realistas con proporciones correctas</li>
+                                    <li><strong>🎯 Tamaños Correctos:</strong> Molares más grandes, premolares medianos, incisivos más pequeños</li>
+                                    <li>Máximo nivel de realismo visual - Como ver dientes reales desde arriba</li>
+                                </ol>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log de eventos -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-prueba">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0">📝 Log de Eventos (Consola de Prueba)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="log-eventos" class="bg-dark text-light p-3" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; border-radius: 5px;">
+                            <div class="text-success">[SISTEMA] Página de prueba iniciada - observa la consola del navegador para más detalles</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    (function() {
+        'use strict';
+        
+        let dienteSeleccionado = null;
+        let cambiosPendientes = {};
+        let tipoOdontogramaActual = 'boca-abierta';
+        
+        function cambiarOdontograma(tipo) {
+            const bocaAbierta = document.getElementById('odontograma-boca-abierta');
+            const fdiUniversal = document.getElementById('odontograma-fdi-universal');
+            const clinicoProfesional = document.getElementById('odontograma-clinico-profesional');
+            const clinicoMejorado = document.getElementById('odontograma-clinico-mejorado');
+            const oclusalAnatomico = document.getElementById('odontograma-oclusal-anatomico');
+            const realista3D = document.getElementById('odontograma-3d-realista');
+            const titulo = document.querySelector('.odontograma-title');
+            const descripcion = document.querySelector('.odontograma-descripcion');
+            const instruccionesBoca = document.querySelector('.instrucciones-boca-abierta');
+            const instruccionesFDI = document.querySelector('.instrucciones-fdi-universal');
+            const instruccionesClinico = document.querySelector('.instrucciones-clinico-profesional');
+            const instruccionesMejorado = document.querySelector('.instrucciones-clinico-mejorado');
+            const instruccionesAnatomico = document.querySelector('.instrucciones-oclusal-anatomico');
+            const instrucciones3D = document.querySelector('.instrucciones-3d-realista');
+            
+            tipoOdontogramaActual = tipo;
+            
+            if (tipo === 'boca-abierta') {
+                bocaAbierta.style.display = 'block';
+                fdiUniversal.style.display = 'none';
+                clinicoProfesional.style.display = 'none';
+                clinicoMejorado.style.display = 'none';
+                oclusalAnatomico.style.display = 'none';
+                realista3D.style.display = 'none';
+                titulo.textContent = '🥷 Odontograma - Boca Abierta Ovalada';
+                descripcion.textContent = 'Vista anatómica realista';
+                instruccionesBoca.style.display = 'block';
+                instruccionesFDI.style.display = 'none';
+                instruccionesClinico.style.display = 'none';
+                instruccionesMejorado.style.display = 'none';
+                instruccionesAnatomico.style.display = 'none';
+                instrucciones3D.style.display = 'none';
+                log('🔄 Cambiado a odontograma de Boca Abierta Ovalada', 'info');
+            } else if (tipo === 'fdi-universal') {
+                bocaAbierta.style.display = 'none';
+                fdiUniversal.style.display = 'block';
+                clinicoProfesional.style.display = 'none';
+                clinicoMejorado.style.display = 'none';
+                oclusalAnatomico.style.display = 'none';
+                realista3D.style.display = 'none';
+                titulo.innerHTML = '🥷 Odontograma - Sistema FDI Universal';
+                descripcion.textContent = 'Vista oclusal con cuadrantes';
+                instruccionesBoca.style.display = 'none';
+                instruccionesFDI.style.display = 'block';
+                instruccionesClinico.style.display = 'none';
+                instruccionesMejorado.style.display = 'none';
+                instruccionesAnatomico.style.display = 'none';
+                instrucciones3D.style.display = 'none';
+                log('🔄 Cambiado a odontograma FDI Universal', 'info');
+            } else if (tipo === 'clinico-profesional') {
+                bocaAbierta.style.display = 'none';
+                fdiUniversal.style.display = 'none';
+                clinicoProfesional.style.display = 'block';
+                clinicoMejorado.style.display = 'none';
+                oclusalAnatomico.style.display = 'none';
+                realista3D.style.display = 'none';
+                titulo.innerHTML = '🥷 Odontograma - Clínico Profesional';
+                descripcion.textContent = 'Formato clínico estándar';
+                instruccionesBoca.style.display = 'none';
+                instruccionesFDI.style.display = 'none';
+                instruccionesClinico.style.display = 'block';
+                instruccionesMejorado.style.display = 'none';
+                instruccionesAnatomico.style.display = 'none';
+                instrucciones3D.style.display = 'none';
+                log('🔄 Cambiado a odontograma Clínico Profesional', 'info');
+            } else if (tipo === 'clinico-mejorado') {
+                bocaAbierta.style.display = 'none';
+                fdiUniversal.style.display = 'none';
+                clinicoProfesional.style.display = 'none';
+                clinicoMejorado.style.display = 'block';
+                oclusalAnatomico.style.display = 'none';
+                realista3D.style.display = 'none';
+                titulo.innerHTML = '🥷 Odontograma - Clínico Mejorado';
+                descripcion.textContent = 'Vista oclusal anatómica sin paneles';
+                instruccionesBoca.style.display = 'none';
+                instruccionesFDI.style.display = 'none';
+                instruccionesClinico.style.display = 'none';
+                instruccionesMejorado.style.display = 'block';
+                instruccionesAnatomico.style.display = 'none';
+                instrucciones3D.style.display = 'none';
+                log('🔄 Cambiado a odontograma Clínico Mejorado', 'info');
+            } else if (tipo === 'oclusal-anatomico') {
+                bocaAbierta.style.display = 'none';
+                fdiUniversal.style.display = 'none';
+                clinicoProfesional.style.display = 'none';
+                clinicoMejorado.style.display = 'none';
+                oclusalAnatomico.style.display = 'block';
+                realista3D.style.display = 'none';
+                titulo.innerHTML = '🥷 Odontograma - Oclusal Anatómico Real';
+                descripcion.textContent = 'Vista desde arriba con anatomía dental realista';
+                instruccionesBoca.style.display = 'none';
+                instruccionesFDI.style.display = 'none';
+                instruccionesClinico.style.display = 'none';
+                instruccionesMejorado.style.display = 'none';
+                instruccionesAnatomico.style.display = 'block';
+                instrucciones3D.style.display = 'none';
+                log('🔄 Cambiado a odontograma Oclusal Anatómico Real', 'info');
+            } else if (tipo === '3d-realista') {
+                bocaAbierta.style.display = 'none';
+                fdiUniversal.style.display = 'none';
+                clinicoProfesional.style.display = 'none';
+                clinicoMejorado.style.display = 'none';
+                oclusalAnatomico.style.display = 'none';
+                realista3D.style.display = 'block';
+                titulo.innerHTML = '🥷 Odontograma - 3D Ultra Realista';
+                descripcion.textContent = 'Vista oclusal con efectos 3D y gradientes naturales';
+                instruccionesBoca.style.display = 'none';
+                instruccionesFDI.style.display = 'none';
+                instruccionesClinico.style.display = 'none';
+                instruccionesMejorado.style.display = 'none';
+                instruccionesAnatomico.style.display = 'none';
+                instrucciones3D.style.display = 'block';
+                log('🔄 Cambiado a odontograma 3D Ultra Realista', 'info');
+            }
+            
+            // Limpiar selección al cambiar
+            limpiarSeleccion();
+        }
+        
+        function limpiarSeleccion() {
+            // Limpiar selección en todos los tipos de odontograma
+            document.querySelectorAll('.diente-u, .diente-fdi, .diente-clinico, .diente-real, .diente-mejorado, .diente-anatomico, .diente-3d').forEach(d => {
+                d.classList.remove('selected');
+            });
+            
+            dienteSeleccionado = null;
+            
+            // Ocultar info del diente
+            const infoDiv = document.getElementById('info-diente');
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+            
+            // Deshabilitar botones
+            document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                btn.disabled = true;
+            });
+            
+            log('🧹 Selección limpiada', 'info');
+        }
+        
+        function log(mensaje, tipo = 'info') {
+            console.log(`[PRUEBA ODONTOGRAMA] ${mensaje}`);
+            
+            const logDiv = document.getElementById('log-eventos');
+            if (logDiv) {
+                const colores = {
+                    'info': 'text-info',
+                    'success': 'text-success', 
+                    'warning': 'text-warning',
+                    'error': 'text-danger'
+                };
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = colores[tipo] || 'text-light';
+                logEntry.innerHTML = `[${timestamp}] ${mensaje}`;
+                
+                logDiv.appendChild(logEntry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Iniciando página de prueba de odontogramas profesionales', 'success');
+            
+            // Event listeners para el selector de odontogramas
+            document.querySelectorAll('input[name="odontograma-tipo"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        cambiarOdontograma(this.value);
+                    }
+                });
+            });
+            
+            // Escuchar eventos del odontograma FDI
+            document.addEventListener('dienteFDISeleccionado', function(e) {
+                const info = e.detail;
+                dienteSeleccionado = {
+                    numero: info.numeroFDI,
+                    tipo: info.tipoDiente,
+                    elemento: info.elemento
+                };
+                
+                log(`🦷 Diente FDI seleccionado: ${info.numeroFDI} (${info.tipoDiente}, Cuadrante ${info.cuadrante})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente FDI ${info.numeroFDI} (${info.tipoDiente})`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Escuchar eventos del odontograma Clínico Exacto
+            document.addEventListener('dienteExactoSeleccionado', function(e) {
+                const info = e.detail;
+                dienteSeleccionado = {
+                    numero: info.numeroFDI,
+                    tipo: info.tipoDiente,
+                    elemento: info.elemento
+                };
+                
+                log(`🥷 Diente Clínico Exacto seleccionado: ${info.numeroFDI} (${info.tipoDiente}, Cuadrante ${info.cuadrante})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente Clínico ${info.numeroFDI} (${info.tipoDiente})`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Escuchar eventos del odontograma Clínico Mejorado
+            document.addEventListener('dienteMejoradoSeleccionado', function(e) {
+                const info = e.detail;
+                dienteSeleccionado = {
+                    numero: info.numeroFDI,
+                    tipo: info.tipoDiente,
+                    elemento: info.elemento
+                };
+                
+                log(`🥷 Diente Clínico Mejorado seleccionado: ${info.numeroFDI} (${info.tipoDiente}, Cuadrante ${info.cuadrante})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente Mejorado ${info.numeroFDI} (${info.tipoDiente})`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Escuchar eventos del odontograma Oclusal Anatómico
+            document.addEventListener('dienteAnatomico​Seleccionado', function(e) {
+                const info = e.detail;
+                dienteSeleccionado = {
+                    numero: info.numeroFDI,
+                    tipo: info.tipoDiente,
+                    elemento: info.elemento
+                };
+                
+                log(`🥷 Diente Oclusal Anatómico seleccionado: ${info.numeroFDI} (${info.tipoDiente}, ${info.tipoAnatomico})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente Anatómico ${info.numeroFDI} (${info.tipoDiente})`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Escuchar eventos del odontograma 3D Realista
+            document.addEventListener('diente3DRealistaSeleccionado', function(e) {
+                const info = e.detail;
+                dienteSeleccionado = {
+                    numero: info.numeroFDI,
+                    tipo: info.tipoDiente,
+                    elemento: info.elemento
+                };
+                
+                log(`🥷 Diente 3D Realista seleccionado: ${info.numeroFDI} (${info.tipoDiente}, ${info.tipoAnatomico3D})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente 3D ${info.numeroFDI} (${info.tipoDiente})`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Aplicar diagnósticos demo iniciales
+            const diagnosticosDemo = JSON.parse('{{ diagnosticos_demo|escapejs }}');
+            setTimeout(() => {
+                diagnosticosDemo.forEach(demo => {
+                    const elemento = document.getElementById(`diente-${demo.numero}`);
+                    if (elemento) {
+                        elemento.classList.add(demo.diagnostico);
+                        log(`✅ Diagnóstico demo aplicado: Diente ${demo.numero} -> ${demo.diagnostico}`, 'success');
+                    }
+                });
+            }, 500);
+            
+            // Escuchar selección de dientes
+            document.addEventListener('dienteSeleccionado', function(e) {
+                dienteSeleccionado = e.detail;
+                log(`🦷 Diente seleccionado: ${dienteSeleccionado.numero} (${dienteSeleccionado.tipo})`, 'info');
+                
+                // Mostrar información del diente
+                const infoDiv = document.getElementById('info-diente');
+                const textoInfo = document.getElementById('diente-info-texto');
+                if (infoDiv && textoInfo) {
+                    infoDiv.style.display = 'block';
+                    textoInfo.textContent = `Diente #${dienteSeleccionado.numero}`;
+                }
+                
+                // Habilitar botones de diagnóstico
+                document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                });
+            });
+            
+            // Manejar clics en diagnósticos
+            document.querySelectorAll('.btn-diagnostico').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!dienteSeleccionado) {
+                        log('⚠️ Debes seleccionar un diente primero', 'warning');
+                        return;
+                    }
+                    
+                    const diagnostico = this.getAttribute('data-diagnostico');
+                    log(`🔧 Aplicando diagnóstico: ${diagnostico} al diente ${dienteSeleccionado.numero}`, 'info');
+                    
+                    // Aplicar diagnóstico según el tipo de odontograma
+                    if (tipoOdontogramaActual === 'fdi-universal') {
+                        // Usar la función global del odontograma FDI
+                        if (window.aplicarDiagnosticoFDI) {
+                            window.aplicarDiagnosticoFDI(dienteSeleccionado.numero, diagnostico);
+                        }
+                    } else if (tipoOdontogramaActual === 'clinico-profesional') {
+                        // Usar la función global del odontograma Clínico Exacto
+                        if (window.aplicarDiagnosticoExacto) {
+                            window.aplicarDiagnosticoExacto(dienteSeleccionado.numero, diagnostico);
+                        }
+                    } else if (tipoOdontogramaActual === 'clinico-mejorado') {
+                        // Usar la función global del odontograma Clínico Mejorado
+                        if (window.aplicarDiagnosticoMejorado) {
+                            window.aplicarDiagnosticoMejorado(dienteSeleccionado.numero, diagnostico);
+                        }
+                    } else if (tipoOdontogramaActual === 'oclusal-anatomico') {
+                        // Usar la función global del odontograma Oclusal Anatómico
+                        if (window.aplicarDiagnosticoAnatomico) {
+                            window.aplicarDiagnosticoAnatomico(dienteSeleccionado.numero, diagnostico);
+                        }
+                    } else if (tipoOdontogramaActual === '3d-realista') {
+                        // Usar la función global del odontograma 3D Realista
+                        if (window.aplicarDiagnostico3D) {
+                            window.aplicarDiagnostico3D(dienteSeleccionado.numero, diagnostico);
+                        }
+                    } else {
+                        // Aplicar diagnóstico al odontograma de boca abierta
+                        const elemento = dienteSeleccionado.elemento;
+                        elemento.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+                        elemento.classList.add(diagnostico);
+                    }
+                    
+                    // Registrar cambio
+                    cambiosPendientes[dienteSeleccionado.numero] = diagnostico;
+                    
+                    log(`✅ Diagnóstico aplicado visualmente: Diente ${dienteSeleccionado.numero} -> ${diagnostico}`, 'success');
+                    
+                    // Habilitar botón guardar
+                    const btnGuardar = document.getElementById('btn-guardar-demo');
+                    if (btnGuardar) {
+                        btnGuardar.disabled = false;
+                        btnGuardar.classList.remove('disabled');
+                    }
+                });
+            });
+            
+            // Botón guardar demo
+            document.getElementById('btn-guardar-demo').addEventListener('click', function() {
+                if (Object.keys(cambiosPendientes).length === 0) {
+                    log('⚠️ No hay cambios para guardar', 'warning');
+                    return;
+                }
+                
+                log(`💾 Guardando ${Object.keys(cambiosPendientes).length} cambios...`, 'info');
+                
+                // Simular guardado
+                setTimeout(() => {
+                    log(`✅ Cambios guardados exitosamente (DEMO): ${JSON.stringify(cambiosPendientes)}`, 'success');
+                    cambiosPendientes = {};
+                    this.disabled = true;
+                }, 1000);
+            });
+            
+            // Botón limpiar
+            document.getElementById('btn-limpiar-demo').addEventListener('click', function() {
+                if (tipoOdontogramaActual === 'fdi-universal') {
+                    // Usar la función global del odontograma FDI
+                    if (window.limpiarSeleccionFDI) {
+                        window.limpiarSeleccionFDI();
+                    }
+                } else if (tipoOdontogramaActual === 'clinico-profesional') {
+                    // Usar la función global del odontograma Clínico Exacto
+                    if (window.limpiarSeleccionExacto) {
+                        window.limpiarSeleccionExacto();
+                    }
+                } else if (tipoOdontogramaActual === 'clinico-mejorado') {
+                    // Usar la función global del odontograma Clínico Mejorado
+                    if (window.limpiarSeleccionMejorado) {
+                        window.limpiarSeleccionMejorado();
+                    }
+                } else if (tipoOdontogramaActual === 'oclusal-anatomico') {
+                    // Usar la función global del odontograma Oclusal Anatómico
+                    if (window.limpiarSeleccionAnatomico) {
+                        window.limpiarSeleccionAnatomico();
+                    }
+                } else if (tipoOdontogramaActual === '3d-realista') {
+                    // Usar la función global del odontograma 3D Realista
+                    if (window.limpiarSeleccion3D) {
+                        window.limpiarSeleccion3D();
+                    }
+                } else {
+                    // Limpiar odontograma de boca abierta
+                    document.querySelectorAll('.diente-u').forEach(d => {
+                        d.classList.remove('selected', 'sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+                    });
+                }
+                
+                limpiarSeleccion();
+            });
+            
+            log('🎯 Sistema de prueba listo - haz clic en cualquier diente para empezar', 'success');
+        });
+    })();
+    </script>
+</body>
+</html>

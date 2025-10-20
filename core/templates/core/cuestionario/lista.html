@@ -1,0 +1,285 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Cuestionarios de Historial Clínico{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-clipboard-list text-primary"></i> Cuestionarios de Historial Clínico</h2>
+                    <p class="text-muted">Gestión de cuestionarios médicos según normas COFEPRIS</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:paciente_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-users"></i> Gestionar Pacientes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtros y búsqueda -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Buscar paciente:</label>
+                            <input type="text" class="form-control" name="search" 
+                                   value="{{ request.GET.search }}" 
+                                   placeholder="Nombre o apellido del paciente">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado del cuestionario:</label>
+                            <select class="form-select" name="estado">
+                                <option value="">Todos</option>
+                                <option value="completado" {% if request.GET.estado == 'completado' %}selected{% endif %}>
+                                    Completado
+                                </option>
+                                <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>
+                                    Pendiente
+                                </option>
+                                <option value="alertas" {% if request.GET.estado == 'alertas' %}selected{% endif %}>
+                                    Con Alertas
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Período:</label>
+                            <input type="date" class="form-control" name="fecha_desde" 
+                                   value="{{ request.GET.fecha_desde }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Filtrar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de pacientes y cuestionarios -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Pacientes y Cuestionarios
+                        <small class="text-muted">({{ pacientes|length }} resultados)</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if pacientes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Paciente</th>
+                                        <th>Contacto</th>
+                                        <th>Estado del Cuestionario</th>
+                                        <th>Última Actualización</th>
+                                        <th>Alertas</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for paciente in pacientes %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar me-3">
+                                                    <div class="avatar-initial bg-primary text-white rounded-circle">
+                                                        {{ paciente.nombre|first|upper }}{{ paciente.apellido|first|upper }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                                                    <br><small class="text-muted">{{ paciente.fecha_nacimiento|date:"d/m/Y" }} 
+                                                    ({{ paciente.edad }} años)</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                {% if paciente.telefono %}
+                                                    <i class="fas fa-phone text-muted"></i> {{ paciente.telefono }}<br>
+                                                {% endif %}
+                                                {% if paciente.email %}
+                                                    <i class="fas fa-envelope text-muted"></i> 
+                                                    <small>{{ paciente.email }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if paciente.tiene_cuestionario %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle"></i> Completado
+                                                </span>
+                                                <br><small class="text-muted">
+                                                    {{ paciente.respuestas_historial.count }} respuestas
+                                                </small>
+                                            {% else %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock"></i> Pendiente
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if paciente.ultimo_cuestionario %}
+                                                {{ paciente.ultimo_cuestionario.fecha_completado|date:"d/m/Y H:i" }}
+                                                <br><small class="text-muted">
+                                                    por {{ paciente.ultimo_cuestionario.completado_por.get_full_name|default:paciente.ultimo_cuestionario.completado_por.username }}
+                                                </small>
+                                            {% else %}
+                                                <span class="text-muted">Sin completar</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if paciente.ultimo_cuestionario.tiene_alertas %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle"></i> {{ paciente.alertas_count }} alertas
+                                                </span>
+                                            {% else %}
+                                                <span class="text-success">
+                                                    <i class="fas fa-shield-check"></i> Sin alertas
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                {% if paciente.tiene_cuestionario %}
+                                                    <a href="{% url 'core:cuestionario_detalle' paciente_id=paciente.id %}" 
+                                                       class="btn btn-outline-primary" 
+                                                       data-bs-toggle="tooltip" title="Ver cuestionario">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                                       class="btn btn-outline-warning"
+                                                       data-bs-toggle="tooltip" title="Editar cuestionario">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                                       class="btn btn-primary"
+                                                       data-bs-toggle="tooltip" title="Completar cuestionario">
+                                                        <i class="fas fa-plus-circle"></i> Completar
+                                                    </a>
+                                                {% endif %}
+                                                <a href="{% url 'core:paciente_detail' pk=paciente.id %}" 
+                                                   class="btn btn-outline-secondary"
+                                                   data-bs-toggle="tooltip" title="Ver perfil del paciente">
+                                                    <i class="fas fa-user"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No se encontraron pacientes</h4>
+                            <p class="text-muted">
+                                {% if request.GET.search %}
+                                    No hay pacientes que coincidan con tu búsqueda.
+                                {% else %}
+                                    No hay pacientes registrados aún.
+                                {% endif %}
+                            </p>
+                            <a href="{% url 'core:paciente_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Agregar primer paciente
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            {% if pacientes %}
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ total_pacientes }}</h4>
+                                    <small>Total Pacientes</small>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ cuestionarios_completos }}</h4>
+                                    <small>Completados</small>
+                                </div>
+                                <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ cuestionarios_pendientes }}</h4>
+                                    <small>Pendientes</small>
+                                </div>
+                                <i class="fas fa-clock fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="mb-0">{{ cuestionarios_con_alertas }}</h4>
+                                    <small>Con Alertas</small>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar {
+    width: 40px;
+    height: 40px;
+}
+.avatar-initial {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+}
+</style>
+
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

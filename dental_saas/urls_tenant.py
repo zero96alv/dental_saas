@@ -21,17 +21,22 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
+from core.auth_views import CustomLogoutView
+
 urlpatterns = [
-    # Redirigir la raíz al dashboard
-    path('', RedirectView.as_view(pattern_name='core:dashboard', permanent=False)),
-    
     # URLs de Autenticación
     path('accounts/login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
-    path('accounts/logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
-
-    path('dashboard/', include('core.urls', namespace='core')),
+    # Usar nuestra vista de logout personalizada
+    path('accounts/logout/', CustomLogoutView.as_view(), name='logout'),
+    
+    # URLs de la aplicación core (incluye la raíz) - DEBE IR ANTES del admin
+    path('', include('core.urls', namespace='core')),
+    
+    # URLs del admin de Django - DEBE IR DESPUÉS para evitar conflictos
+    path('admin/', admin.site.urls),
 ]
 
-# Servir archivos multimedia durante el desarrollo
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Servir archivos estáticos y multimedia en dev/local sin depender de DEBUG
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+urlpatterns += staticfiles_urlpatterns()  # Sirve archivos desde STATICFILES_DIRS y app/static
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

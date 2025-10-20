@@ -1,0 +1,232 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Administrar Categorías - Cuestionario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-folder-open text-primary"></i> Categorías del Cuestionario</h2>
+                    <p class="text-muted">Administrar las categorías del historial clínico según normas COFEPRIS</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:categoria_historial_create' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Nueva Categoría
+                    </a>
+                    <a href="{% url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+
+            <!-- Lista de categorías -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Categorías Configuradas
+                        <small class="text-muted">({{ categorias|length }} categorías)</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if categorias %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Orden</th>
+                                        <th>Categoría</th>
+                                        <th>Descripción</th>
+                                        <th>Preguntas</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for categoria in categorias %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ categoria.orden }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <div class="categoria-icon" 
+                                                         style="background-color: {{ categoria.color }}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="{{ categoria.icono|default:'fas fa-folder' }} text-white" style="font-size: 0.8em;"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <strong>{{ categoria.nombre }}</strong>
+                                                    <br><small class="text-muted">{{ categoria.color }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="max-width: 300px;">
+                                                {{ categoria.descripcion|truncatechars:100|default:"Sin descripción" }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">
+                                                {{ categoria.total_preguntas }} preguntas
+                                            </span>
+                                            {% if categoria.preguntas_inactivas > 0 %}
+                                                <br><small class="text-warning">
+                                                    {{ categoria.preguntas_inactivas }} inactivas
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if categoria.activa %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i> Activa
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times"></i> Inactiva
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'core:categoria_historial_edit' pk=categoria.id %}" 
+                                                   class="btn btn-outline-warning"
+                                                   data-bs-toggle="tooltip" title="Editar categoría">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'core:pregunta_historial_list' %}?categoria={{ categoria.id }}" 
+                                                   class="btn btn-outline-info"
+                                                   data-bs-toggle="tooltip" title="Ver preguntas">
+                                                    <i class="fas fa-question-circle"></i>
+                                                </a>
+                                                {% if categoria.total_preguntas == 0 %}
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteModal{{ categoria.id }}"
+                                                        data-bs-toggle="tooltip" title="Eliminar categoría">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No hay categorías configuradas</h4>
+                            <p class="text-muted">Cree la primera categoría para organizar las preguntas del cuestionario.</p>
+                            <a href="{% url 'core:categoria_historial_create' %}" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Crear Primera Categoría
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Acciones rápidas -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6><i class="fas fa-tools"></i> Acciones Rápidas</h6>
+                            <div class="list-group list-group-flush">
+                                <a href="{% url 'core:pregunta_historial_list' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-question-circle text-primary"></i>
+                                    Administrar Preguntas
+                                </a>
+                                <a href="{% url 'core:cuestionario_lista' %}" class="list-group-item list-group-item-action">
+                                    <i class="fas fa-clipboard-list text-success"></i>
+                                    Ver Cuestionarios Completados
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6><i class="fas fa-info-circle"></i> Información</h6>
+                            <p class="small text-muted">
+                                Las categorías organizan las preguntas del historial clínico según las normas COFEPRIS para México. 
+                                El orden determina cómo aparecen en el cuestionario. Use colores distintivos para facilitar 
+                                la navegación visual.
+                            </p>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="fw-bold text-primary">{{ categorias|length }}</div>
+                                    <small class="text-muted">Categorías</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold text-success">
+                                        {{ categorias_activas }}
+                                    </div>
+                                    <small class="text-muted">Activas</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold text-info">
+                                        {{ total_preguntas_global }}
+                                    </div>
+                                    <small class="text-muted">Preguntas</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modales de confirmación de eliminación -->
+{% for categoria in categorias %}
+{% if categoria.total_preguntas == 0 %}
+<div class="modal fade" id="deleteModal{{ categoria.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <p>¿Está seguro de que desea eliminar la categoría <strong>"{{ categoria.nombre }}"</strong>?</p>
+                <div class="alert alert-warning">
+                    <small><i class="fas fa-info-circle"></i> Esta acción no se puede deshacer.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'core:categoria_historial_edit' pk=categoria.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

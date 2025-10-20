@@ -1,0 +1,281 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Consentimiento de {{ paciente_consentimiento.paciente }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.documento-preview {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    min-height: 400px;
+    background: #f8f9fa;
+}
+.firma-container {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    min-height: 80px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.firma-imagen {
+    max-width: 100%;
+    max-height: 60px;
+}
+.estado-badge {
+    font-size: 1.1em;
+    padding: 8px 16px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-file-contract text-primary"></i>
+                                {{ paciente_consentimiento.consentimiento.titulo }}
+                            </h2>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-4">
+                                    <strong>{{ paciente_consentimiento.paciente.nombre }} {{ paciente_consentimiento.paciente.apellido }}</strong>
+                                    <div class="text-muted small">{{ paciente_consentimiento.paciente.fecha_nacimiento|date:"d/m/Y" }} ({{ paciente_consentimiento.paciente.edad }} años)</div>
+                                </div>
+                                <div class="me-4">
+                                    <i class="fas fa-calendar text-muted"></i> {{ paciente_consentimiento.fecha_presentado|date:"d/m/Y H:i" }}
+                                    {% if paciente_consentimiento.presentado_por %}
+                                        <br><small class="text-muted">Por {{ paciente_consentimiento.presentado_por }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            {% if paciente_consentimiento.estado == 'FIRMADO' %}
+                                <span class="badge bg-success estado-badge">
+                                    <i class="fas fa-check-circle"></i> Firmado
+                                </span>
+                            {% elif paciente_consentimiento.estado == 'PENDIENTE' %}
+                                <span class="badge bg-warning estado-badge">
+                                    <i class="fas fa-clock"></i> Pendiente
+                                </span>
+                            {% elif paciente_consentimiento.estado == 'RECHAZADO' %}
+                                <span class="badge bg-danger estado-badge">
+                                    <i class="fas fa-times-circle"></i> Rechazado
+                                </span>
+                            {% elif paciente_consentimiento.estado == 'VENCIDO' %}
+                                <span class="badge bg-secondary estado-badge">
+                                    <i class="fas fa-calendar-times"></i> Vencido
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Información del documento -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle"></i> Información del Documento
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row">
+                                <dt class="col-sm-5">Tipo:</dt>
+                                <dd class="col-sm-7">{{ paciente_consentimiento.consentimiento.get_tipo_documento_display }}</dd>
+                                
+                                <dt class="col-sm-5">Versión:</dt>
+                                <dd class="col-sm-7">{{ paciente_consentimiento.consentimiento.version }}</dd>
+                                
+                                <dt class="col-sm-5">Vigencia:</dt>
+                                <dd class="col-sm-7">
+                                    {{ paciente_consentimiento.consentimiento.fecha_vigencia_inicio|date:"d/m/Y" }}
+                                    {% if paciente_consentimiento.consentimiento.fecha_vigencia_fin %}
+                                        - {{ paciente_consentimiento.consentimiento.fecha_vigencia_fin|date:"d/m/Y" }}
+                                    {% else %}
+                                        - Sin límite
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">COFEPRIS:</dt>
+                                <dd class="col-sm-7">
+                                    {% if paciente_consentimiento.consentimiento.cumple_cofepris %}
+                                        <span class="text-success"><i class="fas fa-check"></i> Cumple</span>
+                                    {% else %}
+                                        <span class="text-warning"><i class="fas fa-exclamation"></i> No aplicable</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">Testigos:</dt>
+                                <dd class="col-sm-7">
+                                    {% if paciente_consentimiento.consentimiento.requiere_testigos %}
+                                        <span class="text-info"><i class="fas fa-users"></i> Requeridos</span>
+                                    {% else %}
+                                        <span class="text-muted"><i class="fas fa-user"></i> No requeridos</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+
+                            <div class="d-grid gap-2 mt-3">
+                                <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=paciente_consentimiento.consentimiento.id %}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-download"></i> Descargar PDF
+                                </a>
+                                <a href="{% url 'core:consentimiento_detail' pk=paciente_consentimiento.consentimiento.id %}" 
+                                   class="btn btn-outline-info">
+                                    <i class="fas fa-eye"></i> Ver Documento Original
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Firmas -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-signature"></i> Firmas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Firma del paciente -->
+                                <div class="col-md-6 mb-3">
+                                    <h6>Firma del Paciente</h6>
+                                    <div class="firma-container">
+                                        {% if paciente_consentimiento.firma_paciente %}
+                                            <img src="{{ paciente_consentimiento.firma_paciente.url }}" 
+                                                 alt="Firma del paciente" class="firma-imagen">
+                                        {% else %}
+                                            <span class="text-muted">Sin firma</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-center mt-2">
+                                        <strong>{{ paciente_consentimiento.paciente.nombre }} {{ paciente_consentimiento.paciente.apellido }}</strong>
+                                        {% if paciente_consentimiento.fecha_firmado %}
+                                            <br><small class="text-muted">{{ paciente_consentimiento.fecha_firmado|date:"d/m/Y H:i" }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Firma de testigo 1 -->
+                                {% if paciente_consentimiento.consentimiento.requiere_testigos %}
+                                <div class="col-md-6 mb-3">
+                                    <h6>Firma del Testigo</h6>
+                                    <div class="firma-container">
+                                        {% if paciente_consentimiento.firma_testigo1 %}
+                                            <img src="{{ paciente_consentimiento.firma_testigo1.url }}" 
+                                                 alt="Firma del testigo" class="firma-imagen">
+                                        {% else %}
+                                            <span class="text-muted">Sin firma</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-center mt-2">
+                                        {% if paciente_consentimiento.nombre_testigo1 %}
+                                            <strong>{{ paciente_consentimiento.nombre_testigo1 }}</strong>
+                                        {% else %}
+                                            <span class="text-muted">Sin nombre de testigo</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            {% if paciente_consentimiento.notas %}
+                            <div class="mt-3">
+                                <h6>Notas</h6>
+                                <div class="alert alert-light">
+                                    {{ paciente_consentimiento.notas|linebreaks }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Acciones -->
+                            <div class="d-flex gap-2 justify-content-end mt-3">
+                                {% if paciente_consentimiento.estado == 'PENDIENTE' %}
+                                    <a href="{% url 'core:firmar_consentimiento' paciente_consentimiento_id=paciente_consentimiento.id %}" 
+                                       class="btn btn-warning">
+                                        <i class="fas fa-signature"></i> Firmar Ahora
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'core:cuestionario_detalle' paciente_id=paciente_consentimiento.paciente.id %}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="fas fa-clipboard-list"></i> Ver Cuestionario
+                                </a>
+                                <a href="{% url 'core:paciente_detail' pk=paciente_consentimiento.paciente.id %}" 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-user"></i> Perfil del Paciente
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información adicional si está asociado a una cita -->
+            {% if paciente_consentimiento.cita %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-check"></i> Cita Relacionada
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-4">
+                                            <strong>Fecha:</strong> {{ paciente_consentimiento.cita.fecha_hora|date:"d/m/Y H:i" }}
+                                        </div>
+                                        <div class="me-4">
+                                            <strong>Dentista:</strong> {{ paciente_consentimiento.cita.dentista }}
+                                        </div>
+                                        <div class="me-4">
+                                            <strong>Estado:</strong> 
+                                            <span class="badge bg-info">{{ paciente_consentimiento.cita.get_estado_display }}</span>
+                                        </div>
+                                    </div>
+                                    {% if paciente_consentimiento.cita.motivo %}
+                                        <div class="mt-2">
+                                            <strong>Motivo:</strong> {{ paciente_consentimiento.cita.motivo }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <a href="{% url 'core:cita_detail' pk=paciente_consentimiento.cita.id %}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver Cita
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad adicional si es necesaria
+    console.log('Detalle de consentimiento cargado');
+});
+</script>
+{% endblock %}

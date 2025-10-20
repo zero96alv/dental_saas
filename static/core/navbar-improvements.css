@@ -1,0 +1,145 @@
+/* Mejoras adicionales para la navbar */
+
+/* Permitir que los elementos del menú se envuelvan a múltiples líneas en pantallas amplias */
+.navbar-nav {
+    flex-wrap: wrap;
+}
+
+/* Asegurar que el contenedor pueda adaptarse */
+.navbar .container-fluid {
+    flex-wrap: wrap;
+}
+
+/* Habilitar que el contenido colapsable se envuelva en múltiples filas */
+.navbar .navbar-collapse {
+    flex-wrap: wrap;
+}
+
+/* Menú principal y menú de usuario responsivos */
+.navbar .navbar-collapse .navbar-nav {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+/* Que el menú principal ocupe el espacio disponible y el de usuario se mantenga a la derecha */
+.navbar .navbar-collapse .navbar-nav.me-auto { flex: 1 1 auto; }
+.navbar .navbar-collapse .navbar-nav.ms-auto { flex: 0 0 auto; }
+
+/* En escritorio, preferir wrap en lugar de scroll horizontal */
+@media (min-width: 992px) {
+  .navbar-nav {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .navbar .nav-link {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.95rem;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .navbar .nav-link {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Animaciones suaves */
+.navbar .nav-link, .dropdown-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects mejorados */
+.navbar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dropdown mejorado */
+.dropdown-menu {
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item:focus, 
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-radius: 0.375rem;
+    margin: 0 0.25rem;
+}
+
+/* Active states */
+.navbar .nav-link.active,
+.navbar .nav-link[aria-expanded="true"] {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+}
+
+/* Separadores más elegantes */
+.nav-separator {
+    height: 30px;
+    align-self: center;
+    opacity: 0.5;
+}
+
+/* Mobile improvements */
+@media (max-width: 991.98px) {
+    .navbar-nav .nav-link {
+        padding: 0.75rem 1rem;
+        margin: 0.1rem 0;
+    }
+    
+    .dropdown-menu {
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+        margin-left: 1rem;
+    }
+    
+    .dropdown-item {
+        color: rgba(255, 255, 255, 0.8);
+        padding-left: 2rem;
+    }
+    
+    .dropdown-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+}
+
+/* Loading indicator for nav links */
+.nav-link.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.nav-link.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    margin-top: -6px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Badge styles for notifications */
+.nav-link .badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 0.65rem;
+    padding: 0.25em 0.5em;
+}

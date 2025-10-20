@@ -1,0 +1,45 @@
+
+<form id="finalizarCitaForm" action="{% url 'core:cita_finalizar' cita.pk %}" method="POST">
+    {% csrf_token %}
+    <div class="modal-body">
+        <h5>Servicios Realizados</h5>
+        <p>Marque los servicios que efectivamente se realizaron durante la consulta.</p>
+        {{ form.servicios_realizados }}
+        
+        <hr class="my-3">
+        
+        <h5>Notas del Tratamiento</h5>
+        {{ form.notas }}
+        
+        <hr class="my-3">
+        
+        <h5>Plan de Pago</h5>
+        <div class="form-check">
+            {{ paciente_form.apto_para_plan_de_pago }}
+            <label class="form-check-label" for="{{ paciente_form.apto_para_plan_de_pago.id_for_label }}">
+                {{ paciente_form.apto_para_plan_de_pago.label }}
+            </label>
+        </div>
+        
+        <hr class="my-3">
+        
+        <div class="form-check">
+            {{ form.confirmar_finalizacion }}
+            <label class="form-check-label" for="{{ form.confirmar_finalizacion.id_for_label }}">
+                {{ form.confirmar_finalizacion.label }}
+            </label>
+        </div>
+        
+        {% if form.errors or paciente_form.errors %}
+            <div class="alert alert-danger mt-3">
+                <strong>Por favor, corrija los siguientes errores:</strong>
+                {{ form.errors }}
+                {{ paciente_form.errors }}
+            </div>
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Confirmar y Finalizar</button>
+    </div>
+</form>

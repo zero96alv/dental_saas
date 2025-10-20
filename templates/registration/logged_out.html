@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Sesión Cerrada - DentalSaaS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm mt-5">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4><i class="bi bi-check-circle me-2"></i>Sesión Cerrada</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-box-arrow-right display-1 text-success"></i>
+                    </div>
+                    <h5 class="card-title text-success">¡Hasta pronto!</h5>
+                    <p class="card-text text-muted">
+                        Tu sesión ha sido cerrada correctamente. Gracias por usar DentalSaaS.
+                    </p>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'login' %}" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión Nuevamente
+                        </a>
+                        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-house me-2"></i>Ir al Inicio
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-center text-muted">
+                    <small>
+                        <i class="bi bi-shield-check me-1"></i>
+                        Tu información está segura
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

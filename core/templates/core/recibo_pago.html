@@ -33,6 +33,11 @@
                     <h4>Recibo #{{ pago.id }}</h4>
                     <p class="mb-0"><strong>Fecha:</strong> {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
                     <p class="mb-0"><strong>Método:</strong> {{ pago.metodo_pago }}</p>
+                    {% if pago.cita %}
+                    <p class="mb-0"><strong>Requiere Factura:</strong> {% if pago.cita.requiere_factura %}Sí{% else %}No{% endif %}</p>
+                    {% else %}
+                    <p class="mb-0"><strong>Requiere Factura:</strong> N/A</p>
+                    {% endif %}
                 </div>
             </div>
             
@@ -41,7 +46,7 @@
             <div class="row mb-4">
                 <div class="col-12">
                     <h5>Paciente:</h5>
-                    <p class="mb-0">{{ pago.cita.cliente }}</p>
+                    <p class="mb-0">{{ pago.cita.paciente }}</p>
                 </div>
             </div>
             

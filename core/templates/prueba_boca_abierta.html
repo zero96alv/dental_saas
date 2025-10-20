@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba - Odontograma Boca Abierta Ovalada</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-top: 30px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.3);
+        }
+        
+        .test-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+        }
+        
+        .btn-test {
+            margin: 5px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦷 Odontograma - Vista de Boca Abierta Ovalada</h1>
+        
+        <div class="info-box">
+            <h5><i class="fas fa-info-circle"></i> Características del Nuevo Diseño:</h5>
+            <ul>
+                <li><strong>Forma ovalada realista:</strong> Los dientes siguen una curvatura elíptica natural</li>
+                <li><strong>Continuidad visual:</strong> Dientes contiguos sin espacios molestos</li>
+                <li><strong>Contorno de boca abierta:</strong> Simula la vista real del consultorio</li>
+                <li><strong>Elementos anatómicos:</strong> Encías, lengua y sombras sutiles</li>
+                <li><strong>Interactividad completa:</strong> Selección y diagnósticos funcionales</li>
+            </ul>
+        </div>
+        
+        <div class="test-controls">
+            <h6>🔧 Controles de Prueba:</h6>
+            <button class="btn btn-primary btn-test" onclick="testSeleccion()">Probar Selección</button>
+            <button class="btn btn-success btn-test" onclick="testDiagnosticos()">Aplicar Diagnósticos</button>
+            <button class="btn btn-warning btn-test" onclick="limpiarSeleccion()">Limpiar</button>
+            <button class="btn btn-info btn-test" onclick="mostrarInfo()">Info Técnica</button>
+        </div>
+        
+        <!-- Aquí se incluye el odontograma -->
+        {% include 'core/partials/odontograma_boca_abierta.html' %}
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="alert alert-success">
+                    <h6>✅ Funcionalidades Activas:</h6>
+                    <ul>
+                        <li>Selección de dientes individuales</li>
+                        <li>Estados de diagnóstico visuales</li>
+                        <li>Efectos hover interactivos</li>
+                        <li>Registro de eventos en consola</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <h6>🎨 Mejoras Visuales:</h6>
+                    <ul>
+                        <li>Forma ovalada de boca abierta</li>
+                        <li>Contornos de encías curvos</li>
+                        <li>Lengua central realista</li>
+                        <li>Sombras y profundidad</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function testSeleccion() {
+            console.log('=== PRUEBA DE SELECCIÓN ===');
+            
+            // Seleccionar algunos dientes aleatorios
+            const dientes = [1, 8, 9, 16, 17, 24, 25, 32];
+            dientes.forEach(num => {
+                const diente = document.getElementById(`diente-${num}`);
+                if (diente) {
+                    diente.click();
+                    console.log(`Seleccionado diente ${num}`);
+                }
+            });
+        }
+        
+        function testDiagnosticos() {
+            console.log('=== PRUEBA DE DIAGNÓSTICOS ===');
+            
+            const diagnosticos = [
+                { diente: 1, estado: 'sano' },
+                { diente: 2, estado: 'caries' },
+                { diente: 3, estado: 'obturada' },
+                { diente: 4, estado: 'corona' },
+                { diente: 5, estado: 'extraida' },
+                { diente: 6, estado: 'implante' },
+                { diente: 7, estado: 'endodoncia' }
+            ];
+            
+            diagnosticos.forEach(diag => {
+                const diente = document.getElementById(`diente-${diag.diente}`);
+                if (diente) {
+                    diente.className = `diente-u ${diag.estado}`;
+                    console.log(`Diente ${diag.diente}: ${diag.estado}`);
+                }
+            });
+        }
+        
+        function limpiarSeleccion() {
+            console.log('=== LIMPIANDO SELECCIÓN ===');
+            
+            document.querySelectorAll('.diente-u').forEach(diente => {
+                diente.className = 'diente-u';
+            });
+            console.log('Todos los dientes limpiados');
+        }
+        
+        function mostrarInfo() {
+            const info = `
+=== INFORMACIÓN TÉCNICA DEL ODONTOGRAMA ===
+
+📐 Dimensiones:
+- ViewBox: 1000x600 pixels
+- Forma: Óvalo elíptico (420x220 radio)
+- Dientes: 32 + 16 supernumerarios
+
+🎨 Características Visuales:
+- Contorno ovalado de boca abierta
+- Encías con curvatura realista
+- Lengua central sutil
+- Sombras internas para profundidad
+
+⚙️ Funcionalidad:
+- Selección individual por click
+- Estados de diagnóstico por CSS
+- Eventos registrados en consola
+- Responsive y escalable
+
+🦷 Distribución:
+- Superior: Dientes 1-16 (curvatura superior)
+- Inferior: Dientes 17-32 (curvatura inferior)  
+- Supernumerarios: Paneles laterales 33-48
+            `;
+            
+            console.log(info);
+            alert('Información técnica mostrada en la consola (F12)');
+        }
+        
+        // Log automático al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🦷 Odontograma Boca Abierta Ovalada - Cargado');
+            console.log('📋 Usa los botones de prueba para verificar funcionalidad');
+        });
+    </script>
+</body>
+</html>

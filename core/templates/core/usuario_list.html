@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load custom_tags %}
 
 {% block title %}Gestión de Usuarios{% endblock %}
 
@@ -42,10 +43,27 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a href="{% url 'core:usuario_edit' usuario.pk %}" class="btn btn-sm btn-warning" title="Editar">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </a>
-                                <!-- La eliminación de usuarios es delicada, se omite por ahora -->
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'core:usuario_edit' usuario.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    {% if usuario|has_group:'Dentista' %}
+                                        {% with usuario.perfil_dentista as perfil %}
+                                            {% if perfil %}
+                                            <a href="{% url 'core:gestionar_horario' perfil.pk %}" class="btn btn-sm btn-info" title="Gestionar Horario">
+                                                <i class="bi bi-clock-fill"></i>
+                                            </a>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                    {% if user|has_group:'Administrador' or user.is_superuser %}
+                                        {% if usuario != user %}
+                                            <a href="{% url 'core:usuario_delete' usuario.pk %}" class="btn btn-sm btn-danger" title="Eliminar" onclick="return confirm('¿Está seguro que desea eliminar este usuario?')">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% empty %}

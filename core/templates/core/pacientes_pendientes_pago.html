@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pacientes con Saldo Pendiente{% endblock %}
+
+{% block page_header %}
+    <h1 class="h3 mb-3">
+        <i class="fas fa-users"></i> Pacientes con Saldo Pendiente
+        <small class="text-muted">(Por Saldo Global)</small>
+    </h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="paciente" class="form-label">Buscar Paciente:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="paciente" 
+                               name="paciente" 
+                               value="{{ filtros_actuales.paciente }}" 
+                               placeholder="Nombre o apellido del paciente">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <a href="{% url 'core:pacientes_pendientes_pago' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-users"></i> Pacientes con Saldo
+                        </h5>
+                        <h3 class="mb-0">{{ total_pacientes_con_saldo }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-dollar-sign"></i> Total Saldo Pendiente
+                        </h5>
+                        <h3 class="mb-0">${{ total_saldo_pendiente|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alternativa de vista -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-eye"></i> Cambiar Vista
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar-alt"></i> Ver por Citas Individuales
+                    </a>
+                    <button class="btn btn-primary" disabled>
+                        <i class="fas fa-users"></i> Ver por Saldo Global (Actual)
+                    </button>
+                </div>
+                <p class="text-muted mt-2 mb-0">
+                    <strong>Vista actual:</strong> Muestra pacientes con saldo global pendiente (suma de todos sus tratamientos).
+                </p>
+            </div>
+        </div>
+
+        <!-- Tabla de Pacientes -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Lista de Pacientes ({{ pacientes|length }} resultados)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pacientes %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Email</th>
+                                    <th>Teléfono</th>
+                                    <th class="text-end">Saldo Global</th>
+                                    <th>Citas ATN</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for paciente in pacientes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                                        {% if paciente.usuario %}
+                                            <br><small class="text-muted">
+                                                <i class="fas fa-user"></i> Tiene cuenta de usuario
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ paciente.email|default:"—" }}</td>
+                                    <td>{{ paciente.telefono|default:"—" }}</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-danger fs-6">
+                                            ${{ paciente.saldo_global|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% with paciente.citas.all as citas_atn %}
+                                            {% if citas_atn %}
+                                                <small>{{ citas_atn|length }} cita{{ citas_atn|length|pluralize:"s" }} atendida{{ citas_atn|length|pluralize:"s" }}</small>
+                                                {% for cita in citas_atn|slice:":3" %}
+                                                    <br><small class="text-muted">
+                                                        • {{ cita.fecha_hora|date:"d/m/Y" }} - Dr. {{ cita.dentista.nombre }}
+                                                    </small>
+                                                {% endfor %}
+                                                {% if citas_atn|length > 3 %}
+                                                    <br><small class="text-muted">... y {{ citas_atn|length|add:"-3" }} más</small>
+                                                {% endif %}
+                                            {% else %}
+                                                <small class="text-muted">Sin citas atendidas</small>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'core:paciente_detail' paciente.pk %}" 
+                                               class="btn btn-sm btn-outline-info" 
+                                               title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'core:registrar_pago_paciente' paciente.pk %}" 
+                                               class="btn btn-sm btn-success" 
+                                               title="Registrar pago">
+                                                <i class="fas fa-plus"></i> Pago
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    {% if is_paginated %}
+                        <nav aria-label="Navegación de páginas">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">Primera</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">Anterior</a>
+                                    </li>
+                                {% endif %}
+
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Siguiente</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in filtros_actuales.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">Última</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5>No se encontraron pacientes con saldo pendiente</h5>
+                        <p class="text-muted">
+                            {% if filtros_actuales.paciente %}
+                                No hay pacientes que coincidan con tu búsqueda.
+                                <a href="{% url 'core:pacientes_pendientes_pago' %}" class="btn btn-sm btn-outline-primary">
+                                    Ver todos los pacientes
+                                </a>
+                            {% else %}
+                                Todos los pacientes tienen sus cuentas al día.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-envío del formulario al escribir en el campo de búsqueda (con delay)
+    let searchTimeout;
+    $('#paciente').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $('#paciente').closest('form').submit();
+        }, 800);
+    });
+});
+</script>
+{% endblock %}

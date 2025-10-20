@@ -1,0 +1,361 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Agenda Simple{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Calendario simple y compatible */
+.simple-calendar {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.calendar-header {
+    background: #007bff;
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.calendar-nav {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.calendar-nav:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.calendar-grid {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.calendar-row {
+    display: table-row;
+}
+
+.calendar-cell {
+    display: table-cell;
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    vertical-align: top;
+    width: 14.28%;
+    min-height: 80px;
+    position: relative;
+}
+
+.calendar-header-cell {
+    background: #f8f9fa;
+    font-weight: bold;
+    text-align: center;
+    padding: 12px 8px;
+    border-bottom: 2px solid #007bff;
+}
+
+.calendar-date {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.calendar-cell.other-month .calendar-date {
+    color: #ccc;
+}
+
+.calendar-cell.today {
+    background: #e3f2fd;
+}
+
+.calendar-cell.today .calendar-date {
+    color: #007bff;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.calendar-event {
+    background: #28a745;
+    color: white;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin: 1px 0;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-event:hover {
+    background: #218838;
+}
+
+.calendar-cell:hover {
+    background: #f0f8ff;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .calendar-cell {
+        min-height: 60px;
+        padding: 4px;
+    }
+    
+    .calendar-date {
+        font-size: 12px;
+    }
+    
+    .calendar-event {
+        font-size: 9px;
+        padding: 1px 2px;
+    }
+}
+
+/* Botones de acción */
+.action-buttons {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1><i class="fas fa-calendar-alt"></i> Agenda de Citas - Vista Compatible</h1>
+            
+            <div class="simple-calendar" id="simpleCalendar">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">
+                        ← Anterior
+                    </button>
+                    <h3 id="currentMonth">Cargando...</h3>
+                    <button class="calendar-nav" onclick="changeMonth(1)">
+                        Siguiente →
+                    </button>
+                </div>
+                
+                <div class="calendar-grid" id="calendarGrid">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Cargando calendario...
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-primary" onclick="showNewCitaForm()">
+                                <i class="fas fa-plus"></i> Nueva Cita
+                            </button>
+                            <a href="{% url 'core:cita_list' %}" class="btn btn-success">
+                                <i class="fas fa-list"></i> Ver Todas las Citas
+                            </a>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <button class="btn btn-outline-info" onclick="goToToday()">
+                                <i class="fas fa-calendar-day"></i> Hoy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nueva cita -->
+<div class="modal fade" id="newCitaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Cita</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Fecha seleccionada: <strong id="selectedDate">-</strong></p>
+                <p>Por implementar formulario completo de cita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary">Guardar Cita</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Calendario simple sin dependencias
+var currentDate = new Date();
+var events = []; // Se cargarán del servidor
+
+// Nombres de días y meses
+var dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+var monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+function formatDate(date) {
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
+    return year + '-' + (month < 10 ? '0' : '') + month + '-' + (day < 10 ? '0' : '') + day;
+}
+
+function generateCalendar(year, month) {
+    var firstDay = new Date(year, month, 1);
+    var lastDay = new Date(year, month + 1, 0);
+    var startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    var html = '';
+    
+    // Header con días de la semana
+    html += '<div class="calendar-row">';
+    for (var i = 0; i < 7; i++) {
+        html += '<div class="calendar-header-cell">' + dayNames[i] + '</div>';
+    }
+    html += '</div>';
+    
+    // Generar semanas
+    var currentWeekDate = new Date(startDate);
+    for (var week = 0; week < 6; week++) {
+        html += '<div class="calendar-row">';
+        
+        for (var day = 0; day < 7; day++) {
+            var dateStr = formatDate(currentWeekDate);
+            var isCurrentMonth = currentWeekDate.getMonth() === month;
+            var isToday = formatDate(currentWeekDate) === formatDate(new Date());
+            
+            var cellClass = 'calendar-cell';
+            if (!isCurrentMonth) cellClass += ' other-month';
+            if (isToday) cellClass += ' today';
+            
+            html += '<div class="' + cellClass + '" onclick="selectDate(\'' + dateStr + '\')">';
+            html += '<div class="calendar-date">' + currentWeekDate.getDate() + '</div>';
+            
+            // Agregar eventos para esta fecha
+            var dayEvents = events.filter(function(event) {
+                return event.date === dateStr;
+            });
+            
+            for (var e = 0; e < dayEvents.length && e < 3; e++) {
+                html += '<div class="calendar-event" onclick="showEvent(\'' + dayEvents[e].id + '\')">';
+                html += dayEvents[e].title;
+                html += '</div>';
+            }
+            
+            if (dayEvents.length > 3) {
+                html += '<div class="calendar-event">+' + (dayEvents.length - 3) + ' más</div>';
+            }
+            
+            html += '</div>';
+            currentWeekDate.setDate(currentWeekDate.getDate() + 1);
+        }
+        html += '</div>';
+        
+        // Si ya llegamos al siguiente mes, parar
+        if (currentWeekDate.getMonth() !== month && currentWeekDate.getDate() > 7) {
+            break;
+        }
+    }
+    
+    return html;
+}
+
+function updateCalendar() {
+    var year = currentDate.getFullYear();
+    var month = currentDate.getMonth();
+    
+    // Actualizar título
+    document.getElementById('currentMonth').innerText = monthNames[month] + ' ' + year;
+    
+    // Generar calendario
+    var calendarHtml = generateCalendar(year, month);
+    document.getElementById('calendarGrid').innerHTML = calendarHtml;
+    
+    console.log('Calendario actualizado para', monthNames[month], year);
+}
+
+function changeMonth(direction) {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+    updateCalendar();
+}
+
+function goToToday() {
+    currentDate = new Date();
+    updateCalendar();
+}
+
+function selectDate(dateStr) {
+    document.getElementById('selectedDate').innerText = dateStr;
+    console.log('Fecha seleccionada:', dateStr);
+    
+    // Confirmar si quiere crear cita
+    if (confirm('¿Crear nueva cita para el ' + dateStr + '?')) {
+        showNewCitaForm();
+    }
+}
+
+function showNewCitaForm() {
+    // Mostrar modal (requiere Bootstrap o implementar manualmente)
+    alert('Funcionalidad de nueva cita en desarrollo');
+}
+
+function showEvent(eventId) {
+    console.log('Mostrar evento:', eventId);
+    alert('Ver detalles del evento ID: ' + eventId);
+}
+
+function loadEvents() {
+    // Cargar eventos desde el servidor
+    // Por ahora, eventos de ejemplo
+    events = [
+        { id: 1, date: formatDate(new Date()), title: 'Cita Dr. Smith' },
+        { id: 2, date: '2025-01-20', title: 'Revisión Juan' },
+        { id: 3, date: '2025-01-22', title: 'Limpieza María' }
+    ];
+    
+    console.log('Eventos cargados:', events.length);
+}
+
+// Inicializar cuando la página esté lista
+setTimeout(function() {
+    console.log('Inicializando calendario simple...');
+    loadEvents();
+    updateCalendar();
+}, 1000);
+</script>
+{% endblock %}

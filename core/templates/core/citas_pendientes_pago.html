@@ -1,20 +1,119 @@
-{% extends "core/base.html" %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Citas Pendientes de Pago{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-hourglass-split me-2"></i> Citas Pendientes de Pago</h2>
-    </div>
+{% block page_header %}
+    <h1 class="h3 mb-3">
+        <i class="fas fa-calendar-alt"></i> Citas Pendientes de Pago
+        <small class="text-muted">(Por Cita Individual)</small>
+    </h1>
+{% endblock %}
 
-    {% if messages %}
-    <div class="alert alert-danger">
-        {% for message in messages %}
-        {{ message }}
-        {% endfor %}
-    </div>
-    {% endif %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    {% if puede_filtrar_dentista %}
+                    <div class="col-md-3">
+                        <label for="dentista" class="form-label">Dentista:</label>
+                        <select class="form-select" id="dentista" name="dentista">
+                            <option value="">Todos los dentistas</option>
+                            {% for dentista in dentistas %}
+                                <option value="{{ dentista.id }}" 
+                                        {% if filtros_actuales.dentista == dentista.id|stringformat:"s" %}selected{% endif %}>
+                                    Dr. {{ dentista.nombre }} {{ dentista.apellido }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-3">
+                        <label for="fecha" class="form-label">Fecha:</label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="fecha" 
+                               name="fecha" 
+                               value="{{ filtros_actuales.fecha }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="paciente" class="form-label">Paciente:</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="paciente" 
+                               name="paciente" 
+                               value="{{ filtros_actuales.paciente }}" 
+                               placeholder="Nombre o apellido">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-calendar-alt"></i> Citas Pendientes
+                        </h5>
+                        <h3 class="mb-0">{{ total_citas_pendientes }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-dollar-sign"></i> Total Saldo Pendiente
+                        </h5>
+                        <h3 class="mb-0">${{ total_saldo_pendiente|floatformat:2 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alternativa de vista -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-eye"></i> Cambiar Vista
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary" disabled>
+                        <i class="fas fa-calendar-alt"></i> Ver por Citas Individuales (Actual)
+                    </button>
+                    <a href="{% url 'core:pacientes_pendientes_pago' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-users"></i> Ver por Saldo Global
+                    </a>
+                </div>
+                <p class="text-muted mt-2 mb-0">
+                    <strong>Vista actual:</strong> Muestra citas individuales con saldo pendiente específico por tratamiento.
+                </p>
+            </div>
+        </div>
 
     <div class="card">
         <div class="card-body">
@@ -31,20 +130,53 @@
                     </thead>
                     <tbody>
                         {% for cita in citas %}
-                        {% if cita.cliente.saldo_global > 0 %}
                         <tr>
                             <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
-                            <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
-                            <td>{{ cita.dentista.nombre }} {{ cita.dentista.apellido }}</td>
-                            <td class="text-end">${{ cita.cliente.saldo_global|floatformat:2 }}</td>
+                            <td>
+                                <strong>{{ cita.paciente.nombre }} {{ cita.paciente.apellido }}</strong>
+                                <br><small class="text-muted">ID: {{ cita.paciente.id }}</small>
+                            </td>
+                            <td>Dr. {{ cita.dentista.nombre }} {{ cita.dentista.apellido }}</td>
                             <td class="text-end">
-                                <a href="{% url 'core:procesar_pago' pk=cita.id %}">Procesar Pago</a>
+                                <span class="badge bg-danger fs-6">
+                                    ${{ cita.saldo_pendiente_calc|floatformat:2 }}
+                                </span>
+                                <br><small class="text-muted">
+                                    Costo: ${{ cita.costo_real_calc|floatformat:2 }}<br>
+                                    Pagado: ${{ cita.total_pagado_calc|floatformat:2 }}
+                                </small>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'core:cita_detail' cita.id %}" 
+                                       class="btn btn-sm btn-outline-info" 
+                                       title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'core:procesar_pago' pk=cita.id %}" 
+                                       class="btn btn-sm btn-success" 
+                                       title="Procesar pago">
+                                        <i class="fas fa-dollar-sign"></i> Pago
+                                    </a>
+                                </div>
                             </td>
                         </tr>
-                        {% endif %}
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">No hay citas pendientes de pago.</td>
+                            <td colspan="5" class="text-center py-4">
+                                <i class="fas fa-search fa-2x text-muted mb-3"></i>
+                                <h5>No se encontraron citas con saldo pendiente</h5>
+                                <p class="text-muted">
+                                    {% if filtros_actuales.paciente or filtros_actuales.fecha or filtros_actuales.dentista %}
+                                        No hay citas que coincidan con los filtros aplicados.
+                                        <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-sm btn-outline-primary">
+                                            Ver todas las citas
+                                        </a>
+                                    {% else %}
+                                        Todas las citas están pagadas completamente.
+                                    {% endif %}
+                                </p>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -53,4 +185,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-envío del formulario al escribir en el campo de búsqueda (con delay)
+    let searchTimeout;
+    $('#paciente').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            $('#paciente').closest('form').submit();
+        }, 800);
+    });
+    
+    // Auto-envío cuando cambia el dentista o la fecha
+    $('#dentista, #fecha').on('change', function() {
+        $(this).closest('form').submit();
+    });
+});
+</script>
 {% endblock %}

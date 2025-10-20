@@ -1,0 +1,143 @@
+{% load math_filters %}
+<div id="odontograma-container" class="odontograma-limpio">
+    <svg width="100%" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+        <style>
+            .diente {
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .diente:hover {
+                transform: scale(1.1);
+                filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            }
+            .diente.selected {
+                transform: scale(1.2);
+                filter: drop-shadow(3px 3px 6px rgba(0,123,255,0.8));
+            }
+            .diente-shape {
+                fill: #ffffff;
+                stroke: #666;
+                stroke-width: 2;
+            }
+            .diente-numero {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                font-weight: bold;
+                fill: #333;
+                text-anchor: middle;
+                pointer-events: none;
+            }
+            
+            /* Estados */
+            .sano .diente-shape { fill: #e8f5e8; stroke: #4caf50; }
+            .caries .diente-shape { fill: #ffebee; stroke: #f44336; }
+            .obturada .diente-shape { fill: #fff3c4; stroke: #ffc107; }
+            .corona .diente-shape { fill: #e3f2fd; stroke: #2196f3; }
+            .extraida .diente-shape { fill: #f5f5f5; stroke: #9e9e9e; stroke-dasharray: 5,3; opacity: 0.7; }
+            .implante .diente-shape { fill: #eceff1; stroke: #607d8b; stroke-width: 3; }
+            .endodoncia .diente-shape { fill: #fce4ec; stroke: #e91e63; }
+        </style>
+        
+        <!-- Fondo -->
+        <rect width="800" height="400" fill="#f8f9fa"/>
+        
+        <!-- Línea central -->
+        <line x1="400" y1="50" x2="400" y2="350" stroke="#ddd" stroke-width="1"/>
+        <line x1="50" y1="200" x2="750" y2="200" stroke="#ddd" stroke-width="2"/>
+        
+        <!-- Etiquetas -->
+        <text x="400" y="30" font-size="16" font-weight="bold" fill="#666" text-anchor="middle">SUPERIOR</text>
+        <text x="400" y="380" font-size="16" font-weight="bold" fill="#666" text-anchor="middle">INFERIOR</text>
+        
+        <!-- ARCADA SUPERIOR (1-16) -->
+        <!-- Diente 1 --> <g class="diente" id="diente-1"><rect x="80" y="80" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="92.5" y="100">1</text></g>
+        <!-- Diente 2 --> <g class="diente" id="diente-2"><rect x="110" y="85" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="122.5" y="105">2</text></g>
+        <!-- Diente 3 --> <g class="diente" id="diente-3"><rect x="140" y="90" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="152.5" y="110">3</text></g>
+        <!-- Diente 4 --> <g class="diente" id="diente-4"><rect x="170" y="95" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="181" y="114">4</text></g>
+        <!-- Diente 5 --> <g class="diente" id="diente-5"><rect x="196" y="100" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="207" y="119">5</text></g>
+        <!-- Diente 6 --> <g class="diente" id="diente-6"><polygon points="222,105 240,105 236,138 226,138" class="diente-shape"/><text class="diente-numero" x="231" y="126">6</text></g>
+        <!-- Diente 7 --> <g class="diente" id="diente-7"><rect x="246" y="110" width="20" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="256" y="128">7</text></g>
+        <!-- Diente 8 --> <g class="diente" id="diente-8"><rect x="270" y="115" width="22" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="281" y="133">8</text></g>
+        <!-- Diente 9 --> <g class="diente" id="diente-9"><rect x="296" y="115" width="22" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="307" y="133">9</text></g>
+        <!-- Diente 10 --> <g class="diente" id="diente-10"><rect x="322" y="110" width="20" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="332" y="128">10</text></g>
+        <!-- Diente 11 --> <g class="diente" id="diente-11"><polygon points="348,105 366,105 362,138 352,138" class="diente-shape"/><text class="diente-numero" x="357" y="126">11</text></g>
+        <!-- Diente 12 --> <g class="diente" id="diente-12"><rect x="372" y="100" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="383" y="119">12</text></g>
+        <!-- Diente 13 --> <g class="diente" id="diente-13"><rect x="398" y="95" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="409" y="114">13</text></g>
+        <!-- Diente 14 --> <g class="diente" id="diente-14"><rect x="424" y="90" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="436.5" y="110">14</text></g>
+        <!-- Diente 15 --> <g class="diente" id="diente-15"><rect x="454" y="85" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="466.5" y="105">15</text></g>
+        <!-- Diente 16 --> <g class="diente" id="diente-16"><rect x="484" y="80" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="496.5" y="100">16</text></g>
+
+        <!-- ARCADA INFERIOR (17-32) -->
+        <!-- Diente 17 --> <g class="diente" id="diente-17"><rect x="80" y="290" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="92.5" y="310">17</text></g>
+        <!-- Diente 18 --> <g class="diente" id="diente-18"><rect x="110" y="285" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="122.5" y="305">18</text></g>
+        <!-- Diente 19 --> <g class="diente" id="diente-19"><rect x="140" y="280" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="152.5" y="300">19</text></g>
+        <!-- Diente 20 --> <g class="diente" id="diente-20"><rect x="170" y="275" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="181" y="294">20</text></g>
+        <!-- Diente 21 --> <g class="diente" id="diente-21"><rect x="196" y="270" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="207" y="289">21</text></g>
+        <!-- Diente 22 --> <g class="diente" id="diente-22"><polygon points="222,260 240,260 236,295 226,295" class="diente-shape"/><text class="diente-numero" x="231" y="282">22</text></g>
+        <!-- Diente 23 --> <g class="diente" id="diente-23"><rect x="246" y="265" width="20" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="256" y="283">23</text></g>
+        <!-- Diente 24 --> <g class="diente" id="diente-24"><rect x="270" y="260" width="22" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="281" y="278">24</text></g>
+        <!-- Diente 25 --> <g class="diente" id="diente-25"><rect x="296" y="260" width="22" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="307" y="278">25</text></g>
+        <!-- Diente 26 --> <g class="diente" id="diente-26"><rect x="322" y="265" width="20" height="26" rx="2" class="diente-shape"/><text class="diente-numero" x="332" y="283">26</text></g>
+        <!-- Diente 27 --> <g class="diente" id="diente-27"><polygon points="348,260 366,260 362,295 352,295" class="diente-shape"/><text class="diente-numero" x="357" y="282">27</text></g>
+        <!-- Diente 28 --> <g class="diente" id="diente-28"><rect x="372" y="270" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="383" y="289">28</text></g>
+        <!-- Diente 29 --> <g class="diente" id="diente-29"><rect x="398" y="275" width="22" height="28" rx="3" class="diente-shape"/><text class="diente-numero" x="409" y="294">29</text></g>
+        <!-- Diente 30 --> <g class="diente" id="diente-30"><rect x="424" y="280" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="436.5" y="300">30</text></g>
+        <!-- Diente 31 --> <g class="diente" id="diente-31"><rect x="454" y="285" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="466.5" y="305">31</text></g>
+        <!-- Diente 32 --> <g class="diente" id="diente-32"><rect x="484" y="290" width="25" height="30" rx="3" class="diente-shape"/><text class="diente-numero" x="496.5" y="310">32</text></g>
+
+        <!-- SUPERNUMERARIOS (33-48) - Más pequeños y en las esquinas -->
+        <!-- Superior -->
+        <g class="diente" id="diente-33"><circle cx="70" cy="70" r="8" class="diente-shape"/><text class="diente-numero" x="70" y="75">33</text></g>
+        <g class="diente" id="diente-34"><circle cx="520" cy="70" r="8" class="diente-shape"/><text class="diente-numero" x="520" y="75">34</text></g>
+        <g class="diente" id="diente-35"><circle cx="60" cy="150" r="6" class="diente-shape"/><text class="diente-numero" x="60" y="154">35</text></g>
+        <g class="diente" id="diente-36"><circle cx="530" cy="150" r="6" class="diente-shape"/><text class="diente-numero" x="530" y="154">36</text></g>
+        <g class="diente" id="diente-37"><circle cx="70" cy="170" r="6" class="diente-shape"/><text class="diente-numero" x="70" y="174">37</text></g>
+        <g class="diente" id="diente-38"><circle cx="520" cy="170" r="6" class="diente-shape"/><text class="diente-numero" x="520" y="174">38</text></g>
+        <g class="diente" id="diente-39"><circle cx="80" cy="190" r="6" class="diente-shape"/><text class="diente-numero" x="80" y="194">39</text></g>
+        <g class="diente" id="diente-40"><circle cx="510" cy="190" r="6" class="diente-shape"/><text class="diente-numero" x="510" y="194">40</text></g>
+        
+        <!-- Inferior -->
+        <g class="diente" id="diente-41"><circle cx="70" cy="330" r="8" class="diente-shape"/><text class="diente-numero" x="70" y="335">41</text></g>
+        <g class="diente" id="diente-42"><circle cx="520" cy="330" r="8" class="diente-shape"/><text class="diente-numero" x="520" y="335">42</text></g>
+        <g class="diente" id="diente-43"><circle cx="60" cy="250" r="6" class="diente-shape"/><text class="diente-numero" x="60" y="254">43</text></g>
+        <g class="diente" id="diente-44"><circle cx="530" cy="250" r="6" class="diente-shape"/><text class="diente-numero" x="530" y="254">44</text></g>
+        <g class="diente" id="diente-45"><circle cx="70" cy="230" r="6" class="diente-shape"/><text class="diente-numero" x="70" y="234">45</text></g>
+        <g class="diente" id="diente-46"><circle cx="520" cy="230" r="6" class="diente-shape"/><text class="diente-numero" x="520" y="234">46</text></g>
+        <g class="diente" id="diente-47"><circle cx="80" cy="210" r="6" class="diente-shape"/><text class="diente-numero" x="80" y="214">47</text></g>
+        <g class="diente" id="diente-48"><circle cx="510" cy="210" r="6" class="diente-shape"/><text class="diente-numero" x="510" y="214">48</text></g>
+    </svg>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Odontograma limpio cargado - 48 dientes');
+    
+    // Event listeners simples
+    const dientes = document.querySelectorAll('.diente');
+    
+    dientes.forEach(function(diente) {
+        diente.addEventListener('click', function(e) {
+            console.log('Clic en diente:', diente.id);
+            
+            // Limpiar selecciones anteriores
+            document.querySelectorAll('.diente').forEach(d => d.classList.remove('selected'));
+            
+            // Seleccionar este diente
+            diente.classList.add('selected');
+            
+            // Obtener número
+            const numero = diente.id.replace('diente-', '');
+            console.log('Diente seleccionado:', numero);
+            
+            // Emitir evento
+            const evento = new CustomEvent('dienteSeleccionado', {
+                detail: { numero: numero, elemento: diente },
+                bubbles: true
+            });
+            document.dispatchEvent(evento);
+        });
+    });
+    
+    console.log(`${dientes.length} dientes configurados`);
+});
+</script>

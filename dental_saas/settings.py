@@ -15,12 +15,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-eytvqwz+s!1h2k&!w*^8l*pwax7cdgb#zk4&cqndf49q6p5tl^'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-eytvqwz+s!1h2k&!w*^8l*pwax7cdgb#zk4&cqndf49q6p5tl^')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True  # Habilitado temporalmente para desarrollo
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.localhost']
+# Parse ALLOWED_HOSTS from environment variable or use defaults
+allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost,192.168.100.4,192.168.100.*')
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
 
 # --- Multi-Tenant Configuration ---
 DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
@@ -55,13 +57,21 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 TENANT_MODEL = "tenants.Clinica"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 
+# --- Development Tenant Configuration ---
+# Tenant por defecto para desarrollo (cuando se accede por IP directamente)
+DEFAULT_TENANT_SCHEMA = 'dev'
+
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',
+    'core.tenant_middleware.TenantByParamMiddleware',  # Reemplaza TenantMainMiddleware
     'django.middleware.security.SecurityMiddleware',
+#    'django.contrib.staticfiles.middleware.StaticFilesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.LocalTimezoneMiddleware',    # Forzar zona horaria local
+    'core.middleware.ForceAuthenticationMiddleware',  # Forzar autenticación
+    'core.middleware.NoCacheMiddleware',          # Prevenir cacheo de respuestas
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -72,7 +82,7 @@ ROOT_URLCONF = 'dental_saas.urls_tenant'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core' / 'templates', BASE_DIR / 'core' / 'templates' / 'core'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,6 +90,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.menu_dinamico',
             ],
         },
     },
@@ -91,13 +102,14 @@ WSGI_APPLICATION = 'dental_saas.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': 'dental_db',
-        'USER': 'postgres',
-        'PASSWORD': 'admin12345',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'dental_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'admin12345'),
+        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
         'OPTIONS': {
             'client_encoding': 'UTF8',
+            'connect_timeout': 60,  # Timeout más largo para desarrollo
         },
     }
 }
@@ -117,8 +129,16 @@ TIME_ZONE = 'America/Mexico_City'
 USE_I18N = True
 USE_TZ = True
 
+# Forzar zona horaria por defecto
+from django.utils import timezone
+import os
+if os.environ.get('DJANGO_SETTINGS_MODULE'):
+    timezone.activate(TIME_ZONE)
+
 # --- Static Files ---
-STATIC_URL = 'static/'
+# Usar URL absoluta con prefijo para evitar 404/MIME en navegadores
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Para producción
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # --- Media Files (User Uploads) ---
@@ -133,9 +153,19 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # --- Login/Logout Redirects ---
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'core:dashboard'
-LOGOUT_REDIRECT_URL = 'login'
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# --- Session Configuration ---
+# CRÍTICO: Configuración para que logout funcione correctamente
+SESSION_COOKIE_AGE = 86400  # 24 horas
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sesión expira al cerrar navegador
+SESSION_SAVE_EVERY_REQUEST = True  # Actualiza sesión en cada request
+SESSION_COOKIE_HTTPONLY = True  # Previene acceso a cookies desde JavaScript
+SESSION_COOKIE_SECURE = False  # True en producción con HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Usar base de datos para sesiones
 
 # --- Email Configuration (Gmail SMTP) ---
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -145,4 +175,57 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# --- Logging Configuration ---
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO').upper()
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {module}:{lineno} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{levelname}] {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+            'level': LOG_LEVEL,
+        },
+        'file_rotating': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'app.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5MB
+            'backupCount': 3,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': LOG_LEVEL,
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file_rotating'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'core': {
+            'handlers': ['console', 'file_rotating'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'core.views': {
+            'handlers': ['console', 'file_rotating'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}
 

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Detección de Dispositivos</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-result {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+        .test-result.pass {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .test-result.fail {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-result.warning {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+        .device-info {
+            font-family: monospace;
+            font-size: 12px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.legacy {
+            background: #28a745;
+        }
+        .button.modern {
+            background: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prueba de Detección de Dispositivos</h1>
+    
+    <div class="device-info">
+        <strong>Información del Dispositivo:</strong><br>
+        User Agent: <span id="userAgent"></span><br>
+        Ancho de ventana: <span id="windowWidth"></span>px<br>
+        Alto de ventana: <span id="windowHeight"></span>px<br>
+    </div>
+    
+    <h2>Pruebas de Compatibilidad</h2>
+    
+    <div id="test-results"></div>
+    
+    <h2>Resultado Final</h2>
+    <div id="final-result" class="test-result"></div>
+    
+    <h2>Enlaces de Prueba</h2>
+    <p>
+        <a href="/agenda/" class="button modern">Agenda Moderna (con detección automática)</a>
+        <a href="/agenda/legacy/" class="button legacy">Agenda Legacy (forzada)</a>
+    </p>
+    
+    <h2>Simulador iOS 9.3</h2>
+    <p>
+        <button class="button" onclick="simulateOldDevice()">Simular iPad iOS 9.3</button>
+        <button class="button" onclick="location.reload()">Resetear Prueba</button>
+    </p>
+    
+    <script>
+        // Mostrar información del dispositivo
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        document.getElementById('windowWidth').textContent = window.innerWidth;
+        document.getElementById('windowHeight').textContent = window.innerHeight;
+        
+        // Función de detección (copiada del calendario principal)
+        function detectarDispositivoAntiguo() {
+            var ua = navigator.userAgent;
+            var isOldIOS = /iPad.*OS [89]_/.test(ua); // iOS 8 o 9
+            var isOldAndroid = /Android [4-5]/.test(ua); // Android 4.x o 5.x
+            var isOldSafari = /Version\/[89].*Safari/.test(ua); // Safari 8 o 9
+            var isOldChrome = /Chrome\/[4-5][0-9]/.test(ua); // Chrome 40-59
+            
+            // Detectar falta de APIs modernas
+            var noIntl = typeof Intl === 'undefined';
+            var noFetch = typeof fetch === 'undefined';
+            var noPromises = typeof Promise === 'undefined';
+            var noArrowFunctions = false;
+            
+            // Test para arrow functions
+            try {
+                eval('(() => {})');
+            } catch(e) {
+                noArrowFunctions = true;
+            }
+            
+            return {
+                isOldIOS: isOldIOS,
+                isOldAndroid: isOldAndroid,
+                isOldSafari: isOldSafari,
+                isOldChrome: isOldChrome,
+                noIntl: noIntl,
+                noFetch: noFetch,
+                noPromises: noPromises,
+                noArrowFunctions: noArrowFunctions,
+                isLegacyDevice: isOldIOS || isOldAndroid || isOldSafari || isOldChrome || noIntl || noPromises || noArrowFunctions
+            };
+        }
+        
+        // Ejecutar pruebas
+        function runTests() {
+            var detection = detectarDispositivoAntiguo();
+            var resultsContainer = document.getElementById('test-results');
+            var finalResult = document.getElementById('final-result');
+            
+            resultsContainer.innerHTML = '';
+            
+            // Test individual para cada criterio
+            var tests = [
+                { name: 'iPad iOS 8/9', value: detection.isOldIOS, shouldBeFalse: true },
+                { name: 'Android 4.x/5.x', value: detection.isOldAndroid, shouldBeFalse: true },
+                { name: 'Safari 8/9', value: detection.isOldSafari, shouldBeFalse: true },
+                { name: 'Chrome 40-59', value: detection.isOldChrome, shouldBeFalse: true },
+                { name: 'API Intl', value: !detection.noIntl, shouldBeFalse: false },
+                { name: 'API Fetch', value: !detection.noFetch, shouldBeFalse: false },
+                { name: 'API Promise', value: !detection.noPromises, shouldBeFalse: false },
+                { name: 'Arrow Functions', value: !detection.noArrowFunctions, shouldBeFalse: false }
+            ];
+            
+            tests.forEach(function(test) {
+                var div = document.createElement('div');
+                var passed = test.shouldBeFalse ? !test.value : test.value;
+                
+                div.className = 'test-result ' + (passed ? 'pass' : 'fail');
+                div.innerHTML = '<strong>' + test.name + ':</strong> ' + 
+                               (test.value ? '✓ Disponible' : '✗ No disponible') +
+                               ' (' + (passed ? 'PASS' : 'FAIL') + ')';
+                
+                resultsContainer.appendChild(div);
+            });
+            
+            // Resultado final
+            if (detection.isLegacyDevice) {
+                finalResult.className = 'test-result warning';
+                finalResult.innerHTML = '<strong>DISPOSITIVO LEGACY DETECTADO</strong><br>' +
+                                       'Este dispositivo será redirigido automáticamente al calendario simplificado.';
+            } else {
+                finalResult.className = 'test-result pass';
+                finalResult.innerHTML = '<strong>DISPOSITIVO MODERNO</strong><br>' +
+                                       'Este dispositivo puede usar el calendario completo con FullCalendar.';
+            }
+        }
+        
+        // Función para simular dispositivo antiguo
+        function simulateOldDevice() {
+            // Modificar el User Agent temporalmente
+            Object.defineProperty(navigator, 'userAgent', {
+                get: function() { return 'Mozilla/5.0 (iPad; CPU OS 9_3_5 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13G36 Safari/601.1'; },
+                configurable: true
+            });
+            
+            // Simular APIs faltantes
+            if (typeof window.Intl !== 'undefined') {
+                window.IntlBackup = window.Intl;
+                delete window.Intl;
+            }
+            
+            // Actualizar información mostrada
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            
+            // Volver a ejecutar pruebas
+            runTests();
+            
+            alert('Simulando iPad iOS 9.3 - User Agent modificado y API Intl eliminada temporalmente');
+        }
+        
+        // Ejecutar pruebas iniciales
+        runTests();
+        
+        // Actualizar dimensiones de ventana si cambia
+        window.addEventListener('resize', function() {
+            document.getElementById('windowWidth').textContent = window.innerWidth;
+            document.getElementById('windowHeight').textContent = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

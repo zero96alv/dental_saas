@@ -1,0 +1,530 @@
+{% load math_filters %}
+<div id="odontograma-anatomico" class="odontograma-anatomico">
+    <style>
+        .odontograma-anatomico {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        .odontograma-anatomico svg {
+            width: 100%;
+            height: auto;
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Diseño de boca */
+        .boca-contorno {
+            fill: none;
+            stroke: #6c757d;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+        
+        .lengua {
+            fill: #ffb3ba;
+            stroke: #ff9aa2;
+            stroke-width: 2;
+            opacity: 0.7;
+        }
+        
+        /* Dientes con formas más realistas */
+        .diente-anatomico {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .diente-anatomico:hover {
+            filter: drop-shadow(0 0 8px rgba(0,123,255,0.6));
+            transform: scale(1.08);
+        }
+        
+        .diente-anatomico.selected {
+            filter: drop-shadow(0 0 12px rgba(255,193,7,1));
+            transform: scale(1.12);
+        }
+        
+        /* Formas de dientes específicas */
+        .diente-forma {
+            fill: #ffffff;
+            stroke: #495057;
+            stroke-width: 2.5;
+            transition: all 0.3s ease;
+        }
+        
+        /* Incisivos - más rectangulares */
+        .incisivo .diente-forma {
+            rx: 3;
+            ry: 6;
+        }
+        
+        /* Caninos - más puntiagudos */
+        .canino .diente-forma {
+            rx: 4;
+            ry: 8;
+        }
+        
+        /* Premolares - forma intermedia */
+        .premolar .diente-forma {
+            rx: 6;
+            ry: 6;
+        }
+        
+        /* Molares - más grandes y cuadrados */
+        .molar .diente-forma {
+            rx: 8;
+            ry: 8;
+        }
+        
+        .diente-numero {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            fill: #333;
+            text-anchor: middle;
+            pointer-events: none;
+            dominant-baseline: central;
+        }
+        
+        /* Estados de diagnóstico - colores muy evidentes */
+        .diente-anatomico.sano .diente-forma { 
+            fill: #28a745 !important; 
+            stroke: #155724 !important; 
+            filter: drop-shadow(0 0 4px #28a745);
+        }
+        .diente-anatomico.caries .diente-forma { 
+            fill: #dc3545 !important; 
+            stroke: #721c24 !important; 
+            filter: drop-shadow(0 0 4px #dc3545);
+        }
+        .diente-anatomico.obturada .diente-forma { 
+            fill: #ffc107 !important; 
+            stroke: #856404 !important; 
+            filter: drop-shadow(0 0 4px #ffc107);
+        }
+        .diente-anatomico.corona .diente-forma { 
+            fill: #007bff !important; 
+            stroke: #004085 !important; 
+            filter: drop-shadow(0 0 4px #007bff);
+        }
+        .diente-anatomico.extraida .diente-forma { 
+            fill: #6c757d !important; 
+            stroke: #343a40 !important; 
+            stroke-dasharray: 8,4 !important; 
+            opacity: 0.6;
+        }
+        .diente-anatomico.implante .diente-forma { 
+            fill: #17a2b8 !important; 
+            stroke: #0c5460 !important; 
+            stroke-width: 4 !important;
+            filter: drop-shadow(0 0 4px #17a2b8);
+        }
+        .diente-anatomico.endodoncia .diente-forma { 
+            fill: #e83e8c !important; 
+            stroke: #a02142 !important; 
+            filter: drop-shadow(0 0 4px #e83e8c);
+        }
+        
+        /* Supernumerarios */
+        .supernumerario .diente-forma {
+            stroke: #fd7e14;
+            stroke-dasharray: 4,2;
+            opacity: 0.9;
+        }
+        
+        .supernumerario .diente-numero {
+            fill: #fd7e14;
+            font-size: 10px;
+        }
+        
+        /* Etiquetas */
+        .etiqueta-arcada {
+            font-size: 16px;
+            font-weight: bold;
+            fill: #495057;
+            text-anchor: middle;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .diente-numero {
+                font-size: 10px;
+            }
+            .etiqueta-arcada {
+                font-size: 14px;
+            }
+        }
+    </style>
+    
+    <h4 style="text-align: center; color: #495057; margin-bottom: 20px; font-size: 1.2rem;">
+        🦷 Odontograma Anatómico - 48 Dientes
+    </h4>
+    
+    <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fondo con gradiente -->
+        <defs>
+            <radialGradient id="fondoBoca" cx="50%" cy="50%" r="60%">
+                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#f1f3f4;stop-opacity:1" />
+            </radialGradient>
+        </defs>
+        <rect width="1000" height="700" fill="url(#fondoBoca)"/>
+        
+        <!-- Contorno de la boca -->
+        <ellipse cx="500" cy="350" rx="420" ry="280" class="boca-contorno"/>
+        
+        <!-- Lengua (fondo) -->
+        <ellipse cx="500" cy="400" rx="180" ry="120" class="lengua"/>
+        
+        <!-- Línea central -->
+        <line x1="500" y1="100" x2="500" y2="600" stroke="#dee2e6" stroke-width="1" stroke-dasharray="5,5"/>
+        
+        <!-- Etiquetas -->
+        <text x="500" y="60" class="etiqueta-arcada">ARCADA SUPERIOR</text>
+        <text x="500" y="680" class="etiqueta-arcada">ARCADA INFERIOR</text>
+        
+        <!-- ================================ ARCADA SUPERIOR ================================ -->
+        <!-- Organizados como en una boca real: de derecha del paciente a izquierda -->
+        
+        <!-- LADO DERECHO SUPERIOR (Dientes 1-8 → Molares a Incisivos) -->
+        <!-- Tercer molar superior derecho (diente 1) -->
+        <g class="diente-anatomico molar" id="diente-1">
+            <rect x="120" y="120" width="45" height="55" class="diente-forma"/>
+            <text x="142.5" y="147.5" class="diente-numero">1</text>
+        </g>
+        
+        <!-- Segundo molar superior derecho (diente 2) -->
+        <g class="diente-anatomico molar" id="diente-2">
+            <rect x="175" y="130" width="42" height="52" class="diente-forma"/>
+            <text x="196" y="156" class="diente-numero">2</text>
+        </g>
+        
+        <!-- Primer molar superior derecho (diente 3) -->
+        <g class="diente-anatomico molar" id="diente-3">
+            <rect x="225" y="140" width="42" height="52" class="diente-forma"/>
+            <text x="246" y="166" class="diente-numero">3</text>
+        </g>
+        
+        <!-- Segundo premolar superior derecho (diente 4) -->
+        <g class="diente-anatomico premolar" id="diente-4">
+            <rect x="275" y="150" width="35" height="45" class="diente-forma"/>
+            <text x="292.5" y="172.5" class="diente-numero">4</text>
+        </g>
+        
+        <!-- Primer premolar superior derecho (diente 5) -->
+        <g class="diente-anatomico premolar" id="diente-5">
+            <rect x="320" y="160" width="35" height="45" class="diente-forma"/>
+            <text x="337.5" y="182.5" class="diente-numero">5</text>
+        </g>
+        
+        <!-- Canino superior derecho (diente 6) -->
+        <g class="diente-anatomico canino" id="diente-6">
+            <polygon points="365,165 395,165 390,215 370,215" class="diente-forma"/>
+            <text x="382.5" y="190" class="diente-numero">6</text>
+        </g>
+        
+        <!-- Incisivo lateral superior derecho (diente 7) -->
+        <g class="diente-anatomico incisivo" id="diente-7">
+            <rect x="405" y="175" width="28" height="42" class="diente-forma"/>
+            <text x="419" y="196" class="diente-numero">7</text>
+        </g>
+        
+        <!-- Incisivo central superior derecho (diente 8) -->
+        <g class="diente-anatomico incisivo" id="diente-8">
+            <rect x="443" y="180" width="32" height="42" class="diente-forma"/>
+            <text x="459" y="201" class="diente-numero">8</text>
+        </g>
+        
+        <!-- LADO IZQUIERDO SUPERIOR (Dientes 9-16 → Incisivos a Molares) -->
+        <!-- Incisivo central superior izquierdo (diente 9) -->
+        <g class="diente-anatomico incisivo" id="diente-9">
+            <rect x="525" y="180" width="32" height="42" class="diente-forma"/>
+            <text x="541" y="201" class="diente-numero">9</text>
+        </g>
+        
+        <!-- Incisivo lateral superior izquierdo (diente 10) -->
+        <g class="diente-anatomico incisivo" id="diente-10">
+            <rect x="567" y="175" width="28" height="42" class="diente-forma"/>
+            <text x="581" y="196" class="diente-numero">10</text>
+        </g>
+        
+        <!-- Canino superior izquierdo (diente 11) -->
+        <g class="diente-anatomico canino" id="diente-11">
+            <polygon points="605,165 635,165 630,215 610,215" class="diente-forma"/>
+            <text x="617.5" y="190" class="diente-numero">11</text>
+        </g>
+        
+        <!-- Primer premolar superior izquierdo (diente 12) -->
+        <g class="diente-anatomico premolar" id="diente-12">
+            <rect x="645" y="160" width="35" height="45" class="diente-forma"/>
+            <text x="662.5" y="182.5" class="diente-numero">12</text>
+        </g>
+        
+        <!-- Segundo premolar superior izquierdo (diente 13) -->
+        <g class="diente-anatomico premolar" id="diente-13">
+            <rect x="690" y="150" width="35" height="45" class="diente-forma"/>
+            <text x="707.5" y="172.5" class="diente-numero">13</text>
+        </g>
+        
+        <!-- Primer molar superior izquierdo (diente 14) -->
+        <g class="diente-anatomico molar" id="diente-14">
+            <rect x="733" y="140" width="42" height="52" class="diente-forma"/>
+            <text x="754" y="166" class="diente-numero">14</text>
+        </g>
+        
+        <!-- Segundo molar superior izquierdo (diente 15) -->
+        <g class="diente-anatomico molar" id="diente-15">
+            <rect x="783" y="130" width="42" height="52" class="diente-forma"/>
+            <text x="804" y="156" class="diente-numero">15</text>
+        </g>
+        
+        <!-- Tercer molar superior izquierdo (diente 16) -->
+        <g class="diente-anatomico molar" id="diente-16">
+            <rect x="835" y="120" width="45" height="55" class="diente-forma"/>
+            <text x="857.5" y="147.5" class="diente-numero">16</text>
+        </g>
+        
+        <!-- ================================ ARCADA INFERIOR ================================ -->
+        <!-- Organizados como en una boca real: de derecha del paciente a izquierda -->
+        
+        <!-- LADO DERECHO INFERIOR (Dientes 17-24 → Molares a Incisivos) -->
+        <!-- Tercer molar inferior derecho (diente 17) -->
+        <g class="diente-anatomico molar" id="diente-17">
+            <rect x="120" y="525" width="45" height="55" class="diente-forma"/>
+            <text x="142.5" y="552.5" class="diente-numero">17</text>
+        </g>
+        
+        <!-- Segundo molar inferior derecho (diente 18) -->
+        <g class="diente-anatomico molar" id="diente-18">
+            <rect x="175" y="520" width="42" height="52" class="diente-forma"/>
+            <text x="196" y="546" class="diente-numero">18</text>
+        </g>
+        
+        <!-- Primer molar inferior derecho (diente 19) -->
+        <g class="diente-anatomico molar" id="diente-19">
+            <rect x="225" y="510" width="42" height="52" class="diente-forma"/>
+            <text x="246" y="536" class="diente-numero">19</text>
+        </g>
+        
+        <!-- Segundo premolar inferior derecho (diente 20) -->
+        <g class="diente-anatomico premolar" id="diente-20">
+            <rect x="275" y="505" width="35" height="45" class="diente-forma"/>
+            <text x="292.5" y="527.5" class="diente-numero">20</text>
+        </g>
+        
+        <!-- Primer premolar inferior derecho (diente 21) -->
+        <g class="diente-anatomico premolar" id="diente-21">
+            <rect x="320" y="495" width="35" height="45" class="diente-forma"/>
+            <text x="337.5" y="517.5" class="diente-numero">21</text>
+        </g>
+        
+        <!-- Canino inferior derecho (diente 22) -->
+        <g class="diente-anatomico canino" id="diente-22">
+            <polygon points="365,485 395,485 390,535 370,535" class="diente-forma"/>
+            <text x="382.5" y="510" class="diente-numero">22</text>
+        </g>
+        
+        <!-- Incisivo lateral inferior derecho (diente 23) -->
+        <g class="diente-anatomico incisivo" id="diente-23">
+            <rect x="405" y="483" width="28" height="42" class="diente-forma"/>
+            <text x="419" y="504" class="diente-numero">23</text>
+        </g>
+        
+        <!-- Incisivo central inferior derecho (diente 24) -->
+        <g class="diente-anatomico incisivo" id="diente-24">
+            <rect x="443" y="478" width="32" height="42" class="diente-forma"/>
+            <text x="459" y="499" class="diente-numero">24</text>
+        </g>
+        
+        <!-- LADO IZQUIERDO INFERIOR (Dientes 25-32 → Incisivos a Molares) -->
+        <!-- Incisivo central inferior izquierdo (diente 25) -->
+        <g class="diente-anatomico incisivo" id="diente-25">
+            <rect x="525" y="478" width="32" height="42" class="diente-forma"/>
+            <text x="541" y="499" class="diente-numero">25</text>
+        </g>
+        
+        <!-- Incisivo lateral inferior izquierdo (diente 26) -->
+        <g class="diente-anatomico incisivo" id="diente-26">
+            <rect x="567" y="483" width="28" height="42" class="diente-forma"/>
+            <text x="581" y="504" class="diente-numero">26</text>
+        </g>
+        
+        <!-- Canino inferior izquierdo (diente 27) -->
+        <g class="diente-anatomico canino" id="diente-27">
+            <polygon points="605,485 635,485 630,535 610,535" class="diente-forma"/>
+            <text x="617.5" y="510" class="diente-numero">27</text>
+        </g>
+        
+        <!-- Primer premolar inferior izquierdo (diente 28) -->
+        <g class="diente-anatomico premolar" id="diente-28">
+            <rect x="645" y="495" width="35" height="45" class="diente-forma"/>
+            <text x="662.5" y="517.5" class="diente-numero">28</text>
+        </g>
+        
+        <!-- Segundo premolar inferior izquierdo (diente 29) -->
+        <g class="diente-anatomico premolar" id="diente-29">
+            <rect x="690" y="505" width="35" height="45" class="diente-forma"/>
+            <text x="707.5" y="527.5" class="diente-numero">29</text>
+        </g>
+        
+        <!-- Primer molar inferior izquierdo (diente 30) -->
+        <g class="diente-anatomico molar" id="diente-30">
+            <rect x="733" y="510" width="42" height="52" class="diente-forma"/>
+            <text x="754" y="536" class="diente-numero">30</text>
+        </g>
+        
+        <!-- Segundo molar inferior izquierdo (diente 31) -->
+        <g class="diente-anatomico molar" id="diente-31">
+            <rect x="783" y="520" width="42" height="52" class="diente-forma"/>
+            <text x="804" y="546" class="diente-numero">31</text>
+        </g>
+        
+        <!-- Tercer molar inferior izquierdo (diente 32) -->
+        <g class="diente-anatomico molar" id="diente-32">
+            <rect x="835" y="525" width="45" height="55" class="diente-forma"/>
+            <text x="857.5" y="552.5" class="diente-numero">32</text>
+        </g>
+        
+        <!-- ================================ SUPERNUMERARIOS ================================ -->
+        <!-- Posicionados fuera de las arcadas principales -->
+        
+        <!-- Supernumerarios superiores -->
+        <g class="diente-anatomico supernumerario" id="diente-33">
+            <circle cx="80" cy="100" r="18" class="diente-forma"/>
+            <text x="80" y="100" class="diente-numero">33</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-34">
+            <circle cx="920" cy="100" r="18" class="diente-forma"/>
+            <text x="920" y="100" class="diente-numero">34</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-35">
+            <circle cx="50" cy="280" r="15" class="diente-forma"/>
+            <text x="50" y="280" class="diente-numero">35</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-36">
+            <circle cx="950" cy="280" r="15" class="diente-forma"/>
+            <text x="950" y="280" class="diente-numero">36</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-37">
+            <circle cx="500" y="80" r="12" class="diente-forma"/>
+            <text x="500" y="80" class="diente-numero">37</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-38">
+            <circle cx="400" y="100" r="12" class="diente-forma"/>
+            <text x="400" y="100" class="diente-numero">38</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-39">
+            <circle cx="600" y="100" r="12" class="diente-forma"/>
+            <text x="600" y="100" class="diente-numero">39</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-40">
+            <circle cx="300" y="90" r="12" class="diente-forma"/>
+            <text x="300" y="90" class="diente-numero">40</text>
+        </g>
+        
+        <!-- Supernumerarios inferiores -->
+        <g class="diente-anatomico supernumerario" id="diente-41">
+            <circle cx="80" cy="600" r="18" class="diente-forma"/>
+            <text x="80" y="600" class="diente-numero">41</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-42">
+            <circle cx="920" cy="600" r="18" class="diente-forma"/>
+            <text x="920" y="600" class="diente-numero">42</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-43">
+            <circle cx="50" cy="420" r="15" class="diente-forma"/>
+            <text x="50" y="420" class="diente-numero">43</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-44">
+            <circle cx="950" cy="420" r="15" class="diente-forma"/>
+            <text x="950" y="420" class="diente-numero">44</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-45">
+            <circle cx="500" cy="620" r="12" class="diente-forma"/>
+            <text x="500" y="620" class="diente-numero">45</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-46">
+            <circle cx="400" cy="600" r="12" class="diente-forma"/>
+            <text x="400" y="600" class="diente-numero">46</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-47">
+            <circle cx="600" cy="600" r="12" class="diente-forma"/>
+            <text x="600" y="600" class="diente-numero">47</text>
+        </g>
+        <g class="diente-anatomico supernumerario" id="diente-48">
+            <circle cx="700" cy="90" r="12" class="diente-forma"/>
+            <text x="700" y="90" class="diente-numero">48</text>
+        </g>
+    </svg>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    function log(mensaje) {
+        console.log(`[ODONTOGRAMA ANATÓMICO] ${mensaje}`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        log('Iniciando odontograma anatómico realista');
+        
+        const dientes = document.querySelectorAll('.diente-anatomico');
+        log(`Configurando ${dientes.length} dientes anatómicos`);
+        
+        dientes.forEach(function(diente, index) {
+            diente.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                log(`Clic en ${diente.id}`);
+                
+                // Quitar selección anterior
+                document.querySelectorAll('.diente-anatomico').forEach(d => {
+                    d.classList.remove('selected');
+                });
+                
+                // Seleccionar este diente
+                diente.classList.add('selected');
+                
+                const numero = diente.id.replace('diente-', '');
+                log(`Diente anatómico ${numero} seleccionado`);
+                
+                // Emitir evento
+                const evento = new CustomEvent('dienteSeleccionado', {
+                    detail: { 
+                        numero: numero, 
+                        elemento: diente,
+                        tipo: 'anatomico-realista'
+                    },
+                    bubbles: true
+                });
+                
+                document.dispatchEvent(evento);
+                
+                // Feedback visual con pulso
+                const forma = diente.querySelector('.diente-forma');
+                if (forma) {
+                    forma.style.transform = 'scale(1.15)';
+                    forma.style.filter = 'brightness(1.3) drop-shadow(0 0 8px #ffd700)';
+                    setTimeout(() => {
+                        forma.style.transform = '';
+                        forma.style.filter = '';
+                    }, 600);
+                }
+            });
+            
+            // Log de configuración para los primeros dientes
+            if (index < 5) {
+                log(`✓ Configurado ${diente.id} como ${diente.classList.contains('molar') ? 'molar' : diente.classList.contains('canino') ? 'canino' : diente.classList.contains('premolar') ? 'premolar' : 'incisivo'}`);
+            }
+        });
+        
+        log('✅ Odontograma anatómico realista listo - 48 dientes organizados');
+    });
+})();
+</script>

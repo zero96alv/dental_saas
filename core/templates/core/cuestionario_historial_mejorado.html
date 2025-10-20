@@ -1,0 +1,439 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Historial Clínico Mejorado{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/historial_clinico_escalas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-primary mb-1">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Historial Clínico de Atención Inmediata
+                    </h2>
+                    <p class="lead text-muted mb-0">
+                        <strong>Paciente:</strong> {{ paciente.nombre }} {{ paciente.apellido }} | 
+                        <strong>Edad:</strong> {{ paciente.edad }} años
+                    </p>
+                </div>
+                <div class="text-end">
+                    <p class="mb-0 text-muted small">
+                        <strong>No. de expediente:</strong> #{{ paciente.id|stringformat:"04d" }}<br>
+                        <strong>Fecha:</strong> {% now "d/m/Y H:i" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="formulario-historial" class="needs-validation" novalidate>
+        {% csrf_token %}
+        {{ formset.management_form }}
+        
+        <!-- Campos ocultos para datos adicionales -->
+        <input type="hidden" id="dolor_numerico_value" name="dolor_numerico" />
+        <input type="hidden" id="dolor_caras_value" name="dolor_caras" />
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- ESCALAS DE DOLOR -->
+                <div class="historial-section">
+                    <!-- Escala Numérica 0-10 -->
+                    <div class="escala-dolor-numerica">
+                        <h4>
+                            <i class="fas fa-thermometer-half me-2"></i>
+                            Escala de Dolor (0-10)
+                        </h4>
+                        <p class="text-muted mb-3">Seleccione el nivel de dolor que describe mejor su molestia actual:</p>
+                        
+                        <div class="dolor-scale-container">
+                            {% for i in "0123456789" %}
+                            <div class="dolor-number" data-valor="{{ i }}" title="Nivel {{ i }}">
+                                {{ i }}
+                            </div>
+                            {% endfor %}
+                            <div class="dolor-number" data-valor="10" title="Nivel 10">
+                                10
+                            </div>
+                        </div>
+                        
+                        <div class="dolor-labels">
+                            <span class="label-start">No hay dolor</span>
+                            <span class="label-mid">Dolor Moderado</span>
+                            <span class="label-end">Dolor insoportable</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Escala de Caras Wong Baker -->
+                    <div class="escala-wong-baker">
+                        <h4>
+                            <i class="fas fa-smile me-2"></i>
+                            Escala de Caras Wong Baker
+                        </h4>
+                        <p class="text-muted mb-3">O seleccione la cara que mejor represente cómo se siente:</p>
+                        
+                        <div class="caras-container">
+                            <div class="cara-dolor" data-valor="0">
+                                <div class="cara-emoji">😊</div>
+                                <div class="cara-valor">0</div>
+                                <div class="cara-descripcion">No duele</div>
+                            </div>
+                            <div class="cara-dolor" data-valor="2">
+                                <div class="cara-emoji">🙂</div>
+                                <div class="cara-valor">2</div>
+                                <div class="cara-descripcion">Duele poco</div>
+                            </div>
+                            <div class="cara-dolor" data-valor="4">
+                                <div class="cara-emoji">😐</div>
+                                <div class="cara-valor">4</div>
+                                <div class="cara-descripcion">Duele un poco más</div>
+                            </div>
+                            <div class="cara-dolor" data-valor="6">
+                                <div class="cara-emoji">😕</div>
+                                <div class="cara-valor">6</div>
+                                <div class="cara-descripcion">Duele más</div>
+                            </div>
+                            <div class="cara-dolor" data-valor="8">
+                                <div class="cara-emoji">😢</div>
+                                <div class="cara-valor">8</div>
+                                <div class="cara-descripcion">Duele mucho</div>
+                            </div>
+                            <div class="cara-dolor" data-valor="10">
+                                <div class="cara-emoji">😭</div>
+                                <div class="cara-valor">10</div>
+                                <div class="cara-descripcion">El peor dolor</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ANTECEDENTES FAMILIARES MEJORADOS -->
+                <div class="historial-section">
+                    <div class="antecedentes-familiares">
+                        <h3>
+                            <i class="fas fa-users me-2"></i>
+                            Antecedentes Heredofamiliares
+                        </h3>
+                        <p class="text-muted mb-4">Marque con una X los antecedentes que el paciente refiera:</p>
+                        
+                        <div class="familiares-grid">
+                            {% for parentesco, nombre in familiares %}
+                            <div class="familiar-card">
+                                <h5 class="familiar-title">{{ nombre }}</h5>
+                                
+                                <div class="familiar-status">
+                                    <div class="status-option">
+                                        <input type="radio" id="{{ parentesco }}_vivo" name="estado_{{ parentesco }}" value="VIVO">
+                                        <label for="{{ parentesco }}_vivo">Vivo</label>
+                                    </div>
+                                    <div class="status-option">
+                                        <input type="radio" id="{{ parentesco }}_fallecido" name="estado_{{ parentesco }}" value="FALLECIDO">
+                                        <label for="{{ parentesco }}_fallecido">Fallecido</label>
+                                    </div>
+                                    <div class="status-option">
+                                        <input type="radio" id="{{ parentesco }}_desconocido" name="estado_{{ parentesco }}" value="DESCONOCIDO">
+                                        <label for="{{ parentesco }}_desconocido">Desconocido</label>
+                                    </div>
+                                </div>
+                                
+                                <div id="enfermedades_{{ parentesco }}" class="enfermedades-grid">
+                                    {% for enfermedad, nombre_enf in enfermedades_familiares %}
+                                    <div class="enfermedad-checkbox">
+                                        <input type="checkbox" 
+                                               id="{{ parentesco }}_{{ enfermedad }}" 
+                                               name="enfermedad_{{ parentesco }}" 
+                                               value="{{ enfermedad }}"
+                                               data-parentesco="{{ parentesco }}">
+                                        <label for="{{ parentesco }}_{{ enfermedad }}">{{ nombre_enf }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="observaciones-familiar">
+                                    <label for="obs_{{ parentesco }}" class="form-label small">Otras adicciones / Observaciones:</label>
+                                    <textarea id="obs_{{ parentesco }}" 
+                                              name="observaciones_{{ parentesco }}" 
+                                              placeholder="Especifique otras condiciones..."></textarea>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- MALOS HÁBITOS ORALES -->
+                <div class="historial-section">
+                    <div class="habitos-orales">
+                        <h3>
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Malos Hábitos Orales
+                        </h3>
+                        <p class="text-muted mb-4">Indique la frecuencia de cada hábito:</p>
+                        
+                        <div class="habitos-grid">
+                            {% for habito, nombre in habitos_orales %}
+                            <div class="habito-item">
+                                <span class="habito-nombre">{{ nombre }}</span>
+                                <select class="frecuencia-select" 
+                                        name="habito_{{ habito }}" 
+                                        data-habito="{{ habito }}">
+                                    <option value="NUNCA">Nunca</option>
+                                    <option value="RARA_VEZ">Rara vez</option>
+                                    <option value="ALGUNAS_VECES">Algunas veces</option>
+                                    <option value="FRECUENTEMENTE">Frecuentemente</option>
+                                    <option value="SIEMPRE">Siempre</option>
+                                </select>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CUESTIONARIO TRADICIONAL -->
+                <div class="historial-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title mb-0">
+                                <i class="fas fa-file-medical me-2"></i>
+                                Cuestionario Médico
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            {% for form in formset %}
+                                <div class="mb-4 border-bottom pb-3">
+                                    {{ form.as_p }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PANEL LATERAL -->
+            <div class="col-lg-4">
+                <!-- SIGNOS VITALES -->
+                <div class="historial-section">
+                    <div class="signos-vitales">
+                        <h3>
+                            <i class="fas fa-heartbeat me-2"></i>
+                            Signos Vitales
+                        </h3>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">Estatura</div>
+                            <input type="text" class="signo-input" 
+                                   name="estatura" 
+                                   data-tipo="estatura" 
+                                   data-label="Estatura" 
+                                   placeholder="1.70">
+                            <div class="signo-unidad">metros</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">Peso</div>
+                            <input type="text" class="signo-input" 
+                                   name="peso" 
+                                   data-tipo="peso" 
+                                   data-label="Peso" 
+                                   placeholder="70">
+                            <div class="signo-unidad">kg</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">Pulso</div>
+                            <input type="text" class="signo-input" 
+                                   name="pulso" 
+                                   data-tipo="pulso" 
+                                   data-label="Pulso" 
+                                   placeholder="72">
+                            <div class="signo-unidad">lat/min</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">F.R.</div>
+                            <input type="text" class="signo-input" 
+                                   name="frecuencia_respiratoria" 
+                                   data-tipo="frecuencia_respiratoria" 
+                                   data-label="Frecuencia respiratoria" 
+                                   placeholder="16">
+                            <div class="signo-unidad">resp/min</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">T.A.</div>
+                            <input type="text" class="signo-input" 
+                                   name="presion_arterial" 
+                                   data-tipo="presion" 
+                                   data-label="Tensión arterial" 
+                                   placeholder="120/80">
+                            <div class="signo-unidad">mmHg</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">Temperatura</div>
+                            <input type="text" class="signo-input" 
+                                   name="temperatura" 
+                                   data-tipo="temperatura" 
+                                   data-label="Temperatura" 
+                                   placeholder="36.5">
+                            <div class="signo-unidad">°C</div>
+                        </div>
+                        
+                        <div class="signo-vital">
+                            <div class="signo-label">Tipo de Sangre</div>
+                            <select class="signo-input" name="tipo_sangre" data-tipo="tipo_sangre">
+                                <option value="">Seleccionar</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- INFORMACIÓN ADICIONAL -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Información del Expediente
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Motivo de la consulta</label>
+                            <textarea class="form-control" 
+                                      name="motivo_consulta" 
+                                      rows="3" 
+                                      placeholder="Describa el motivo principal de la consulta..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Dentista Tratante</label>
+                            <input type="text" class="form-control" 
+                                   name="dentista_tratante" 
+                                   placeholder="Dr. {{ user.first_name }} {{ user.last_name }}" 
+                                   value="Dr. {{ user.first_name }} {{ user.last_name }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Cédula Profesional</label>
+                            <input type="text" class="form-control" 
+                                   name="cedula_profesional" 
+                                   placeholder="Número de cédula...">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ALERTAS -->
+                <div class="card mt-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Alerta
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2"><strong>Allergias, enfermedades, capacidades diferentes, toma de medicamentos</strong></p>
+                        <textarea class="form-control" 
+                                  name="alerta_medica" 
+                                  rows="3" 
+                                  placeholder="Describa cualquier alergia, enfermedad o medicamento importante..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center p-4 bg-light rounded">
+                    <div>
+                        <p class="mb-0 text-muted">¿Está seguro de que toda la información es correcta?</p>
+                        <small class="text-muted">Esta información será parte del expediente médico oficial.</small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'core:paciente_detail' paciente.pk %}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>Vista Previa
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Historial
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'core/js/historial_clinico_escalas.js' %}"></script>
+<script>
+// Datos para JavaScript
+const familiares = [
+    ['PADRE', 'Padre'],
+    ['MADRE', 'Madre'], 
+    ['ABUELO_PATERNO', 'Abuelo Paterno'],
+    ['ABUELA_PATERNA', 'Abuela Paterna'],
+    ['ABUELO_MATERNO', 'Abuelo Materno'],
+    ['ABUELA_MATERNA', 'Abuela Materna']
+];
+
+const enfermedades_familiares = [
+    ['DIABETES', 'Diabetes'],
+    ['HIPERTENSION', 'Hipertensión'],
+    ['CARDIOPATIAS', 'Cardiopatías'],
+    ['ALCOHOLISMO', 'Alcoholismo'],
+    ['TABAQUISMO', 'Tabaquismo'],
+    ['CANCER', 'Cáncer'],
+    ['NEUROLOGICAS', 'Neurológicas'],
+    ['HEMATOLOGICAS', 'Hematológicas'],
+    ['RENALES', 'Renales'],
+    ['VENEREAS', 'Venéreas'],
+    ['SOBREPESO', 'Sobrepeso']
+];
+
+const habitos_orales = [
+    ['SUCCION_DEDO', 'Succión de dedo'],
+    ['USO_CHUPON', 'Uso de chupón'],
+    ['RESPIRADOR_BUCAL', 'Respirador bucal'],
+    ['INTERPOSICION_LINGUAL', 'Interposición lingual'],
+    ['DEFICIENCIA_CEPILLADO', 'Deficiencia en el cepillado'],
+    ['MORDER_OBJETOS', 'Muerde objetos o uñas']
+];
+
+// Validación Bootstrap
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+{% endblock %}

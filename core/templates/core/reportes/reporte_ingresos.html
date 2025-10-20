@@ -12,7 +12,7 @@
             Filtros del Reporte
         </div>
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
+            <form method="get" class="row g-3 align-items-end" data-default-inicio="{{ default_fecha_inicio }}" data-default-fin="{{ default_fecha_fin }}">
                 <div class="col-md-4">
                     {{ form.fecha_inicio|as_crispy_field }}
                 </div>
@@ -89,6 +89,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Prefijar fechas si están vacías (ej. al entrar por primera vez o solo con paginación)
+    const formEl = document.querySelector('form[method="get"][data-default-inicio]');
+    if (formEl) {
+        const inicio = document.getElementById('id_fecha_inicio');
+        const fin = document.getElementById('id_fecha_fin');
+        const defInicio = formEl.getAttribute('data-default-inicio');
+        const defFin = formEl.getAttribute('data-default-fin');
+        if (inicio && !inicio.value && defInicio) inicio.value = defInicio;
+        if (fin && !fin.value && defFin) fin.value = defFin;
+    }
+
     const ctx = document.getElementById('ingresosChart').getContext('2d');
     const url = `{% url 'core:reporte_ingresos_api' %}?{{ request.GET.urlencode }}`;
 

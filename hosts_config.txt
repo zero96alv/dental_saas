@@ -1,0 +1,6 @@
+# Configuración temporal para desarrollo Django multi-tenant
+# Agregar estas líneas al archivo C:\Windows\System32\drivers\etc\hosts
+# (Requiere permisos de administrador)
+
+192.168.100.4 demo.192.168.100.4
+192.168.100.4 dev.192.168.100.4

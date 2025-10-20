@@ -153,7 +153,7 @@ class Command(BaseCommand):
             estado = random.choices(['PRO', 'CON', 'ATN', 'CAN', 'COM'], weights=[0.1, 0.1, 0.1, 0.1, 0.6], k=1)[0]
             
             cita = Cita.objects.create(
-                cliente=random.choice(pacientes), dentista=random.choice(dentistas),
+                paciente=random.choice(pacientes), dentista=random.choice(dentistas),
                 unidad_dental=random.choice(unidades), fecha_hora=fecha,
                 motivo=self.faker.sentence(nb_words=4), estado=estado
             )
@@ -161,13 +161,13 @@ class Command(BaseCommand):
             if estado in ['ATN', 'COM']:
                 servicios_realizados = random.sample(servicios, k=random.randint(1, 2))
                 cita.servicios_realizados.set(servicios_realizados)
-                cita.actualizar_saldo()
-
+                # Actualizar saldo del paciente en función de servicios y pagos
                 if cita.saldo_pendiente > 0:
                     pago_total = (estado == 'COM') or (random.random() < 0.5)
                     monto_pago = cita.saldo_pendiente if pago_total else cita.saldo_pendiente * Decimal(str(random.uniform(0.2, 0.8)))
-                    Pago.objects.create(cita=cita, monto=monto_pago, fecha_pago=fecha + timedelta(minutes=30))
-                    cita.actualizar_saldo()
+                    Pago.objects.create(cita=cita, paciente=cita.paciente, monto=monto_pago, fecha_pago=fecha + timedelta(minutes=30))
+                # Recalcular saldo del paciente
+                cita.paciente.actualizar_saldo_global()
 
     def _create_today_activity(self, count):
         self._create_citas_flow(count, historical=False)
@@ -185,15 +185,14 @@ class Command(BaseCommand):
         
         for i in range(3):
             cita = Cita.objects.create(
-                cliente=deudor, dentista=dentista, unidad_dental=unidad,
+                paciente=deudor, dentista=dentista, unidad_dental=unidad,
                 fecha_hora=timezone.now() - timedelta(days=45 * (i+1)),
                 motivo="Revisión y tratamiento complejo", estado='COM'
             )
             cita.servicios_realizados.add(servicio_caro)
-            cita.actualizar_saldo()
-            # Pagar solo una pequeña parte
-            Pago.objects.create(cita=cita, monto=Decimal('500.00'))
-            cita.actualizar_saldo()
+            # Pagar solo una pequeña parte y recalcular saldo
+            Pago.objects.create(cita=cita, paciente=deudor, monto=Decimal('500.00'))
+            deudor.actualizar_saldo_global()
 
     def _simulate_compras(self, count):
         proveedores = list(Proveedor.objects.all())

@@ -1,38 +1,1034 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
-{% block title %}Catálogo de Servicios{% endblock %}
+{% block title %}Centro de Gestión de Servicios{% endblock %}
+
+{% block extra_css %}
+<style>
+/* === SISTEMA DE BADGES DE SERVICIOS === */
+.service-badge {
+    font-size: 0.8em;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.4rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.precio-bajo {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.precio-medio {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.precio-alto {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.duracion-corta {
+    background-color: #cce7ff;
+    color: #004085;
+}
+
+.duracion-media {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.duracion-larga {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* === TABLA HÍBRIDA DE SERVICIOS === */
+.services-table {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9ff;
+    transition: background-color 0.2s ease;
+}
+
+.service-row {
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.service-row:hover {
+    border-left-color: #0d6efd;
+}
+
+.service-row.popular {
+    border-left-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.service-row.premium {
+    border-left-color: #fd7e14;
+    background-color: #fff8f2;
+}
+
+.expand-btn {
+    transition: transform 0.3s ease;
+    color: #6c757d;
+    border: none;
+    background: none;
+    padding: 0.25rem;
+}
+
+.expand-btn:hover {
+    color: #0d6efd;
+    transform: scale(1.1);
+}
+
+.expand-btn.expanded {
+    transform: rotate(90deg);
+    color: #0d6efd;
+}
+
+/* === FILA DE DETALLES EXPANDIBLE === */
+.details-row {
+    display: none;
+    background: #f8f9fa;
+    border-left: 3px solid #e9ecef;
+}
+
+.details-row.show {
+    display: table-row;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.details-content {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+}
+
+.detail-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.detail-card:last-child {
+    margin-bottom: 0;
+}
+
+/* === ESTADÍSTICAS === */
+.analytics-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-left: 4px solid #0d6efd;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+}
+
+.metric-card.success {
+    border-left-color: #28a745;
+}
+
+.metric-card.warning {
+    border-left-color: #ffc107;
+}
+
+.metric-card.info {
+    border-left-color: #17a2b8;
+}
+
+.metric-number {
+    font-size: 2rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* === FILTROS === */
+.filters-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* === CHARTS === */
+.chart-container {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+/* === ESPECIALIDAD BADGES === */
+.especialidad-badge {
+    background: linear-gradient(45deg, #e3f2fd, #f3e5f5);
+    color: #1565c0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8em;
+    font-weight: 500;
+    border: 1px solid #e1e5e9;
+}
+
+/* === ACCIONES RÁPIDAS === */
+.action-buttons .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8em;
+    border-radius: 0.25rem;
+    margin: 0 0.1rem;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .services-table {
+        font-size: 0.9em;
+    }
+    
+    .metric-number {
+        font-size: 1.5rem;
+    }
+    
+    .details-content {
+        padding: 1rem;
+    }
+    
+    .chart-container {
+        padding: 1rem;
+    }
+}
+
+/* === UTILIDADES === */
+.text-nowrap-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.popular-indicator {
+    background: #28a745;
+    color: white;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.7em;
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+
+.premium-indicator {
+    background: #fd7e14;
+    color: white;
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-size: 0.7em;
+    font-weight: bold;
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Catálogo de Servicios</h1>
-        <a href="{% url 'core:service_create' %}" class="btn btn-primary">Añadir Servicio</a>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-primary mb-1">
+                <i class="fas fa-tooth me-2"></i>Centro de Gestión de Servicios
+            </h1>
+            <p class="text-muted mb-0">Catálogo completo con análisis de rentabilidad y popularidad</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'core:service_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Servicio
+            </a>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-collapse">
+                <i class="fas fa-filter me-2"></i>Filtros
+            </button>
+            <button class="btn btn-outline-info" type="button" data-bs-toggle="collapse" data-bs-target="#analytics-collapse">
+                <i class="fas fa-chart-bar me-2"></i>Análisis
+            </button>
+        </div>
     </div>
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Activo</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for servicio in servicios %}
-            <tr>
-                <td>{{ servicio.nombre }}</td>
-                <td>${{ servicio.precio|floatformat:2 }}</td>
-                <td>{% if servicio.activo %}Sí{% else %}No{% endif %}</td>
-                <td>
-                    <a href="{% url 'core:service_edit' servicio.pk %}" class="btn btn-sm btn-warning">Editar</a>
-                    <a href="{% url 'core:service_delete' servicio.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" class="text-center">No hay servicios registrados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Métricas Principales -->
+    <div class="analytics-card p-4 mb-4">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <div class="metric-card success">
+                    <div class="metric-number text-success">{{ total_servicios }}</div>
+                    <div class="text-muted mt-2">Servicios Activos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card info">
+                    <div class="metric-number text-info">${{ precio_promedio|floatformat:0 }}</div>
+                    <div class="text-muted mt-2">Precio Promedio</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card warning">
+                    <div class="metric-number text-warning">{{ duracion_promedio|floatformat:0 }}min</div>
+                    <div class="text-muted mt-2">Duración Promedio</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <div class="metric-number text-primary">{{ servicios_por_especialidad.count }}</div>
+                    <div class="text-muted mt-2">Especialidades</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis Avanzado -->
+    <div class="collapse" id="analytics-collapse">
+        <div class="row mb-4">
+            <!-- Servicios Más Populares -->
+            <div class="col-lg-6 mb-3">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-fire text-danger me-2"></i>
+                        Servicios Más Populares (Últimos 30 días)
+                    </h5>
+                    {% if servicios_populares %}
+                        {% for servicio in servicios_populares %}
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                <div>
+                                    <strong>{{ servicio.servicio__nombre }}</strong>
+                                    <br><small class="text-muted">{{ servicio.servicio__especialidad__nombre }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">{{ servicio.veces_usado }} veces</div>
+                                    <small class="text-muted">${{ servicio.ingresos_generados|floatformat:0 }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No hay datos de servicios utilizados en los últimos 30 días.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Servicios Más Rentables -->
+            <div class="col-lg-6 mb-3">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                        Servicios Más Rentables (Últimos 3 meses)
+                    </h5>
+                    {% if servicios_rentables %}
+                        {% for servicio in servicios_rentables %}
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                                <div>
+                                    <strong>{{ servicio.servicio__nombre }}</strong>
+                                    <br><small class="text-muted">{{ servicio.servicio__especialidad__nombre }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">${{ servicio.total_ingresos|floatformat:0 }}</div>
+                                    <small class="text-muted">{{ servicio.cantidad_realizados }} realizados</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No hay datos de servicios pagados en los últimos 3 meses.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución de Precios y Duración -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-pie text-info me-2"></i>
+                        Distribución por Rangos de Precio
+                    </h5>
+                    <canvas id="preciosChart" height="200"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-3">
+                <div class="chart-container">
+                    <h5 class="chart-title">
+                        <i class="fas fa-clock text-warning me-2"></i>
+                        Distribución por Duración
+                    </h5>
+                    <canvas id="duracionChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="collapse" id="filtros-collapse">
+        <div class="filters-container">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Buscar servicio</label>
+                    <input type="text" name="busqueda" class="form-control" 
+                           placeholder="Nombre, descripción o especialidad..." 
+                           value="{{ request.GET.busqueda }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Especialidad</label>
+                    <select name="especialidad" class="form-select">
+                        <option value="">Todas las especialidades</option>
+                        {% for especialidad in especialidades %}
+                            <option value="{{ especialidad.id }}" {% if request.GET.especialidad == especialidad.id|stringformat:'s' %}selected{% endif %}>
+                                {{ especialidad.nombre }} ({{ especialidad.servicios_count }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Precio Mínimo</label>
+                    <input type="number" name="precio_min" class="form-control" 
+                           placeholder="$0" 
+                           min="0" max="{{ precio_max_disponible }}"
+                           value="{{ request.GET.precio_min }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Precio Máximo</label>
+                    <input type="number" name="precio_max" class="form-control" 
+                           placeholder="${{ precio_max_disponible }}" 
+                           min="{{ precio_min_disponible }}"
+                           value="{{ request.GET.precio_max }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <a href="{% url 'core:service_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Filtros de Duración -->
+            <form method="get" class="row g-3 mt-2">
+                <div class="col-md-3">
+                    <label class="form-label">Duración Mínima (minutos)</label>
+                    <input type="number" name="duracion_min" class="form-control" 
+                           placeholder="{{ duracion_min_disponible }}" 
+                           min="{{ duracion_min_disponible }}"
+                           value="{{ request.GET.duracion_min }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Duración Máxima (minutos)</label>
+                    <input type="number" name="duracion_max" class="form-control" 
+                           placeholder="{{ duracion_max_disponible }}" 
+                           max="{{ duracion_max_disponible }}"
+                           value="{{ request.GET.duracion_max }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ordenar por</label>
+                    <select name="orden" class="form-select">
+                        <option value="especialidad__nombre" {% if request.GET.orden == 'especialidad__nombre' or not request.GET.orden %}selected{% endif %}>Especialidad</option>
+                        <option value="nombre" {% if request.GET.orden == 'nombre' %}selected{% endif %}>Nombre A-Z</option>
+                        <option value="precio" {% if request.GET.orden == 'precio' %}selected{% endif %}>Precio: Menor a Mayor</option>
+                        <option value="-precio" {% if request.GET.orden == '-precio' %}selected{% endif %}>Precio: Mayor a Menor</option>
+                        <option value="duracion_minutos" {% if request.GET.orden == 'duracion_minutos' %}selected{% endif %}>Duración: Menor a Mayor</option>
+                        <option value="-duracion_minutos" {% if request.GET.orden == '-duracion_minutos' %}selected{% endif %}>Duración: Mayor a Menor</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-sort"></i> Ordenar
+                        </button>
+                    </div>
+                </div>
+                <!-- Preservar otros parámetros -->
+                {% for key, value in request.GET.items %}
+                    {% if key != 'duracion_min' and key != 'duracion_max' and key != 'orden' %}
+                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla Híbrida de Servicios -->
+    <div class="services-table">
+        {% if servicios %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%"></th>
+                            <th width="25%">
+                                <i class="fas fa-tooth me-2"></i>Servicio
+                            </th>
+                            <th width="15%">
+                                <i class="fas fa-stethoscope me-2"></i>Especialidad
+                            </th>
+                            <th width="12%" class="text-center">
+                                <i class="fas fa-dollar-sign me-2"></i>Precio
+                            </th>
+                            <th width="12%" class="text-center">
+                                <i class="fas fa-clock me-2"></i>Duración
+                            </th>
+                            <th width="26%">
+                                <i class="fas fa-info-circle me-2"></i>Descripción
+                            </th>
+                            <th width="5%" class="text-center">
+                                <i class="fas fa-cogs"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for servicio in servicios %}
+                            <!-- Fila Principal -->
+                            <tr class="service-row 
+                                {% if servicio.precio >= 2000 %}premium
+                                {% elif servicio in servicios_populares %}popular{% endif %}" 
+                                data-service-id="{{ servicio.pk }}">
+                                
+                                <!-- Botón Expandir -->
+                                <td class="text-center">
+                                    <button class="expand-btn" data-bs-toggle="tooltip" title="Ver detalles">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </td>
+                                
+                                <!-- Nombre del Servicio -->
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-tooth fa-lg text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-nowrap-truncate">{{ servicio.nombre }}</div>
+                                            <!-- Indicadores especiales -->
+                                            {% if servicio.precio >= 2000 %}
+                                                <span class="premium-indicator">PREMIUM</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Especialidad -->
+                                <td>
+                                    <span class="especialidad-badge">
+                                        <i class="fas fa-user-md me-1"></i>
+                                        {{ servicio.especialidad.nombre }}
+                                    </span>
+                                </td>
+                                
+                                <!-- Precio -->
+                                <td class="text-center">
+                                    <span class="service-badge 
+                                        {% if servicio.precio < 500 %}precio-bajo
+                                        {% elif servicio.precio < 2000 %}precio-medio
+                                        {% else %}precio-alto{% endif %}">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        {{ servicio.precio|floatformat:0 }}
+                                    </span>
+                                </td>
+                                
+                                <!-- Duración -->
+                                <td class="text-center">
+                                    <span class="service-badge 
+                                        {% if servicio.duracion_minutos < 30 %}duracion-corta
+                                        {% elif servicio.duracion_minutos < 90 %}duracion-media
+                                        {% else %}duracion-larga{% endif %}">
+                                        <i class="fas fa-clock"></i>
+                                        {{ servicio.duracion_minutos }}min
+                                    </span>
+                                </td>
+                                
+                                <!-- Descripción -->
+                                <td>
+                                    {% if servicio.descripcion %}
+                                        <div class="text-nowrap-truncate">{{ servicio.descripcion }}</div>
+                                    {% else %}
+                                        <span class="text-muted font-italic">Sin descripción</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Acciones -->
+                                <td class="text-center">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:service_edit' servicio.pk %}">
+                                                    <i class="fas fa-edit me-2"></i>Editar
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="{% url 'core:service_delete' servicio.pk %}">
+                                                    <i class="fas fa-trash me-2"></i>Eliminar
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Fila de Detalles Expandible -->
+                            <tr class="details-row" data-service-id="{{ servicio.pk }}">
+                                <td colspan="7">
+                                    <div class="details-content">
+                                        <div class="row">
+                                            <!-- Información del Servicio -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-info-circle me-2"></i>Información Detallada
+                                                    </h6>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Nombre completo:</strong>
+                                                        <div>{{ servicio.nombre }}</div>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Especialidad:</strong>
+                                                        <div>{{ servicio.especialidad.nombre }}</div>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Precio:</strong>
+                                                        <div class="text-success fw-bold">${{ servicio.precio }}</div>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Duración estimada:</strong>
+                                                        <div>{{ servicio.duracion_minutos }} minutos</div>
+                                                    </div>
+                                                    
+                                                    {% if servicio.descripcion %}
+                                                        <div class="mb-2">
+                                                            <strong>Descripción:</strong>
+                                                            <p class="mt-1">{{ servicio.descripcion }}</p>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Análisis de Rendimiento -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-chart-line me-2"></i>Análisis de Rendimiento
+                                                    </h6>
+                                                    
+                                                    <!-- Verificar si está entre los populares -->
+                                                    {% for popular in servicios_populares %}
+                                                        {% if popular.servicio__nombre == servicio.nombre %}
+                                                            <div class="alert alert-success alert-sm mb-2">
+                                                                <strong><i class="fas fa-fire"></i> Servicio Popular</strong>
+                                                                <br>{{ popular.veces_usado }} veces en 30 días
+                                                                <br>Ingresos: ${{ popular.ingresos_generados|floatformat:0 }}
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    
+                                                    <!-- Verificar si está entre los rentables -->
+                                                    {% for rentable in servicios_rentables %}
+                                                        {% if rentable.servicio__nombre == servicio.nombre %}
+                                                            <div class="alert alert-info alert-sm mb-2">
+                                                                <strong><i class="fas fa-dollar-sign"></i> Alta Rentabilidad</strong>
+                                                                <br>${{ rentable.total_ingresos|floatformat:0 }} en 3 meses
+                                                                <br>{{ rentable.cantidad_realizados }} servicios realizados
+                                                            </div>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    
+                                                    <!-- Clasificación por precio -->
+                                                    <div class="mb-2">
+                                                        <strong>Categoría de precio:</strong>
+                                                        <div>
+                                                            {% if servicio.precio < 500 %}
+                                                                <span class="badge bg-success">Económico</span>
+                                                            {% elif servicio.precio < 2000 %}
+                                                                <span class="badge bg-warning text-dark">Estándar</span>
+                                                            {% else %}
+                                                                <span class="badge bg-danger">Premium</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="mb-2">
+                                                        <strong>Duración:</strong>
+                                                        <div>
+                                                            {% if servicio.duracion_minutos < 30 %}
+                                                                <span class="badge bg-info">Rápido</span>
+                                                            {% elif servicio.duracion_minutos < 90 %}
+                                                                <span class="badge bg-primary">Estándar</span>
+                                                            {% else %}
+                                                                <span class="badge bg-secondary">Extendido</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Acciones y Configuración -->
+                                            <div class="col-md-4">
+                                                <div class="detail-card">
+                                                    <h6 class="text-primary mb-3">
+                                                        <i class="fas fa-cogs me-2"></i>Gestión del Servicio
+                                                    </h6>
+                                                    
+                                                    <div class="mb-3">
+                                                        <strong>Estado:</strong>
+                                                        <div>
+                                                            {% if servicio.activo %}
+                                                                <span class="badge bg-success">Activo</span>
+                                                            {% else %}
+                                                                <span class="badge bg-danger">Inactivo</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Precio vs competencia -->
+                                                    <div class="mb-2">
+                                                        <strong>Vs Precio Promedio:</strong>
+                                                        <div>
+                                                            {% if servicio.precio > precio_promedio %}
+                                                                <span class="text-danger">Arriba del promedio (${{ precio_promedio|floatformat:0 }})</span>
+                                                            {% elif servicio.precio < precio_promedio %}
+                                                                <span class="text-success">Bajo el promedio (${{ precio_promedio|floatformat:0 }})</span>
+                                                            {% else %}
+                                                                <span class="text-info">En el precio promedio</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Acciones Rápidas -->
+                                        <div class="row mt-3">
+                                            <div class="col-12">
+                                                <div class="action-buttons text-end">
+                                                    <a href="{% url 'core:service_edit' servicio.pk %}" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-edit me-1"></i>Editar Servicio
+                                                    </a>
+                                                    <button class="btn btn-outline-info btn-sm">
+                                                        <i class="fas fa-chart-line me-1"></i>Ver Estadísticas
+                                                    </button>
+                                                    <button class="btn btn-outline-success btn-sm">
+                                                        <i class="fas fa-copy me-1"></i>Duplicar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <!-- Estado vacío -->
+            <div class="text-center py-5">
+                <i class="fas fa-tooth fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No hay servicios registrados</h4>
+                <p class="text-muted">Comience creando su catálogo de servicios dentales</p>
+                <a href="{% url 'core:service_create' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus me-2"></i>Crear Primer Servicio
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Paginación de servicios">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === FUNCIONALIDAD DE EXPANSIÓN DE FILAS ===
+    const expandButtons = document.querySelectorAll('.expand-btn');
+    const serviceRows = document.querySelectorAll('.service-row');
+    
+    // Manejar clicks en los botones de expansión
+    expandButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const row = this.closest('.service-row');
+            const serviceId = row.dataset.serviceId;
+            const detailsRow = document.querySelector(`.details-row[data-service-id="${serviceId}"]`);
+            const icon = this.querySelector('i');
+            
+            // Toggle la fila de detalles
+            if (detailsRow.classList.contains('show')) {
+                // Cerrar detalles
+                detailsRow.classList.remove('show');
+                this.classList.remove('expanded');
+                icon.className = 'fas fa-chevron-right';
+                
+                // Animación suave
+                setTimeout(() => {
+                    detailsRow.style.display = 'none';
+                }, 300);
+            } else {
+                // Abrir detalles
+                detailsRow.style.display = 'table-row';
+                setTimeout(() => {
+                    detailsRow.classList.add('show');
+                }, 10);
+                
+                this.classList.add('expanded');
+                icon.className = 'fas fa-chevron-down';
+            }
+        });
+    });
+    
+    // Hacer las filas clickeables para expandir
+    serviceRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // No expandir si se clickea en dropdown o botones
+            if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            
+            const expandBtn = this.querySelector('.expand-btn');
+            if (expandBtn) {
+                expandBtn.click();
+            }
+        });
+        
+        // Cambiar cursor para indicar que es clickeable
+        row.style.cursor = 'pointer';
+    });
+    
+    // === GRÁFICOS ===
+    
+    // Gráfico de distribución de precios
+    const preciosCtx = document.getElementById('preciosChart');
+    if (preciosCtx) {
+        new Chart(preciosCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Bajo (<$500)', 'Medio ($500-2000)', 'Alto (>$2000)'],
+                datasets: [{
+                    data: [{{ rangos_precios.bajo }}, {{ rangos_precios.medio }}, {{ rangos_precios.alto }}],
+                    backgroundColor: [
+                        '#28a745',  // Verde para bajo
+                        '#ffc107',  // Amarillo para medio  
+                        '#dc3545'   // Rojo para alto
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Gráfico de distribución de duración
+    const duracionCtx = document.getElementById('duracionChart');
+    if (duracionCtx) {
+        new Chart(duracionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Corto (<30min)', 'Medio (30-90min)', 'Largo (>90min)'],
+                datasets: [{
+                    data: [{{ rangos_duracion.corto }}, {{ rangos_duracion.medio }}, {{ rangos_duracion.largo }}],
+                    backgroundColor: [
+                        '#17a2b8',  // Azul para corto
+                        '#6f42c1',  // Púrpura para medio
+                        '#6c757d'   // Gris para largo
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // === AUTO-SUBMIT DE BÚSQUEDA CON DEBOUNCE ===
+    const searchInput = document.querySelector('input[name="busqueda"]');
+    if (searchInput) {
+        let timeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                this.form.submit();
+            }, 800);
+        });
+    }
+    
+    // === FILTROS DINÁMICOS ===
+    const filterSelects = document.querySelectorAll('select[name="especialidad"], select[name="orden"]');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            // Auto-submit el formulario
+            this.form.submit();
+        });
+    });
+    
+    // === ANIMACIÓN DE ENTRADA ===
+    const tableRows = document.querySelectorAll('.service-row');
+    tableRows.forEach((row, index) => {
+        row.style.animationDelay = `${index * 0.05}s`;
+        row.classList.add('fade-in');
+    });
+    
+    // === TOOLTIPS ===
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // === TECLADO SHORTCUTS ===
+    document.addEventListener('keydown', function(e) {
+        // ESC para colapsar todas las filas expandidas
+        if (e.key === 'Escape') {
+            const expandedRows = document.querySelectorAll('.details-row.show');
+            expandedRows.forEach(row => {
+                const serviceId = row.dataset.serviceId;
+                const expandBtn = document.querySelector(`.service-row[data-service-id="${serviceId}"] .expand-btn`);
+                if (expandBtn) {
+                    expandBtn.click();
+                }
+            });
+        }
+    });
+    
+    console.log('🦷 Centro de Gestión de Servicios cargado exitosamente');
+    console.log(`📊 Total de servicios mostrados: ${serviceRows.length}`);
+});
+</script>
 {% endblock %}

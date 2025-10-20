@@ -1,0 +1,99 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Debug Servicios{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Debug Centro de Gestión de Servicios</h1>
+    
+    <!-- Métricas básicas sin cálculos complejos -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total Servicios</h5>
+                    <h3>{{ total_servicios|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Precio Promedio</h5>
+                    <h3>${{ precio_promedio|floatformat:0|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Duración Promedio</h5>
+                    <h3>{{ duracion_promedio|floatformat:0|default:0 }}min</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Especialidades</h5>
+                    <h3>{{ servicios_por_especialidad.count|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla simple de servicios -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Lista de Servicios</h5>
+        </div>
+        <div class="card-body">
+            {% if servicios %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Especialidad</th>
+                                <th>Precio</th>
+                                <th>Duración</th>
+                                <th>Estado</th>
+                                <th>Comparativa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for servicio in servicios %}
+                            <tr>
+                                <td>{{ servicio.nombre }}</td>
+                                <td>{{ servicio.especialidad.nombre }}</td>
+                                <td>${{ servicio.precio|floatformat:0 }}</td>
+                                <td>{{ servicio.duracion_minutos }}min</td>
+                                <td>
+                                    {% if servicio.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- Comparativa simplificada sin filtro add -->
+                                    {% if servicio.precio > precio_promedio %}
+                                        <span class="text-danger">Arriba del promedio</span>
+                                    {% elif servicio.precio < precio_promedio %}
+                                        <span class="text-success">Bajo el promedio</span>
+                                    {% else %}
+                                        <span class="text-info">En el promedio</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No hay servicios registrados.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

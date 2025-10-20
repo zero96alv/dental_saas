@@ -56,7 +56,15 @@
                         <tr>
                             <td>{{ evento.fecha_evento|date:"d/m/Y H:i" }}</td>
                             <td>{{ evento.descripcion_evento }}</td>
-                            <td>{{ evento.registrado_por.get_full_name|default:evento.registrado_por.usuario.username|default:"-" }}</td>
+                            <td>
+                                {% if evento.registrado_por and evento.registrado_por.usuario %}
+                                    {% with usuario=evento.registrado_por.usuario %}
+                                        {{ usuario.get_full_name|default:usuario.username }}
+                                    {% endwith %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr id="no-history-row">

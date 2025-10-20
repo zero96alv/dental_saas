@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<div id="diagnostico-container" style="padding: 20px; border: 2px solid #007bff; background: #f8f9fa;">
+    <h3>🔍 Diagnóstico del Odontograma</h3>
+    
+    <!-- Test 1: Botón HTML simple -->
+    <div style="margin: 10px 0;">
+        <h4>Test 1: Botón HTML</h4>
+        <button id="test-boton" style="padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer;">
+            Haz clic aquí - Test HTML
+        </button>
+        <span id="resultado-boton" style="margin-left: 10px; color: #666;">Esperando clic...</span>
+    </div>
+    
+    <!-- Test 2: SVG simple -->
+    <div style="margin: 10px 0;">
+        <h4>Test 2: SVG Simple</h4>
+        <svg width="200" height="100" style="border: 1px solid #ddd;">
+            <rect id="test-svg" x="10" y="10" width="80" height="40" fill="#007bff" style="cursor: pointer;"/>
+            <text x="50" y="35" fill="white" text-anchor="middle" style="pointer-events: none;">Clic SVG</text>
+        </svg>
+        <span id="resultado-svg" style="margin-left: 10px; color: #666;">Esperando clic...</span>
+    </div>
+    
+    <!-- Test 3: Div con CSS -->
+    <div style="margin: 10px 0;">
+        <h4>Test 3: Div estilizado</h4>
+        <div id="test-div" style="width: 100px; height: 50px; background: #ffc107; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #333; font-weight: bold;">
+            Clic Div
+        </div>
+        <span id="resultado-div" style="margin-left: 10px; color: #666;">Esperando clic...</span>
+    </div>
+    
+    <!-- Información del navegador -->
+    <div style="margin: 20px 0; padding: 15px; background: #e9ecef; border-radius: 5px;">
+        <h4>ℹ️ Información del sistema:</h4>
+        <div id="info-sistema"></div>
+    </div>
+    
+    <!-- Log de eventos -->
+    <div style="margin: 10px 0;">
+        <h4>📋 Log de eventos:</h4>
+        <div id="log-eventos" style="background: #212529; color: #28a745; padding: 10px; border-radius: 5px; font-family: monospace; min-height: 100px; max-height: 200px; overflow-y: auto;">
+            Sistema iniciado...<br>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    function log(mensaje) {
+        const logContainer = document.getElementById('log-eventos');
+        const timestamp = new Date().toLocaleTimeString();
+        logContainer.innerHTML += `[${timestamp}] ${mensaje}<br>`;
+        logContainer.scrollTop = logContainer.scrollHeight;
+        console.log(`[DIAGNOSTICO] ${mensaje}`);
+    }
+    
+    function mostrarInfoSistema() {
+        const info = document.getElementById('info-sistema');
+        info.innerHTML = `
+            <strong>Navegador:</strong> ${navigator.userAgent}<br>
+            <strong>Pantalla:</strong> ${screen.width}x${screen.height}<br>
+            <strong>Viewport:</strong> ${window.innerWidth}x${window.innerHeight}<br>
+            <strong>Touch:</strong> ${('ontouchstart' in window) ? 'Sí' : 'No'}<br>
+            <strong>JavaScript:</strong> Activo ✅
+        `;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        log('DOM cargado correctamente');
+        mostrarInfoSistema();
+        
+        // Test 1: Botón HTML
+        const testBoton = document.getElementById('test-boton');
+        const resultadoBoton = document.getElementById('resultado-boton');
+        
+        if (testBoton) {
+            testBoton.addEventListener('click', function(e) {
+                log('✅ CLIC EN BOTÓN HTML - FUNCIONA');
+                resultadoBoton.textContent = '✅ ¡Funciona!';
+                resultadoBoton.style.color = '#28a745';
+                testBoton.style.background = '#28a745';
+            });
+            log('Event listener agregado al botón HTML');
+        }
+        
+        // Test 2: SVG
+        const testSvg = document.getElementById('test-svg');
+        const resultadoSvg = document.getElementById('resultado-svg');
+        
+        if (testSvg) {
+            testSvg.addEventListener('click', function(e) {
+                log('✅ CLIC EN SVG - FUNCIONA');
+                resultadoSvg.textContent = '✅ ¡Funciona!';
+                resultadoSvg.style.color = '#28a745';
+                testSvg.setAttribute('fill', '#28a745');
+            });
+            log('Event listener agregado al SVG');
+        }
+        
+        // Test 3: Div
+        const testDiv = document.getElementById('test-div');
+        const resultadoDiv = document.getElementById('resultado-div');
+        
+        if (testDiv) {
+            testDiv.addEventListener('click', function(e) {
+                log('✅ CLIC EN DIV - FUNCIONA');
+                resultadoDiv.textContent = '✅ ¡Funciona!';
+                resultadoDiv.style.color = '#28a745';
+                testDiv.style.background = '#28a745';
+            });
+            log('Event listener agregado al DIV');
+        }
+        
+        log('Todos los tests configurados - Prueba haciendo clic');
+        
+        // Test de eventos globales
+        document.addEventListener('click', function(e) {
+            log(`Clic global detectado en: ${e.target.tagName}#${e.target.id}`);
+        });
+        
+        // Test de errores JavaScript
+        window.addEventListener('error', function(e) {
+            log(`❌ ERROR: ${e.message} en línea ${e.lineno}`);
+        });
+    });
+    
+    log('Script de diagnóstico cargado');
+})();
+</script>

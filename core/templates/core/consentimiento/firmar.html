@@ -1,0 +1,286 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Firmar Consentimiento - {{ paciente_consentimiento.paciente }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.documento-frame {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    min-height: 600px;
+    background: #fff;
+}
+.firma-pad {
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    background: #fff;
+    width: 100%;
+    height: 200px;
+    cursor: crosshair;
+}
+.firma-preview {
+    max-width: 100%;
+    max-height: 100px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-signature text-primary"></i>
+                                Firmar Consentimiento Informado
+                            </h2>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-4">
+                                    <strong>{{ paciente_consentimiento.paciente.nombre }} {{ paciente_consentimiento.paciente.apellido }}</strong>
+                                    <div class="text-muted small">{{ paciente_consentimiento.consentimiento.get_tipo_documento_display }}</div>
+                                </div>
+                                <div class="me-4">
+                                    <i class="fas fa-calendar text-muted"></i> {{ paciente_consentimiento.fecha_presentado|date:"d/m/Y H:i" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <span class="badge bg-warning fs-6">
+                                <i class="fas fa-clock"></i> Pendiente de Firma
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Documento -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-file-pdf"></i> {{ paciente_consentimiento.consentimiento.titulo }}
+                                </h5>
+                                <div>
+                                    <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=paciente_consentimiento.consentimiento.id %}" 
+                                       class="btn btn-outline-primary btn-sm" target="_blank">
+                                        <i class="fas fa-download"></i> Descargar PDF
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Vista previa del documento -->
+                            <div class="documento-frame p-4">
+                                <div class="text-center mb-4">
+                                    <h4>{{ paciente_consentimiento.consentimiento.titulo }}</h4>
+                                    <p class="text-muted">Versión {{ paciente_consentimiento.consentimiento.version }}</p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <p><strong>Descripción:</strong></p>
+                                    <p>{{ paciente_consentimiento.consentimiento.descripcion }}</p>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <div class="d-flex">
+                                        <i class="fas fa-info-circle me-2 mt-1"></i>
+                                        <div>
+                                            <strong>Información Importante:</strong>
+                                            <p class="mb-1">Este es un documento de consentimiento informado que cumple con las normativas COFEPRIS.</p>
+                                            <p class="mb-0">
+                                                <strong>Tipo:</strong> {{ paciente_consentimiento.consentimiento.get_tipo_documento_display }}<br>
+                                                <strong>Vigencia:</strong> {{ paciente_consentimiento.consentimiento.fecha_vigencia_inicio|date:"d/m/Y" }}
+                                                {% if paciente_consentimiento.consentimiento.fecha_vigencia_fin %}
+                                                    hasta {{ paciente_consentimiento.consentimiento.fecha_vigencia_fin|date:"d/m/Y" }}
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning">
+                                    <div class="d-flex">
+                                        <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
+                                        <div>
+                                            <strong>Importante:</strong>
+                                            <p class="mb-1">Antes de firmar, asegúrese de:</p>
+                                            <ul class="mb-0">
+                                                <li>Haber leído y comprendido completamente el documento</li>
+                                                <li>Haber resuelto todas sus dudas con el dentista</li>
+                                                <li>Estar de acuerdo con el procedimiento propuesto</li>
+                                                <li>Entender los riesgos y beneficios explicados</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de firma -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-pen"></i> Firmas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" id="form-firma">
+                                {% csrf_token %}
+                                
+                                <!-- Firma del paciente -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Firma del Paciente *</label>
+                                    <div class="border rounded p-3 mb-2" style="min-height: 120px; background: #f8f9fa;">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-signature fa-2x mb-2"></i>
+                                            <p class="mb-1"><strong>Funcionalidad de Firma Digital</strong></p>
+                                            <p class="small mb-0">En desarrollo - Por ahora puede subir una imagen</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="firma_paciente" class="form-control" accept="image/*" required>
+                                    <small class="form-text text-muted">Suba una imagen de su firma (JPG, PNG, etc.)</small>
+                                </div>
+
+                                <!-- Información del paciente -->
+                                <div class="mb-4">
+                                    <div class="bg-light p-3 rounded">
+                                        <div class="text-center">
+                                            <strong>{{ paciente_consentimiento.paciente.nombre }} {{ paciente_consentimiento.paciente.apellido }}</strong>
+                                            <br><small class="text-muted">Paciente</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Firma del testigo (si es requerido) -->
+                                {% if paciente_consentimiento.consentimiento.requiere_testigos %}
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Datos del Testigo *</label>
+                                    <input type="text" name="nombre_testigo1" class="form-control mb-2" 
+                                           placeholder="Nombre completo del testigo" required>
+                                    
+                                    <label class="form-label">Firma del Testigo *</label>
+                                    <div class="border rounded p-3 mb-2" style="min-height: 100px; background: #f8f9fa;">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-user-friends fa-2x mb-2"></i>
+                                            <p class="small mb-0">Firma del testigo requerida</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" name="firma_testigo1" class="form-control" accept="image/*" required>
+                                </div>
+                                {% endif %}
+
+                                <!-- Notas adicionales -->
+                                <div class="mb-4">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea name="notas" class="form-control" rows="3" 
+                                              placeholder="Observaciones adicionales (opcional)"></textarea>
+                                </div>
+
+                                <!-- Términos y condiciones -->
+                                <div class="mb-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="acepto-terminos" required>
+                                        <label class="form-check-label fw-bold" for="acepto-terminos">
+                                            Acepto los términos del consentimiento informado
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">
+                                        Al marcar esta casilla confirmo que he leído, entendido y acepto 
+                                        el consentimiento informado para el procedimiento dental.
+                                    </small>
+                                </div>
+
+                                <!-- Botones de acción -->
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg" id="btn-firmar">
+                                        <i class="fas fa-signature"></i> Firmar Consentimiento
+                                    </button>
+                                    <a href="{% url 'core:paciente_consentimiento_detail' pk=paciente_consentimiento.id %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-firma');
+    const btnFirmar = document.getElementById('btn-firmar');
+    
+    // Validar formulario antes de enviar
+    form.addEventListener('submit', function(e) {
+        const firmaPaciente = document.querySelector('input[name="firma_paciente"]').files.length;
+        const aceptoTerminos = document.getElementById('acepto-terminos').checked;
+        
+        if (!firmaPaciente) {
+            e.preventDefault();
+            alert('Por favor, suba una imagen de su firma.');
+            return false;
+        }
+        
+        if (!aceptoTerminos) {
+            e.preventDefault();
+            alert('Debe aceptar los términos del consentimiento informado.');
+            return false;
+        }
+        
+        {% if paciente_consentimiento.consentimiento.requiere_testigos %}
+        const nombreTestigo = document.querySelector('input[name="nombre_testigo1"]').value.trim();
+        const firmaTestigo = document.querySelector('input[name="firma_testigo1"]').files.length;
+        
+        if (!nombreTestigo) {
+            e.preventDefault();
+            alert('Por favor, ingrese el nombre del testigo.');
+            return false;
+        }
+        
+        if (!firmaTestigo) {
+            e.preventDefault();
+            alert('Por favor, suba la firma del testigo.');
+            return false;
+        }
+        {% endif %}
+        
+        // Confirmación final
+        const confirmacion = confirm(
+            '¿Está seguro de firmar este consentimiento informado?\n\n' +
+            'Al confirmar, acepta que:\n' +
+            '- Ha leído y comprendido el documento completo\n' +
+            '- Acepta el procedimiento dental propuesto\n' +
+            '- Entiende los riesgos y beneficios explicados\n' +
+            '- Su firma será legalmente vinculante'
+        );
+        
+        if (!confirmacion) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Deshabilitar botón para evitar doble envío
+        btnFirmar.disabled = true;
+        btnFirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando Firma...';
+    });
+});
+</script>
+{% endblock %}

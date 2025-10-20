@@ -1,0 +1,445 @@
+/* =================================================
+   ESCALAS DE DOLOR Y HISTORIAL CLÍNICO MEJORADO
+   ================================================= */
+
+/* --- Escala de Dolor Numérica 0-10 --- */
+.escala-dolor-numerica {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    margin-bottom: 20px;
+}
+
+.escala-dolor-numerica h4 {
+    color: #2c5282;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.dolor-scale-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, #22c55e 0%, #eab308 50%, #ef4444 100%);
+    border-radius: 25px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dolor-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.dolor-number:hover {
+    transform: scale(1.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.dolor-number.selected {
+    background: #2563eb;
+    color: white;
+    transform: scale(1.15);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+}
+
+.dolor-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.dolor-labels .label-start { color: #22c55e; font-weight: 600; }
+.dolor-labels .label-mid { color: #eab308; font-weight: 600; }
+.dolor-labels .label-end { color: #ef4444; font-weight: 600; }
+
+/* --- Escala de Caras Wong Baker --- */
+.escala-wong-baker {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fef7ff 0%, #ffffff 100%);
+    margin-bottom: 20px;
+}
+
+.escala-wong-baker h4 {
+    color: #7c2d92;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.caras-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.cara-dolor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    min-width: 80px;
+}
+
+.cara-dolor:hover {
+    background: rgba(124, 45, 146, 0.1);
+    transform: translateY(-3px);
+}
+
+.cara-dolor.selected {
+    background: #7c2d92;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(124, 45, 146, 0.3);
+}
+
+.cara-emoji {
+    font-size: 48px;
+    margin-bottom: 8px;
+    transition: transform 0.2s ease;
+}
+
+.cara-dolor:hover .cara-emoji {
+    transform: scale(1.1);
+}
+
+.cara-valor {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+
+.cara-descripcion {
+    font-size: 12px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.cara-dolor.selected .cara-descripcion {
+    opacity: 1;
+    font-weight: 500;
+}
+
+/* --- Antecedentes Familiares Mejorados --- */
+.antecedentes-familiares {
+    padding: 25px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border-left: 4px solid #3b82f6;
+    margin-bottom: 25px;
+}
+
+.antecedentes-familiares h3 {
+    color: #1e40af;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.familiares-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.familiar-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.familiar-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.familiar-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.familiar-status {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+}
+
+.status-option input[type="radio"] {
+    transform: scale(1.2);
+}
+
+.enfermedades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.enfermedad-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 4px 0;
+}
+
+.enfermedad-checkbox input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+.observaciones-familiar {
+    margin-top: 15px;
+}
+
+.observaciones-familiar textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* --- Malos Hábitos Orales --- */
+.habitos-orales {
+    padding: 25px;
+    background: #fff7ed;
+    border-radius: 12px;
+    border-left: 4px solid #ea580c;
+    margin-bottom: 25px;
+}
+
+.habitos-orales h3 {
+    color: #c2410c;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.habitos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.habito-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #fed7aa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.habito-item:hover {
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.15);
+}
+
+.habito-nombre {
+    font-weight: 500;
+    color: #9a3412;
+    flex: 1;
+}
+
+.frecuencia-select {
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 13px;
+    min-width: 120px;
+}
+
+/* --- Signos Vitales --- */
+.signos-vitales {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    background: #f0f9ff;
+    border-radius: 12px;
+    border-left: 4px solid #0ea5e9;
+    margin-bottom: 25px;
+}
+
+.signos-vitales h3 {
+    grid-column: 1 / -1;
+    color: #0369a1;
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.signo-vital {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #bae6fd;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.signo-vital:hover {
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+.signo-label {
+    font-size: 12px;
+    color: #0369a1;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.signo-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.signo-unidad {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 3px;
+}
+
+/* --- Responsivo para móviles --- */
+@media (max-width: 768px) {
+    .dolor-scale-container {
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 5px;
+    }
+    
+    .dolor-number {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+    
+    .caras-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .cara-emoji {
+        font-size: 36px;
+    }
+    
+    .familiares-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .habitos-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .signos-vitales {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* --- Alertas y Feedback --- */
+.alerta-dolor {
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.alerta-dolor.nivel-bajo {
+    background: #dcfce7;
+    color: #166534;
+    border-left: 4px solid #22c55e;
+}
+
+.alerta-dolor.nivel-medio {
+    background: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #eab308;
+}
+
+.alerta-dolor.nivel-alto {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+/* --- Animaciones --- */
+@keyframes pulse-dolor {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.dolor-selected {
+    animation: pulse-dolor 0.6s ease-in-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.historial-section {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+/* --- Estilos para impresión --- */
+@media print {
+    .escala-dolor-numerica,
+    .escala-wong-baker,
+    .antecedentes-familiares,
+    .habitos-orales,
+    .signos-vitales {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    .cara-emoji {
+        color: #000 !important;
+    }
+}

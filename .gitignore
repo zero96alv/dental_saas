@@ -1,5 +1,7 @@
 # Archivo .env - ¡NUNCA versionar este archivo!
 .env
+.env.local
+.env.production
 
 # Caché de Python
 __pycache__/
@@ -7,13 +9,50 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Django
+*.log
+*.pot
+db.sqlite3
+db.sqlite3-journal
+local_settings.py
+
+# Media files (uploads)
+media/
+mediafiles/
+
+# Static files
+staticfiles/
+static_collected/
+
 # Entorno virtual
 venv/
+env/
 
 # Archivos de IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Archivos de sistema operativo
 .DS_Store
 Thumbs.db
+ehthumbs.db
+
+# Scripts temporales de validación
+check_*.py
+validate_*.py
+test_*.py
+complete_*.py
+
+# Logs
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/

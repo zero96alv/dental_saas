@@ -1,0 +1,362 @@
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Documentos de Consentimiento Informado{% endblock %}
+
+{% block extra_css %}
+<style>
+.documento-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: visible;
+}
+.documento-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.badge-tipo {
+    font-size: 0.8em;
+}
+.estado-vigente {
+    color: #28a745;
+}
+.estado-vencido {
+    color: #dc3545;
+}
+.estado-inactivo {
+    color: #6c757d;
+}
+
+/* Mejorar header de tarjeta */
+.consentimientos-page .card-header {
+    position: relative;
+    z-index: 1;
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+    padding: 0.75rem 1rem;
+}
+
+/* Mejorar dropdown dentro de las cards (NO la navbar) */
+.consentimientos-page .card .dropdown {
+    position: relative;
+}
+.consentimientos-page .card .dropdown-toggle {
+    border: 1px solid #dee2e6;
+    background-color: #fff;
+    color: #495057;
+    padding: 0.375rem 0.5rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+}
+.consentimientos-page .card .dropdown-toggle:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+}
+.consentimientos-page .card .dropdown-toggle:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    border-color: #80bdff;
+}
+.consentimientos-page .card .dropdown-toggle::after {
+    display: none;
+}
+
+/* Mejorar posicionamiento del menú de las cards */
+.consentimientos-page .card .dropdown-menu {
+    min-width: 180px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    margin-top: 0.125rem;
+    z-index: 1050;
+    position: absolute;
+    right: 0;
+    left: auto;
+}
+.consentimientos-page .card .dropdown-item {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: #212529;
+    transition: all 0.15s ease-in-out;
+}
+.consentimientos-page .card .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #16181b;
+}
+.consentimientos-page .card .dropdown-item i {
+    width: 18px;
+    margin-right: 10px;
+    text-align: center;
+    color: #6c757d;
+}
+.consentimientos-page .card .dropdown-item:hover i {
+    color: #495057;
+}
+
+/* Separadores en dropdown */
+.consentimientos-page .card .dropdown-divider {
+    margin: 0.5rem 0;
+}
+
+/* Badges mejorados */
+.badge {
+    font-weight: 500;
+    font-size: 0.75em;
+}
+
+/* Container de badges */
+.badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: flex-start;
+}
+
+/* Mejorar flex layout del header */
+.consentimientos-page .card-header .d-flex {
+    min-height: 40px;
+    align-items: flex-start;
+}
+
+/* Asegurar que el dropdown no se encime */
+.consentimientos-page .card .dropdown {
+    min-width: 40px;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.375rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 consentimientos-page">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-file-contract text-primary"></i> 
+                        Documentos de Consentimiento Informado
+                    </h2>
+                    <p class="text-muted">Gestión de documentos PDF de consentimiento para pacientes</p>
+                </div>
+                <div>
+                    <a href="{% url 'core:consentimiento_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Nuevo Documento
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Documento</label>
+                            <select name="tipo" class="form-select">
+                                <option value="">Todos los tipos</option>
+                                {% for value, display in tipos_documento %}
+                                    <option value="{{ value }}" {% if filtros_activos.tipo == value %}selected{% endif %}>
+                                        {{ display }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado</label>
+                            <select name="estado" class="form-select">
+                                <option value="">Todos los estados</option>
+                                {% for value, display in estados %}
+                                    <option value="{{ value }}" {% if filtros_activos.estado == value %}selected{% endif %}>
+                                        {{ display }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vigencia</label>
+                            <select name="vigente" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="1" {% if filtros_activos.vigente == '1' %}selected{% endif %}>Solo vigentes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+                            <a href="{% url 'core:consentimiento_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de documentos -->
+            <div class="row">
+                {% for consentimiento in consentimientos %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card documento-card h-100">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="badges-container flex-grow-1">
+                                    <span class="badge bg-primary me-1 mb-1">
+                                        {{ consentimiento.get_tipo_documento_display }}
+                                    </span>
+                                    {% if consentimiento.esta_vigente %}
+                                        <span class="badge bg-success me-1 mb-1">Vigente</span>
+                                    {% else %}
+                                        <span class="badge bg-danger me-1 mb-1">Vencido</span>
+                                    {% endif %}
+                                    {% if consentimiento.cumple_cofepris %}
+                                        <span class="badge bg-success me-1 mb-1">
+                                            <i class="fas fa-shield-alt"></i> COFEPRIS
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="dropdown ms-2 flex-shrink-0">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:consentimiento_detail' pk=consentimiento.pk %}">
+                                            <i class="fas fa-eye"></i> Ver detalles
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:consentimiento_edit' pk=consentimiento.pk %}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=consentimiento.pk %}">
+                                            <i class="fas fa-download"></i> Descargar PDF
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ consentimiento.titulo }}</h5>
+                            <p class="card-text text-muted">{{ consentimiento.descripcion|truncatewords:15 }}</p>
+                            
+                            <div class="small text-muted mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="fas fa-tag"></i> v{{ consentimiento.version }}</span>
+                                    <span><i class="fas fa-calendar"></i> {{ consentimiento.fecha_vigencia_inicio|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+
+                            {% if consentimiento.requiere_testigos %}
+                                <div class="small text-warning">
+                                    <i class="fas fa-users"></i> Requiere testigos
+                                </div>
+                            {% endif %}
+
+                            {% if consentimiento.cumple_cofepris %}
+                                <div class="small text-success">
+                                    <i class="fas fa-shield-alt"></i> Cumple COFEPRIS
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    {% if consentimiento.creado_por %}
+                                        Por {{ consentimiento.creado_por.get_full_name|default:consentimiento.creado_por.username }}
+                                    {% else %}
+                                        Sistema
+                                    {% endif %}
+                                </small>
+                                <small class="text-muted">
+                                    {{ consentimiento.creado_en|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-file-contract fa-4x text-muted mb-3"></i>
+                            <h4 class="text-muted">No hay documentos disponibles</h4>
+                            <p class="text-muted mb-3">No se encontraron documentos de consentimiento con los filtros aplicados.</p>
+                            <a href="{% url 'core:consentimiento_create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus-circle"></i> Crear primer documento
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Paginación de documentos">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.tipo %}tipo={{ request.GET.tipo }}&{% endif %}{% if request.GET.estado %}estado={{ request.GET.estado }}&{% endif %}{% if request.GET.vigente %}vigente={{ request.GET.vigente }}&{% endif %}page=1">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.tipo %}tipo={{ request.GET.tipo }}&{% endif %}{% if request.GET.estado %}estado={{ request.GET.estado }}&{% endif %}{% if request.GET.vigente %}vigente={{ request.GET.vigente }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.tipo %}tipo={{ request.GET.tipo }}&{% endif %}{% if request.GET.estado %}estado={{ request.GET.estado }}&{% endif %}{% if request.GET.vigente %}vigente={{ request.GET.vigente }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?{% if request.GET.tipo %}tipo={{ request.GET.tipo }}&{% endif %}{% if request.GET.estado %}estado={{ request.GET.estado }}&{% endif %}{% if request.GET.vigente %}vigente={{ request.GET.vigente }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Efecto hover para las cards
+    const cards = document.querySelectorAll('.documento-card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#007bff';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.borderColor = '';
+        });
+    });
+});
+</script>
+{% endblock %}

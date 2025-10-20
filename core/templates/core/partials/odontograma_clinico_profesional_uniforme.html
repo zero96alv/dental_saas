@@ -1,0 +1,586 @@
+{% load math_filters %}
+<div id="odontograma-clinico-profesional" class="odontograma-clinico-profesional">
+    <style>
+        .odontograma-clinico-profesional {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: #f5f5f0;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .odontograma-clinico-profesional svg {
+            width: 100%;
+            height: auto;
+            background: #f5f5f0;
+            border-radius: 8px;
+        }
+        
+        /* Fondo de encías */
+        .encia-superior, .encia-inferior {
+            fill: #d4a574;
+            opacity: 0.8;
+        }
+        
+        /* Líneas de división de cuadrantes */
+        .linea-division {
+            stroke: #333;
+            stroke-width: 3;
+            opacity: 0.8;
+        }
+        
+        /* Dientes con formas anatómicas reales */
+        .diente-clinico {
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            pointer-events: all;
+            transform-origin: center;
+            isolation: isolate;
+        }
+        
+        .diente-clinico:hover {
+            filter: drop-shadow(0 0 6px rgba(0, 123, 255, 0.6));
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        
+        .diente-clinico.selected {
+            filter: drop-shadow(0 0 10px rgba(255, 193, 7, 1));
+            z-index: 15;
+        }
+        
+        /* Prevenir interferencias entre elementos internos */
+        .diente-clinico > * {
+            pointer-events: none;
+        }
+        
+        .diente-clinico .superficie-oclusal {
+            pointer-events: all;
+        }
+        
+        /* Formas específicas por tipo de diente */
+        .superficie-oclusal {
+            fill: #f8f8f6;
+            stroke: #333;
+            stroke-width: 1.2;
+        }
+        
+        /* Incisivos - forma rectangular alargada */
+        .incisivo .superficie-oclusal {
+            fill: #fafafa;
+        }
+        
+        /* Caninos - forma triangular */
+        .canino .superficie-oclusal {
+            fill: #f9f9f7;
+        }
+        
+        /* Premolares - forma ovalada con dos cúspides */
+        .premolar .superficie-oclusal {
+            fill: #f8f8f6;
+        }
+        
+        /* Molares - forma cuadrada con múltiples cúspides */
+        .molar .superficie-oclusal {
+            fill: #f7f7f5;
+        }
+        
+        /* Numeración de dientes */
+        .numero-diente {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            fill: #333;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        /* Evitar parpadeo en elementos internos de los dientes */
+        .diente-clinico path,
+        .diente-clinico line,
+        .diente-clinico ellipse,
+        .diente-clinico rect,
+        .diente-clinico text {
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        /* Estados de diagnóstico */
+        .diente-clinico.sano .superficie-oclusal { fill: #4caf50; }
+        .diente-clinico.caries .superficie-oclusal { fill: #f44336; }
+        .diente-clinico.obturada .superficie-oclusal { fill: #ff9800; }
+        .diente-clinico.corona .superficie-oclusal { fill: #2196f3; }
+        .diente-clinico.extraida .superficie-oclusal { 
+            fill: #9e9e9e; 
+            stroke-dasharray: 3,2;
+            opacity: 0.6;
+        }
+        .diente-clinico.implante .superficie-oclusal { fill: #00bcd4; }
+        .diente-clinico.endodoncia .superficie-oclusal { fill: #e91e63; }
+        
+        /* Etiquetas de texto */
+        .etiqueta-cuadrante {
+            font-family: 'Arial', sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            fill: #4a5568;
+            text-anchor: middle;
+        }
+        
+        .etiqueta-direccion {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            fill: #2d3748;
+            text-anchor: middle;
+        }
+    </style>
+    
+    <div class="text-center mb-3">
+        <h4 style="color: #2d3748; margin-bottom: 8px; font-weight: 700;">
+            🦷 Odontograma Clínico Profesional
+        </h4>
+        <p style="color: #4a5568; font-size: 0.9rem; margin-bottom: 5px;">
+            Vista Oclusal - Sistema de Numeración FDI
+        </p>
+        <p style="color: #718096; font-size: 0.8rem;">
+            Representación anatómica real para uso clínico profesional
+        </p>
+    </div>
+    
+    <svg viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fondo general beige -->
+        <rect width="1000" height="600" fill="#f5f3e8"/>
+        
+        <!-- Fondo de encías superior (más amplio) -->
+        <ellipse cx="500" cy="280" rx="400" ry="140" class="encia-superior"/>
+        
+        <!-- Fondo de encías inferior (más amplio) -->
+        <ellipse cx="500" cy="420" rx="400" ry="140" class="encia-inferior"/>
+        
+        <!-- Líneas de división de cuadrantes (extendidas) -->
+        <line x1="500" y1="120" x2="500" y2="580" class="linea-division"/>
+        <line x1="80" y1="350" x2="920" y2="350" class="linea-division"/>
+        
+        <!-- Etiquetas de direcciones -->
+        <text x="500" y="110" class="etiqueta-cuadrante">Superior</text>
+        <text x="500" y="590" class="etiqueta-cuadrante">Inferior</text>
+        <text x="100" y="335" class="etiqueta-direccion">Derecha</text>
+        <text x="900" y="335" class="etiqueta-direccion">Izquierda</text>
+        <text x="100" y="350" class="etiqueta-direccion">Paciente</text>
+        <text x="900" y="350" class="etiqueta-direccion">Paciente</text>
+        
+        <!-- ==================== CUADRANTE SUPERIOR DERECHO (11-18) ==================== -->
+        
+        <!-- Diente 18 - Tercer Molar Superior Derecho -->
+        <g class="diente-clinico molar" id="diente-18">
+            <ellipse cx="140" cy="232" rx="18" ry="16" class="superficie-oclusal"/>
+            <path d="M 127 224 Q 131 220 135 224 Q 140 220 145 224 Q 149 220 153 224" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 127 232 Q 131 228 135 232 Q 140 228 145 232 Q 149 228 153 232" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 127 240 Q 131 236 135 240 Q 140 236 145 240 Q 149 236 153 240" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="131" y1="222" x2="131" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="140" y1="222" x2="140" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="149" y1="222" x2="149" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <text x="140" y="255" class="numero-diente">18</text>
+        </g>
+        
+        <!-- Diente 17 - Segundo Molar Superior Derecho -->
+        <g class="diente-clinico molar" id="diente-17">
+            <ellipse cx="200" cy="222" rx="20" ry="18" class="superficie-oclusal"/>
+            <path d="M 185 212 Q 190 208 195 212 Q 200 208 205 212 Q 210 208 215 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 185 222 Q 190 218 195 222 Q 200 218 205 222 Q 210 218 215 222" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 185 232 Q 190 228 195 232 Q 200 228 205 232 Q 210 228 215 232" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="190" y1="210" x2="190" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="200" y1="210" x2="200" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="210" y1="210" x2="210" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <text x="200" y="250" class="numero-diente">17</text>
+        </g>
+        
+        <!-- Diente 16 - Primer Molar Superior Derecho -->
+        <g class="diente-clinico molar" id="diente-16">
+            <ellipse cx="260" cy="212" rx="22" ry="20" class="superficie-oclusal"/>
+            <path d="M 243 200 Q 248 196 253 200 Q 260 196 267 200 Q 272 196 277 200" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 243 212 Q 248 208 253 212 Q 260 208 267 212 Q 272 208 277 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 243 224 Q 248 220 253 224 Q 260 220 267 224 Q 272 220 277 224" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="248" y1="198" x2="248" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="260" y1="198" x2="260" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="272" y1="198" x2="272" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <text x="260" y="245" class="numero-diente">16</text>
+        </g>
+        
+        <!-- Diente 15 - Segundo Premolar Superior Derecho -->
+        <g class="diente-clinico premolar" id="diente-15">
+            <ellipse cx="310" cy="202" rx="17" ry="14" class="superficie-oclusal"/>
+            <path d="M 298 192 Q 310 187 322 192" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 298 212 Q 310 217 322 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="310" y1="190" x2="310" y2="214" stroke="#ccc" stroke-width="0.5"/>
+            <text x="310" y="228" class="numero-diente">15</text>
+        </g>
+        
+        <!-- Diente 14 - Primer Premolar Superior Derecho -->
+        <g class="diente-clinico premolar" id="diente-14">
+            <ellipse cx="360" cy="195" rx="16" ry="13" class="superficie-oclusal"/>
+            <path d="M 348 184 Q 360 179 372 184" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 348 206 Q 360 211 372 206" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="360" y1="183" x2="360" y2="207" stroke="#ccc" stroke-width="0.5"/>
+            <text x="360" y="218" class="numero-diente">14</text>
+        </g>
+        
+        <!-- Diente 13 - Canino Superior Derecho -->
+        <g class="diente-clinico canino" id="diente-13">
+            <path d="M 410 197 Q 425 177 440 197 Q 437 212 425 217 Q 413 212 410 197 Z" class="superficie-oclusal"/>
+            <path d="M 415 193 Q 425 183 435 193" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <text x="425" y="230" class="numero-diente">13</text>
+        </g>
+        
+        <!-- Diente 12 - Incisivo Lateral Superior Derecho -->
+        <g class="diente-clinico incisivo" id="diente-12">
+            <rect x="455" y="186" width="19" height="17" rx="2" class="superficie-oclusal"/>
+            <line x1="457" y1="195" x2="472" y2="195" stroke="#ccc" stroke-width="0.5"/>
+            <text x="465" y="218" class="numero-diente">12</text>
+        </g>
+        
+        <!-- Diente 11 - Incisivo Central Superior Derecho -->
+        <g class="diente-clinico incisivo" id="diente-11">
+            <rect x="479" y="183" width="22" height="19" rx="2" class="superficie-oclusal"/>
+            <line x1="482" y1="192" x2="498" y2="192" stroke="#ccc" stroke-width="0.5"/>
+            <text x="490" y="218" class="numero-diente">11</text>
+        </g>
+        
+        <!-- ==================== CUADRANTE SUPERIOR IZQUIERDO (21-28) ==================== -->
+        
+        <!-- Diente 21 - Incisivo Central Superior Izquierdo -->
+        <g class="diente-clinico incisivo" id="diente-21">
+            <rect x="520" y="183" width="22" height="19" rx="2" class="superficie-oclusal"/>
+            <line x1="523" y1="192" x2="539" y2="192" stroke="#ccc" stroke-width="0.5"/>
+            <text x="531" y="218" class="numero-diente">21</text>
+        </g>
+        
+        <!-- Diente 22 - Incisivo Lateral Superior Izquierdo -->
+        <g class="diente-clinico incisivo" id="diente-22">
+            <rect x="548" y="186" width="19" height="17" rx="2" class="superficie-oclusal"/>
+            <line x1="550" y1="195" x2="565" y2="195" stroke="#ccc" stroke-width="0.5"/>
+            <text x="558" y="218" class="numero-diente">22</text>
+        </g>
+        
+        <!-- Diente 23 - Canino Superior Izquierdo -->
+        <g class="diente-clinico canino" id="diente-23">
+            <path d="M 575 197 Q 590 177 605 197 Q 602 212 590 217 Q 578 212 575 197 Z" class="superficie-oclusal"/>
+            <path d="M 580 193 Q 590 183 600 193" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <text x="590" y="230" class="numero-diente">23</text>
+        </g>
+        
+        <!-- Diente 24 - Primer Premolar Superior Izquierdo -->
+        <g class="diente-clinico premolar" id="diente-24">
+            <ellipse cx="640" cy="195" rx="16" ry="13" class="superficie-oclusal"/>
+            <path d="M 628 184 Q 640 179 652 184" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 628 206 Q 640 211 652 206" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="640" y1="183" x2="640" y2="207" stroke="#ccc" stroke-width="0.5"/>
+            <text x="640" y="218" class="numero-diente">24</text>
+        </g>
+        
+        <!-- Diente 25 - Segundo Premolar Superior Izquierdo -->
+        <g class="diente-clinico premolar" id="diente-25">
+            <ellipse cx="700" cy="202" rx="17" ry="14" class="superficie-oclusal"/>
+            <path d="M 688 192 Q 700 187 712 192" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 688 212 Q 700 217 712 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="700" y1="190" x2="700" y2="214" stroke="#ccc" stroke-width="0.5"/>
+            <text x="700" y="228" class="numero-diente">25</text>
+        </g>
+        
+        <!-- Diente 26 - Primer Molar Superior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-26">
+            <ellipse cx="760" cy="212" rx="22" ry="20" class="superficie-oclusal"/>
+            <path d="M 743 200 Q 748 196 753 200 Q 760 196 767 200 Q 772 196 777 200" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 743 212 Q 748 208 753 212 Q 760 208 767 212 Q 772 208 777 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 743 224 Q 748 220 753 224 Q 760 220 767 224 Q 772 220 777 224" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="748" y1="198" x2="748" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="760" y1="198" x2="760" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="772" y1="198" x2="772" y2="226" stroke="#ccc" stroke-width="0.5"/>
+            <text x="760" y="245" class="numero-diente">26</text>
+        </g>
+        
+        <!-- Diente 27 - Segundo Molar Superior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-27">
+            <ellipse cx="820" cy="222" rx="20" ry="18" class="superficie-oclusal"/>
+            <path d="M 805 212 Q 810 208 815 212 Q 820 208 825 212 Q 830 208 835 212" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 805 222 Q 810 218 815 222 Q 820 218 825 222 Q 830 218 835 222" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 805 232 Q 810 228 815 232 Q 820 228 825 232 Q 830 228 835 232" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="810" y1="210" x2="810" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="820" y1="210" x2="820" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="830" y1="210" x2="830" y2="234" stroke="#ccc" stroke-width="0.5"/>
+            <text x="820" y="250" class="numero-diente">27</text>
+        </g>
+        
+        <!-- Diente 28 - Tercer Molar Superior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-28">
+            <ellipse cx="880" cy="232" rx="18" ry="16" class="superficie-oclusal"/>
+            <path d="M 867 224 Q 871 220 875 224 Q 880 220 885 224 Q 889 220 893 224" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 867 232 Q 871 228 875 232 Q 880 228 885 232 Q 889 228 893 232" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 867 240 Q 871 236 875 240 Q 880 236 885 240 Q 889 236 893 240" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="871" y1="222" x2="871" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="880" y1="222" x2="880" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="889" y1="222" x2="889" y2="242" stroke="#ccc" stroke-width="0.5"/>
+            <text x="880" y="255" class="numero-diente">28</text>
+        </g>
+        
+        <!-- ==================== CUADRANTE INFERIOR DERECHO (41-48) ==================== -->
+        
+        <!-- Diente 48 - Tercer Molar Inferior Derecho -->
+        <g class="diente-clinico molar" id="diente-48">
+            <ellipse cx="140" cy="468" rx="17" ry="15" class="superficie-oclusal"/>
+            <path d="M 128 460 Q 132 456 136 460 Q 140 456 144 460 Q 148 456 152 460" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 128 468 Q 132 464 136 468 Q 140 464 144 468 Q 148 464 152 468" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 128 476 Q 132 472 136 476 Q 140 472 144 476 Q 148 472 152 476" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="132" y1="458" x2="132" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="140" y1="458" x2="140" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="148" y1="458" x2="148" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <text x="140" y="450" class="numero-diente">48</text>
+        </g>
+        
+        <!-- Diente 47 - Segundo Molar Inferior Derecho -->
+        <g class="diente-clinico molar" id="diente-47">
+            <ellipse cx="200" cy="478" rx="19" ry="17" class="superficie-oclusal"/>
+            <path d="M 186 468 Q 191 464 196 468 Q 200 464 204 468 Q 209 464 214 468" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 186 478 Q 191 474 196 478 Q 200 474 204 478 Q 209 474 214 478" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 186 488 Q 191 484 196 488 Q 200 484 204 488 Q 209 484 214 488" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="191" y1="466" x2="191" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="200" y1="466" x2="200" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="209" y1="466" x2="209" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <text x="200" y="460" class="numero-diente">47</text>
+        </g>
+        
+        <!-- Diente 46 - Primer Molar Inferior Derecho -->
+        <g class="diente-clinico molar" id="diente-46">
+            <ellipse cx="260" cy="488" rx="21" ry="19" class="superficie-oclusal"/>
+            <path d="M 244 476 Q 249 472 254 476 Q 260 472 266 476 Q 271 472 276 476" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 244 488 Q 249 484 254 488 Q 260 484 266 488 Q 271 484 276 488" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 244 500 Q 249 496 254 500 Q 260 496 266 500 Q 271 496 276 500" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="249" y1="474" x2="249" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="260" y1="474" x2="260" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="271" y1="474" x2="271" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <text x="260" y="470" class="numero-diente">46</text>
+        </g>
+        
+        <!-- Diente 45 - Segundo Premolar Inferior Derecho -->
+        <g class="diente-clinico premolar" id="diente-45">
+            <ellipse cx="310" cy="498" rx="16" ry="13" class="superficie-oclusal"/>
+            <path d="M 299 487 Q 310 482 321 487" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 299 509 Q 310 514 321 509" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="310" y1="486" x2="310" y2="510" stroke="#ccc" stroke-width="0.5"/>
+            <text x="310" y="482" class="numero-diente">45</text>
+        </g>
+        
+        <!-- Diente 44 - Primer Premolar Inferior Derecho -->
+        <g class="diente-clinico premolar" id="diente-44">
+            <ellipse cx="360" cy="505" rx="14" ry="12" class="superficie-oclusal"/>
+            <path d="M 349 494 Q 360 489 371 494" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 349 516 Q 360 521 371 516" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="360" y1="493" x2="360" y2="517" stroke="#ccc" stroke-width="0.5"/>
+            <text x="360" y="492" class="numero-diente">44</text>
+        </g>
+        
+        <!-- Diente 43 - Canino Inferior Derecho -->
+        <g class="diente-clinico canino" id="diente-43">
+            <path d="M 410 512 Q 425 523 440 512 Q 437 495 425 492 Q 413 495 410 512 Z" class="superficie-oclusal"/>
+            <path d="M 415 510 Q 425 518 435 510" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <text x="425" y="487" class="numero-diente">43</text>
+        </g>
+        
+        <!-- Diente 42 - Incisivo Lateral Inferior Derecho -->
+        <g class="diente-clinico incisivo" id="diente-42">
+            <rect x="455" y="496" width="19" height="17" rx="2" class="superficie-oclusal"/>
+            <line x1="457" y1="505" x2="472" y2="505" stroke="#ccc" stroke-width="0.5"/>
+            <text x="465" y="487" class="numero-diente">42</text>
+        </g>
+        
+        <!-- Diente 41 - Incisivo Central Inferior Derecho -->
+        <g class="diente-clinico incisivo" id="diente-41">
+            <rect x="479" y="493" width="22" height="19" rx="2" class="superficie-oclusal"/>
+            <line x1="482" y1="502" x2="498" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <text x="490" y="487" class="numero-diente">41</text>
+        </g>
+        
+        <!-- ==================== CUADRANTE INFERIOR IZQUIERDO (31-38) ==================== -->
+        
+        <!-- Diente 31 - Incisivo Central Inferior Izquierdo -->
+        <g class="diente-clinico incisivo" id="diente-31">
+            <rect x="520" y="493" width="22" height="19" rx="2" class="superficie-oclusal"/>
+            <line x1="523" y1="502" x2="539" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <text x="531" y="487" class="numero-diente">31</text>
+        </g>
+        
+        <!-- Diente 32 - Incisivo Lateral Inferior Izquierdo -->
+        <g class="diente-clinico incisivo" id="diente-32">
+            <rect x="548" y="496" width="19" height="17" rx="2" class="superficie-oclusal"/>
+            <line x1="550" y1="505" x2="565" y2="505" stroke="#ccc" stroke-width="0.5"/>
+            <text x="558" y="487" class="numero-diente">32</text>
+        </g>
+        
+        <!-- Diente 33 - Canino Inferior Izquierdo -->
+        <g class="diente-clinico canino" id="diente-33">
+            <path d="M 575 512 Q 590 523 605 512 Q 602 495 590 492 Q 578 495 575 512 Z" class="superficie-oclusal"/>
+            <path d="M 580 510 Q 590 518 600 510" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <text x="590" y="487" class="numero-diente">33</text>
+        </g>
+        
+        <!-- Diente 34 - Primer Premolar Inferior Izquierdo -->
+        <g class="diente-clinico premolar" id="diente-34">
+            <ellipse cx="640" cy="505" rx="14" ry="12" class="superficie-oclusal"/>
+            <path d="M 629 494 Q 640 489 651 494" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 629 516 Q 640 521 651 516" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="640" y1="493" x2="640" y2="517" stroke="#ccc" stroke-width="0.5"/>
+            <text x="640" y="492" class="numero-diente">34</text>
+        </g>
+        
+        <!-- Diente 35 - Segundo Premolar Inferior Izquierdo -->
+        <g class="diente-clinico premolar" id="diente-35">
+            <ellipse cx="700" cy="498" rx="16" ry="13" class="superficie-oclusal"/>
+            <path d="M 689 487 Q 700 482 711 487" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 689 509 Q 700 514 711 509" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="700" y1="486" x2="700" y2="510" stroke="#ccc" stroke-width="0.5"/>
+            <text x="700" y="482" class="numero-diente">35</text>
+        </g>
+        
+        <!-- Diente 36 - Primer Molar Inferior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-36">
+            <ellipse cx="760" cy="488" rx="21" ry="19" class="superficie-oclusal"/>
+            <path d="M 744 476 Q 749 472 754 476 Q 760 472 766 476 Q 771 472 776 476" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 744 488 Q 749 484 754 488 Q 760 484 766 488 Q 771 484 776 488" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 744 500 Q 749 496 754 500 Q 760 496 766 500 Q 771 496 776 500" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="749" y1="474" x2="749" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="760" y1="474" x2="760" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="771" y1="474" x2="771" y2="502" stroke="#ccc" stroke-width="0.5"/>
+            <text x="760" y="470" class="numero-diente">36</text>
+        </g>
+        
+        <!-- Diente 37 - Segundo Molar Inferior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-37">
+            <ellipse cx="820" cy="478" rx="19" ry="17" class="superficie-oclusal"/>
+            <path d="M 806 468 Q 811 464 816 468 Q 820 464 824 468 Q 829 464 834 468" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 806 478 Q 811 474 816 478 Q 820 474 824 478 Q 829 474 834 478" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 806 488 Q 811 484 816 488 Q 820 484 824 488 Q 829 484 834 488" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="811" y1="466" x2="811" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="820" y1="466" x2="820" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="829" y1="466" x2="829" y2="490" stroke="#ccc" stroke-width="0.5"/>
+            <text x="820" y="460" class="numero-diente">37</text>
+        </g>
+        
+        <!-- Diente 38 - Tercer Molar Inferior Izquierdo -->
+        <g class="diente-clinico molar" id="diente-38">
+            <ellipse cx="880" cy="468" rx="17" ry="15" class="superficie-oclusal"/>
+            <path d="M 868 460 Q 872 456 876 460 Q 880 456 884 460 Q 888 456 892 460" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 868 468 Q 872 464 876 468 Q 880 464 884 468 Q 888 464 892 468" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <path d="M 868 476 Q 872 472 876 476 Q 880 472 884 476 Q 888 472 892 476" stroke="#ccc" stroke-width="0.5" fill="none"/>
+            <line x1="872" y1="458" x2="872" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="880" y1="458" x2="880" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <line x1="888" y1="458" x2="888" y2="478" stroke="#ccc" stroke-width="0.5"/>
+            <text x="880" y="450" class="numero-diente">38</text>
+        </g>
+        
+    </svg>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    function log(mensaje) {
+        console.log(`[ODONTOGRAMA CLÍNICO PROFESIONAL] ${mensaje}`);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        log('Iniciando odontograma clínico profesional');
+        
+        const dientes = document.querySelectorAll('.diente-clinico');
+        log(`Configurando ${dientes.length} dientes con vista oclusal realista`);
+        
+        dientes.forEach(function(diente, index) {
+            const dienteId = diente.id;
+            const numeroFDI = dienteId.replace('diente-', '');
+            const cuadrante = Math.floor(numeroFDI / 10);
+            const posicion = numeroFDI % 10;
+            
+            // Determinar el tipo de diente
+            let tipoDiente = '';
+            if (posicion === 1 || posicion === 2) {
+                tipoDiente = 'Incisivo';
+            } else if (posicion === 3) {
+                tipoDiente = 'Canino';
+            } else if (posicion === 4 || posicion === 5) {
+                tipoDiente = 'Premolar';
+            } else if (posicion === 6 || posicion === 7 || posicion === 8) {
+                tipoDiente = 'Molar';
+            }
+            
+            diente.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                log(`Diente seleccionado: ${numeroFDI} (${tipoDiente}, Cuadrante ${cuadrante})`);
+                
+                // Remover selección anterior
+                document.querySelectorAll('.diente-clinico').forEach(d => {
+                    d.classList.remove('selected');
+                });
+                
+                // Seleccionar diente actual
+                diente.classList.add('selected');
+                
+                // Disparar evento personalizado
+                const eventoSeleccion = new CustomEvent('dienteClinicoSeleccionado', {
+                    detail: {
+                        numeroFDI: numeroFDI,
+                        cuadrante: cuadrante,
+                        posicion: posicion,
+                        tipoDiente: tipoDiente,
+                        elemento: diente
+                    }
+                });
+                
+                document.dispatchEvent(eventoSeleccion);
+            });
+            
+            diente.addEventListener('mouseenter', function(e) {
+                e.stopPropagation();
+                log(`Hover en diente FDI ${numeroFDI} (${tipoDiente})`);
+            });
+            
+            diente.addEventListener('mouseleave', function(e) {
+                e.stopPropagation();
+            });
+        });
+        
+        log('Odontograma clínico profesional inicializado correctamente');
+    });
+    
+    // Función global para aplicar diagnósticos
+    window.aplicarDiagnosticoClinico = function(numeroFDI, diagnostico) {
+        const diente = document.getElementById(`diente-${numeroFDI}`);
+        if (diente) {
+            // Remover diagnósticos anteriores
+            diente.classList.remove('sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+            
+            // Aplicar nuevo diagnóstico
+            if (diagnostico) {
+                diente.classList.add(diagnostico);
+                log(`Diagnóstico aplicado: Diente ${numeroFDI} - ${diagnostico}`);
+            }
+        }
+    };
+    
+    // Función global para limpiar selecciones
+    window.limpiarSeleccionClinico = function() {
+        document.querySelectorAll('.diente-clinico').forEach(diente => {
+            diente.classList.remove('selected', 'sano', 'caries', 'obturada', 'corona', 'extraida', 'implante', 'endodoncia');
+        });
+        log('Selección y diagnósticos limpiados');
+    };
+    
+})();
+</script>

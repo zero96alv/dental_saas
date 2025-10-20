@@ -1,4 +1,5 @@
 from django import template
+from django.db.models import Sum
 
 register = template.Library()
 
@@ -31,3 +32,13 @@ def sumar_campo(queryset, campo):
     if queryset:
         return queryset.aggregate(total=Sum(campo))['total'] or 0
     return 0
+
+@register.filter
+def safe_last(queryset):
+    """Obtiene el último elemento de un queryset de forma segura."""
+    if queryset:
+        try:
+            return queryset.order_by('-id').first()
+        except Exception:
+            return None
+    return None

@@ -1,0 +1,118 @@
+{% comment %}
+Template parcial para el menú dinámico basado en permisos de usuario.
+Reemplaza el menú hardcodeado por uno que se adapta a los permisos del usuario.
+{% endcomment %}
+{% load custom_tags %}
+
+{% if user.is_authenticated and menu_filtrado %}
+    {% for item in menu_filtrado %}
+        {% with modulo=item.modulo submenus=item.submenus %}
+            {% if submenus|length == 1 %}
+                <!-- Módulo con un solo submenú: link directo -->
+                {% with submenu=submenus.0 %}
+                    <li class="nav-item">
+                        {% if submenu.url_name|es_url_con_parametros %}
+                            <!-- URL con parámetros: usar fallback a módulo o primera ruta disponible -->
+                            <a class="nav-link" href="{% url 'core:dashboard' %}">
+                                <i class="{{ modulo.icono|default:'bi bi-grid-1x2' }} me-2"></i>{{ modulo.nombre }}
+                            </a>
+                        {% else %}
+                            <!-- URL simple: enlace directo -->
+<a class="nav-link" href="{% url submenu.url_name %}" title="{{ modulo.nombre }}" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                                <i class="{{ modulo.icono|default:'bi bi-grid-1x2' }} me-2"></i><span class="nav-text">{{ modulo.nombre }}</span>
+                            </a>
+                        {% endif %}
+                    </li>
+                {% endwith %}
+            {% elif submenus|length > 1 %}
+                <!-- Módulo con múltiples submenús: dropdown -->
+                <li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle" href="#" id="{{ modulo.nombre|lower|slugify }}Dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="{{ modulo.nombre }}" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                        <i class="{{ modulo.icono|default:'bi bi-three-dots' }} me-2"></i><span class="nav-text">{{ modulo.nombre }}</span>
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="{{ modulo.nombre|lower|slugify }}Dropdown">
+                        {% for submenu in submenus %}
+                            <!-- Solo mostrar submenús que NO requieren parámetros -->
+                            {% if not submenu.url_name|es_url_con_parametros %}
+                                <li>
+<a class="dropdown-item" href="{% url submenu.url_name %}">
+                                        {% if submenu.icono %}
+                                            <i class="{{ submenu.icono }} me-2"></i>
+                                        {% else %}
+                                            <i class="bi bi-chevron-right me-2"></i>
+                                        {% endif %}
+                                        <span class="nav-text">{{ submenu.nombre }}</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Sección especial para acciones contextuales -->
+                        {% if modulo.nombre == 'Personal' and user.perfildentista %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'core:gestionar_horario' dentista_id=user.perfildentista.id %}">
+                                    <i class="bi bi-calendar me-2"></i>Mi Horario
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </li>
+            {% endif %}
+            
+            {% if not forloop.last %}
+                <!-- Separador visual entre grupos principales -->
+                {% if modulo.nombre in 'Finanzas,Administración,Reportes' %}
+                    <li class="nav-separator d-none d-lg-block"></li>
+                {% endif %}
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+
+    {% if reportes_menu %}
+        <!-- Menú consolidado de Reportes -->
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="reportesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Reportes" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                <i class="bi bi-bar-chart-line me-2"></i><span class="nav-text">Reportes</span>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="reportesDropdown">
+                {% for r in reportes_menu %}
+                    <li>
+                        <a class="dropdown-item" href="{% url r.url_name %}">
+                            <i class="{{ r.icono|default:'bi bi-graph-up' }} me-2"></i>
+                            <span class="nav-text">{{ r.nombre }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </li>
+    {% endif %}
+    
+    <!-- Accesos rápidos siempre visibles por rol -->
+    {% if user|has_group:'Administrador,Recepcionista,Dentista' %}
+        <li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle" href="#" id="accesoRapidoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Acceso Rápido" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                <i class="bi bi-lightning me-2"></i><span class="nav-text">Acceso Rápido</span>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="accesoRapidoDropdown">
+                <li><a class="dropdown-item" href="{% url 'core:agenda' %}"><i class="bi bi-calendar-event me-2"></i>Agenda</a></li>
+                <li><a class="dropdown-item" href="{% url 'core:cita_list' %}"><i class="bi bi-list-check me-2"></i>Gestión de Citas</a></li>
+                <li><a class="dropdown-item" href="{% url 'core:paciente_list' %}"><i class="bi bi-people me-2"></i>Pacientes</a></li>
+                <li><a class="dropdown-item" href="{% url 'core:cuestionario_lista' %}"><i class="fas fa-clipboard-list me-2"></i>Cuestionarios</a></li>
+                {% if user|has_group:'Administrador,Recepcionista' %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'core:dashboard_financiero' %}"><i class="fas fa-chart-line me-2"></i>Dashboard Financiero</a></li>
+                    <li><a class="dropdown-item" href="{% url 'core:pago_list' %}"><i class="bi bi-cash-coin me-2"></i>Gestión de Pagos</a></li>
+                    <li><a class="dropdown-item" href="{% url 'core:reporte_ingresos' %}"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ingresos</a></li>
+                {% endif %}
+            </ul>
+        </li>
+    {% endif %}
+{% else %}
+    <!-- Menú por defecto si no hay usuario autenticado o no hay menú dinámico -->
+    <li class="nav-item">
+<a class="nav-link" href="{% url 'core:dashboard' %}">
+            <i class="bi bi-grid-1x2-fill me-2"></i><span class="nav-text">Dashboard</span>
+        </a>
+    </li>
+{% endif %}

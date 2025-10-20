@@ -1,0 +1,79 @@
+
+{% extends "core/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Registrar Abono a Paciente{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="bi bi-person-plus me-2"></i>Registrar Abono a Paciente</h3>
+                </div>
+                <div class="card-body">
+                    <p>Use este formulario para registrar un pago o abono que no está directamente ligado a una cita específica.</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3" id="saldoPacienteBox" style="display:none;">
+                            <div class="alert alert-info py-2 mb-2">
+                                <strong>Saldo actual del paciente:</strong> $<span id="saldoPaciente">0.00</span>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="historialPagosBox" style="display:none;">
+                            <h6>Historial de Pagos Recientes</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr><th>Fecha</th><th>Método</th><th class="text-end">Monto</th><th></th></tr>
+                                    </thead>
+                                    <tbody id="historialPagosBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {{ form|crispy }}
+                        <div class="d-flex justify-content-end mt-3">
+                            <a href="{% url 'core:pago_list' %}" class="btn btn-secondary me-2">Cancelar</a>
+                            <button type="submit" class="btn btn-primary">Guardar Abono</button>
+                        </div>
+                    </form>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const pacienteSelect = document.getElementById('id_paciente');
+                            const saldoBox = document.getElementById('saldoPacienteBox');
+                            const saldoSpan = document.getElementById('saldoPaciente');
+                            const montoInput = document.getElementById('id_monto');
+                            function cargarSaldo(pacienteId){
+                                if(!pacienteId){ saldoBox.style.display='none'; pagosBox.style.display='none'; return; }
+                                fetch(`/api/pacientes/${pacienteId}/saldo/`, {credentials:'same-origin'})
+                                  .then(r=>r.json()).then(data=>{
+                                    saldoSpan.textContent = data.saldo;
+                                    saldoBox.style.display = '';
+                                    if(montoInput){ montoInput.setAttribute('max', data.saldo); }
+                                  }).catch(()=>{ saldoBox.style.display='none'; });
+                                fetch(`/api/pacientes/${pacienteId}/pagos/?limit=5`, {credentials:'same-origin'})
+                                  .then(r=>r.json()).then(data=>{
+                                    const body = document.getElementById('historialPagosBody');
+                                    body.innerHTML='';
+                                    data.pagos.forEach(p=>{
+                                        const tr = document.createElement('tr');
+                                        tr.innerHTML = `<td>${p.fecha}</td><td>${p.metodo}</td><td class="text-end">$${p.monto}</td><td><a href="/pagos/${p.id}/recibo/" target="_blank" class="btn btn-sm btn-outline-secondary">Recibo</a></td>`;
+                                        body.appendChild(tr);
+                                    });
+                                    pagosBox.style.display = data.pagos.length ? '' : 'none';
+                                  }).catch(()=>{ pagosBox.style.display='none'; });
+                            }
+                            const pagosBox = document.getElementById('historialPagosBox');
+                            if(pacienteSelect){
+                                pacienteSelect.addEventListener('change', e=>cargarSaldo(e.target.value));
+                                if(pacienteSelect.value){ cargarSaldo(pacienteSelect.value); }
+                            }
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -7,6 +7,45 @@
 <div class="container-fluid">
     <h1 class="mb-4">Reporte de Facturación</h1>
 
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="nombre_paciente" class="form-label">Nombre del Paciente</label>
+                    <input type="text" class="form-control" id="nombre_paciente" name="nombre_paciente" 
+                           value="{{ request.GET.nombre_paciente }}" placeholder="Buscar por nombre...">
+                </div>
+                <div class="col-md-3">
+                    <label for="rfc" class="form-label">RFC</label>
+                    <input type="text" class="form-control" id="rfc" name="rfc" 
+                           value="{{ request.GET.rfc }}" placeholder="RFC del paciente...">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="{{ request.GET.fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
+                           value="{{ request.GET.fecha_fin }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'core:reporte_facturacion' %}" class="btn btn-secondary ms-2">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Limpiar Filtros
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             Citas que Requieren Factura
@@ -24,9 +63,13 @@
                         <tr>
                             <th>Fecha Cita</th>
                             <th>Paciente</th>
-                            <th>RFC</th>
-                            <th>Domicilio Fiscal</th>
+                            <th>RFC Receptor</th>
+                            <th>Nombre Receptor</th>
+                            <th>CP Receptor</th>
+                            <th>Régimen Fiscal</th>
                             <th>Uso CFDI</th>
+                            <th>Forma Pago (SAT)</th>
+                            <th>Método Pago (SAT)</th>
                             <th>Servicios Realizados</th>
                             <th class="text-end">Monto Pagado</th>
                         </tr>
@@ -34,11 +77,15 @@
                     <tbody>
                         {% for cita in citas_a_facturar %}
                         <tr>
-                            <td>{{ cita.fecha_hora|date:"d/m/Y" }}</td>
-                            <td>{{ cita.cliente }}</td>
-                            <td>{{ cita.cliente.datos_fiscales.rfc|default:"N/A" }}</td>
-                            <td>{{ cita.cliente.datos_fiscales.domicilio_fiscal|default:"N/A" }}</td>
-                            <td>{{ cita.cliente.datos_fiscales.uso_cfdi|default:"N/A" }}</td>
+<td>{{ cita.fecha_hora|date:"d/m/Y" }}</td>
+                            <td>{{ cita.paciente }}</td>
+                            <td>{{ cita.paciente.datos_fiscales.rfc|default:"N/A" }}</td>
+                            <td>{{ cita.paciente.datos_fiscales.razon_social|default:cita.paciente }}</td>
+                            <td>{% if cita.paciente.datos_fiscales.codigo_postal %}{{ cita.paciente.datos_fiscales.codigo_postal }}{% else %}{{ cita.paciente.codigo_postal|default:"N/A" }}{% endif %}</td>
+                            <td>{{ cita.paciente.datos_fiscales.regimen_fiscal.codigo|default:"N/A" }}</td>
+                            <td>{{ cita.paciente.datos_fiscales.uso_cfdi.codigo|default:"N/A" }}</td>
+                            <td>{% if cita.ultimo_pago %}{{ cita.ultimo_pago.forma_pago_sat.codigo|default:"N/A" }}{% else %}N/A{% endif %}</td>
+                            <td>{% if cita.ultimo_pago %}{{ cita.ultimo_pago.metodo_sat.codigo|default:"N/A" }}{% else %}N/A{% endif %}</td>
                             <td>
                                 <ul class="list-unstyled mb-0">
                                     {% for servicio in cita.servicios_realizados.all %}
@@ -50,7 +97,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No hay citas que requieran factura.</td>
+                            <td colspan="11" class="text-center">No hay citas que requieran factura.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

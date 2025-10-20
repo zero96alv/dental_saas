@@ -8,7 +8,7 @@
 
     <div class="card mb-4">
         <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
+            <form method="get" class="row g-3 align-items-end" data-default-inicio="{{ default_fecha_inicio }}" data-default-fin="{{ default_fecha_fin }}">
                 <div class="col-md-4">
                     <label for="id_dentista" class="form-label">Dentista</label>
                     {{ form.dentista }}
@@ -76,4 +76,20 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const formEl = document.querySelector('form[method="get"][data-default-inicio]');
+  if (formEl) {
+    const inicio = document.getElementById('id_fecha_inicio');
+    const fin = document.getElementById('id_fecha_fin');
+    const defInicio = formEl.getAttribute('data-default-inicio');
+    const defFin = formEl.getAttribute('data-default-fin');
+    if (inicio && !inicio.value && defInicio) inicio.value = defInicio;
+    if (fin && !fin.value && defFin) fin.value = defFin;
+  }
+});
+</script>
 {% endblock %}
