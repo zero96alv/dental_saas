@@ -21,11 +21,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
-from core.auth_views import CustomLogoutView
+from core.auth_views import CustomLogoutView, CustomLoginView
 
 urlpatterns = [
     # URLs de Autenticación
-    path('accounts/login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
+    path('accounts/login/', CustomLoginView.as_view(), name='login'),
     # Usar nuestra vista de logout personalizada
     path('accounts/logout/', CustomLogoutView.as_view(), name='logout'),
     

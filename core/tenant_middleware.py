@@ -38,4 +38,11 @@ class TenantByParamMiddleware(TenantMainMiddleware):
     def __call__(self, request):
         # Guardar request para acceso en get_tenant
         self.current_request = request
+        
+        # Log para debug del tenant
+        tenant_param = request.GET.get('tenant')
+        if tenant_param:
+            # Log del parámetro tenant detectado
+            print(f"DEBUG: Parámetro tenant detectado: {tenant_param}")
+        
         return super().__call__(request)

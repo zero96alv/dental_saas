@@ -3,8 +3,9 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
-from django.contrib.auth.views import LogoutView as DjangoLogoutView
+from django.contrib.auth.views import LogoutView as DjangoLogoutView, LoginView as DjangoLoginView
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +40,25 @@ class CustomLogoutView(DjangoLogoutView):
 
         return response
 
+
+class CustomLoginView(DjangoLoginView):
+    """
+    Vista de login personalizada que preserva el parámetro tenant
+    en la redirección después del login exitoso.
+    """
+    template_name = 'core/login.html'
+    
+    def get_success_url(self):
+        """Redirigión después del login exitoso preservando tenant"""
+        # Obtener URL de redirección por defecto
+        success_url = super().get_success_url()
+        
+        # Preservar parámetro tenant si existe
+        tenant_param = self.request.GET.get('tenant')
+        if tenant_param:
+            # Si la URL ya tiene parámetros, agregar con &, si no con ?
+            separator = '&' if '?' in success_url else '?'
+            success_url += f'{separator}tenant={tenant_param}'
+            logger.info(f"Login exitoso: Redirigiendo a {success_url} con tenant={tenant_param}")
+        
+        return success_url

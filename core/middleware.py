@@ -24,6 +24,10 @@ class ForceAuthenticationMiddleware:
             '/accounts/login/',
             '/accounts/logout/',
             '/admin/',
+            '/setup-tenants/',
+            '/simple-setup/',
+            '/tenants/',
+            '/switch/',
         ]
         
         # Prefijos de URL que se deben ignorar completamente (archivos estáticos, media, etc.)
@@ -60,8 +64,17 @@ class ForceAuthenticationMiddleware:
 
         # TERCERO: Si el usuario no está autenticado, redirigir al login
         if not request.user.is_authenticated:
-            logger.info(f"ForceAuth: Redirigiendo usuario no autenticado desde {path} a {settings.LOGIN_URL}")
-            return redirect(settings.LOGIN_URL)
+            login_url = settings.LOGIN_URL
+            
+            # Preservar parámetro tenant si existe
+            tenant_param = request.GET.get('tenant')
+            if tenant_param:
+                login_url += f'?tenant={tenant_param}'
+                logger.info(f"ForceAuth: Redirigiendo usuario no autenticado desde {path} a {login_url} (preservando tenant={tenant_param})")
+            else:
+                logger.info(f"ForceAuth: Redirigiendo usuario no autenticado desde {path} a {login_url}")
+            
+            return redirect(login_url)
         
         logger.info(f"ForceAuth: Permitiendo acceso autenticado a {path}")
         return self.get_response(request)
