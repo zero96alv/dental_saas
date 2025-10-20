@@ -46,24 +46,15 @@ def simple_setup(request):
         clinicas_config = [
             {
                 'schema_name': 'demo',
-                'name': 'Clínica Demo',
-                'telefono': '+52 55 1234 5678',
-                'email': 'contacto@demo.dental-saas.com',
-                'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'
+                'nombre': 'Clínica Demo'
             },
             {
                 'schema_name': 'sgdental',
-                'name': 'SG Dental',
-                'telefono': '+52 55 9876 5432',
-                'email': 'contacto@sgdental.com',
-                'direccion': 'Calle Sonrisas #456, Col. Dental, CP 54321'
+                'nombre': 'SG Dental'
             },
             {
                 'schema_name': 'cgdental',
-                'name': 'CG Dental Care',
-                'telefono': '+52 55 5555 0000',
-                'email': 'info@cgdental.com',
-                'direccion': 'Av. Salud Oral #789, Centro, CP 67890'
+                'nombre': 'CG Dental Care'
             }
         ]
         
@@ -73,9 +64,9 @@ def simple_setup(request):
                 tenant = Clinica.objects.filter(schema_name=config['schema_name']).first()
                 if not tenant:
                     tenant = Clinica.objects.create(**config)
-                    output += f"✅ Clínica {config['name']} ({config['schema_name']}) creada\n"
+                    output += f"✅ Clínica {config['nombre']} ({config['schema_name']}) creada\n"
                 else:
-                    output += f"ℹ️ Clínica {config['name']} ya existe\n"
+                    output += f"ℹ️ Clínica {config['nombre']} ya existe\n"
             except Exception as e:
                 output += f"⚠️ Error creando clínica {config['schema_name']}: {e}\n"
             
@@ -100,7 +91,7 @@ def simple_setup(request):
         # Configurar cada clínica
         for config in clinicas_config:
             try:
-                output += f"\n🏥 Configurando {config['name']}...\n"
+                output += f"\n🏥 Configurando {config['nombre']}...\n"
                 
                 # Cambiar al esquema de esta clínica
                 tenant = Clinica.objects.get(schema_name=config['schema_name'])
@@ -115,13 +106,13 @@ def simple_setup(request):
                 if not User.objects.filter(username='admin').exists():
                     admin_user = User.objects.create_superuser(
                         username='admin',
-                        email=config['email'].replace('contacto@', 'admin@').replace('info@', 'admin@'),
+                        email=f'admin@{config["schema_name"]}.dental-saas.com',
                         password='DemoAdmin2025!'
                     )
                     admin_user.groups.add(admin_group)
-                    output += f"✅ Usuario admin creado para {config['name']}\n"
+                    output += f"✅ Usuario admin creado para {config['nombre']}\n"
                 else:
-                    output += f"ℹ️ Usuario admin ya existe en {config['name']}\n"
+                    output += f"ℹ️ Usuario admin ya existe en {config['nombre']}\n"
             except Exception as e:
                 output += f"⚠️ Error configurando {config['schema_name']}: {e}\n"
         

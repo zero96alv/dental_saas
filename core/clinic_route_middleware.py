@@ -77,7 +77,7 @@ class ClinicRouteMiddleware(TenantMainMiddleware):
         
         # Excluir rutas especiales que NO son clínicas
         excluded_paths = {
-            'admin', 'static', 'media', 'api', 'debug', 
+            'admin', 'static', 'media', 'api', 'debug', 'accounts',
             'setup-tenants', 'simple-setup', 'tenants', 'switch'
         }
         
