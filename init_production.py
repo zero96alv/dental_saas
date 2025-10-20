@@ -16,6 +16,10 @@ def main():
     print("🏥 Configurando datos iniciales...")
     
     try:
+        # Usar el hostname de Render que se pase por variable de entorno
+        hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'dental-saas.onrender.com')
+        print(f'Configurando dominio: {hostname}')
+        
         # Crear tenant público si no existe
         if not Clinica.objects.filter(schema_name='public').exists():
             public_tenant = Clinica(
@@ -23,10 +27,6 @@ def main():
                 nombre='Dental SaaS - Sistema Principal'
             )
             public_tenant.save()
-            
-            # Usar el hostname de Render que se pase por variable de entorno
-            hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME', 'dental-saas.onrender.com')
-            print(f'Configurando dominio: {hostname}')
             
             public_domain = Domain(
                 domain=hostname,
