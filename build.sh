@@ -20,4 +20,8 @@ python manage.py migrate_schemas --settings=dental_saas.settings_production
 echo "💾 Creando tabla de cache..."
 python manage.py createcachetable --settings=dental_saas.settings_production
 
+# Inicializar tenants y datos básicos
+echo "🏥 Inicializando tenants..."
+python init_production.py
+
 echo "✅ Build completado exitosamente!"

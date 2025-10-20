@@ -10,12 +10,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY', default='your-secret-key-here-change-in-production')
 
 # Allowed hosts for Render
+render_hostname = config('RENDER_EXTERNAL_HOSTNAME', default='dental-saas.onrender.com')
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '*.onrender.com',
-    'sgdental.onrender.com',
-    'demo.onrender.com',
+    render_hostname,
+    f'demo.{render_hostname}',
     'dental-saas.onrender.com',
 ]
 
