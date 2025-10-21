@@ -56,7 +56,7 @@ class SatFormaPagoListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/configuracion/sat_forma_pago_list.html'
     context_object_name = 'items'
 
-class SatFormaPagoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class SatFormaPagoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.SatFormaPago
     fields = ['codigo', 'descripcion', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -68,7 +68,7 @@ class SatFormaPagoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, Crea
         ctx['title'] = 'Nueva Forma de Pago (SAT)'
         return ctx
 
-class SatFormaPagoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SatFormaPagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.SatFormaPago
     fields = ['codigo', 'descripcion', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -80,7 +80,7 @@ class SatFormaPagoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, Upda
         ctx['title'] = 'Editar Forma de Pago (SAT)'
         return ctx
 
-class SatFormaPagoDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class SatFormaPagoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.SatFormaPago
     template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
     success_url = reverse_lazy('core:sat_forma_pago_list')
@@ -91,7 +91,7 @@ class SatMetodoPagoListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/configuracion/sat_metodo_pago_list.html'
     context_object_name = 'items'
 
-class SatMetodoPagoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class SatMetodoPagoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.SatMetodoPago
     fields = ['codigo', 'descripcion', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -103,7 +103,7 @@ class SatMetodoPagoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, Cre
         ctx['title'] = 'Nuevo Método de Pago (SAT)'
         return ctx
 
-class SatMetodoPagoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SatMetodoPagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.SatMetodoPago
     fields = ['codigo', 'descripcion', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -115,7 +115,7 @@ class SatMetodoPagoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, Upd
         ctx['title'] = 'Editar Método de Pago (SAT)'
         return ctx
 
-class SatMetodoPagoDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class SatMetodoPagoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.SatMetodoPago
     template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
     success_url = reverse_lazy('core:sat_metodo_pago_list')
@@ -126,7 +126,7 @@ class SatRegimenFiscalListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/configuracion/sat_regimen_fiscal_list.html'
     context_object_name = 'items'
 
-class SatRegimenFiscalCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class SatRegimenFiscalCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.SatRegimenFiscal
     fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -138,7 +138,7 @@ class SatRegimenFiscalCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, 
         ctx['title'] = 'Nuevo Régimen Fiscal (SAT)'
         return ctx
 
-class SatRegimenFiscalUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SatRegimenFiscalUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.SatRegimenFiscal
     fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -150,7 +150,7 @@ class SatRegimenFiscalUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, 
         ctx['title'] = 'Editar Régimen Fiscal (SAT)'
         return ctx
 
-class SatRegimenFiscalDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class SatRegimenFiscalDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.SatRegimenFiscal
     template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
     success_url = reverse_lazy('core:sat_regimen_fiscal_list')
@@ -161,7 +161,7 @@ class SatUsoCFDIListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/configuracion/sat_uso_cfdi_list.html'
     context_object_name = 'items'
 
-class SatUsoCFDICreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class SatUsoCFDICreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.SatUsoCFDI
     fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -173,7 +173,7 @@ class SatUsoCFDICreateView(TenantLoginRequiredMixin, SuccessMessageMixin, Create
         ctx['title'] = 'Nuevo Uso CFDI (SAT)'
         return ctx
 
-class SatUsoCFDIUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SatUsoCFDIUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.SatUsoCFDI
     fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
     template_name = 'core/configuracion/sat_catalog_form.html'
@@ -185,7 +185,7 @@ class SatUsoCFDIUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, Update
         ctx['title'] = 'Editar Uso CFDI (SAT)'
         return ctx
 
-class SatUsoCFDIDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class SatUsoCFDIDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.SatUsoCFDI
     template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
     success_url = reverse_lazy('core:sat_uso_cfdi_list')
@@ -830,7 +830,7 @@ class PacienteDetailView(TenantLoginRequiredMixin, DetailView):
         context['has_datos_fiscales'] = bool(datos)
         return context
 
-class PacienteCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class PacienteCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Paciente
     template_name = 'core/paciente_form.html'
     form_class = forms.PacienteForm
@@ -867,14 +867,14 @@ class PacienteDatosFiscalesView(TenantLoginRequiredMixin, TemplateView):
         messages.error(request, 'Por favor corrige los errores.')
         return self.render_to_response({'form': form, 'paciente': paciente})
 
-class PacienteUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class PacienteUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Paciente
     template_name = 'core/paciente_form.html'
     form_class = forms.PacienteForm
     success_url = reverse_lazy('core:paciente_list')
     success_message = "Paciente '%(nombre)s %(apellido)s' actualizado con éxito."
 
-class PacienteDeleteView(TenantLoginRequiredMixin, DeleteView):
+class PacienteDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Paciente
     template_name = 'core/paciente_confirm_delete.html'
     success_url = reverse_lazy('core:paciente_list')
@@ -1069,7 +1069,7 @@ class ServicioListView(TenantLoginRequiredMixin, ListView):
         
         return context
 
-class ServicioCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class ServicioCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Servicio
     form_class = forms.ServicioForm
     template_name = 'core/service_form.html'
@@ -1095,7 +1095,7 @@ class ServicioCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateVi
         else:
             return self.form_invalid(form)
 
-class ServicioUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class ServicioUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Servicio
     form_class = forms.ServicioForm
     template_name = 'core/service_form.html'
@@ -1121,7 +1121,7 @@ class ServicioUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateVi
         else:
             return self.form_invalid(form)
 
-class ServicioDeleteView(TenantLoginRequiredMixin, DeleteView):
+class ServicioDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Servicio
     template_name = 'core/service_confirm_delete.html'
     success_url = reverse_lazy('core:service_list')
@@ -1137,21 +1137,21 @@ class EspecialidadListView(TenantLoginRequiredMixin, ListView):
     context_object_name = 'especialidades'
     paginate_by = 10
 
-class EspecialidadCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class EspecialidadCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Especialidad
     template_name = 'core/especialidad_form.html'
     fields = ['nombre']
     success_url = reverse_lazy('core:especialidad_list')
     success_message = "Especialidad '%(nombre)s' creada con éxito."
 
-class EspecialidadUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class EspecialidadUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Especialidad
     template_name = 'core/especialidad_form.html'
     fields = ['nombre']
     success_url = reverse_lazy('core:especialidad_list')
     success_message = "Especialidad '%(nombre)s' actualizada con éxito."
 
-class EspecialidadDeleteView(TenantLoginRequiredMixin, DeleteView):
+class EspecialidadDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Especialidad
     template_name = 'core/especialidad_confirm_delete.html'
     success_url = reverse_lazy('core:especialidad_list')
@@ -1162,7 +1162,7 @@ class EspecialidadDeleteView(TenantLoginRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 # REEMPLAZA tu PagoCreateView existente por:
-class PagoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class PagoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Pago  # ← Corregido: era 'mode'
     form_class = forms.PagoForm  # ✅ Este formulario existe
     template_name = 'core/pago_form.html'
@@ -1178,14 +1178,14 @@ class PagoListView(TenantLoginRequiredMixin, ListView):
     def get_queryset(self):
         return models.Pago.objects.select_related('cita__paciente', 'paciente').order_by('-fecha_pago')
 
-class PagoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class PagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Pago
     form_class = forms.PagoForm
     template_name = 'core/pago_form.html'
     success_url = reverse_lazy('core:pago_list')
     success_message = "Pago actualizado con éxito."
 
-class PagoDeleteView(TenantLoginRequiredMixin, DeleteView):
+class PagoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Pago
     template_name = 'core/pago_confirm_delete.html'
     success_url = reverse_lazy('core:pago_list')
@@ -1204,7 +1204,7 @@ class CompraListView(TenantLoginRequiredMixin, ListView):
     def get_queryset(self):
         return models.Compra.objects.select_related('proveedor').order_by('-fecha_compra')
 
-class CompraCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class CompraCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Compra
     form_class = forms.CompraForm
     template_name = 'core/compra_form.html'
@@ -1240,7 +1240,7 @@ class CompraCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView
         else:
             return self.form_invalid(form)
 
-class CompraUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class CompraUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Compra
     form_class = forms.CompraForm
     template_name = 'core/compra_form.html'
@@ -1276,7 +1276,7 @@ class CompraUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView
         else:
             return self.form_invalid(form)
 
-class CompraDeleteView(TenantLoginRequiredMixin, DeleteView):
+class CompraDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Compra
     template_name = 'core/compra_confirm_delete.html'
     success_url = reverse_lazy('core:compra_list')
@@ -1286,7 +1286,7 @@ class CompraDeleteView(TenantLoginRequiredMixin, DeleteView):
         messages.success(self.request, f"Compra a '{self.object.proveedor.nombre}' eliminada con éxito.")
         return super().form_valid(form)
 
-class RecibirCompraView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class RecibirCompraView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Compra
     template_name = 'core/compra_recibir.html'
     fields = []
@@ -1479,7 +1479,7 @@ class CitaListView(TenantLoginRequiredMixin, ListView):
         return context
     
 
-class CambiarEstadoCitaView(TenantLoginRequiredMixin, UpdateView):
+class CambiarEstadoCitaView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, UpdateView):
     model = models.Cita
     fields = ['estado'] # Solo necesitamos el estado
 
@@ -1585,7 +1585,7 @@ class CitasPendientesPagoListView(TenantLoginRequiredMixin, ListView):
         
         return context
         
-class FinalizarCitaView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class FinalizarCitaView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Cita
     form_class = forms.FinalizarCitaForm
     template_name = 'core/cita_finalizar.html'
@@ -1725,7 +1725,7 @@ class HistorialPacienteView(TenantLoginRequiredMixin, DetailView):
 
         return context
 
-class HistorialClinicoCreateView(TenantLoginRequiredMixin, CreateView):
+class HistorialClinicoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
     model = models.HistorialClinico
     form_class = forms.HistorialClinicoForm
 
@@ -2301,21 +2301,21 @@ class DiagnosticoListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/diagnostico_list.html'
     context_object_name = 'diagnosticos'
 
-class DiagnosticoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class DiagnosticoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Diagnostico
     template_name = 'core/diagnostico_form.html'
     fields = ['nombre', 'color_hex', 'icono_svg']
     success_url = reverse_lazy('core:diagnostico_list')
     success_message = "Diagnóstico '%(nombre)s' creado con éxito."
 
-class DiagnosticoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class DiagnosticoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Diagnostico
     template_name = 'core/diagnostico_form.html'
     fields = ['nombre', 'color_hex', 'icono_svg']
     success_url = reverse_lazy('core:diagnostico_list')
     success_message = "Diagnóstico '%(nombre)s' actualizado con éxito."
 
-class DiagnosticoDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class DiagnosticoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.Diagnostico
     template_name = 'core/diagnostico_confirm_delete.html'
     success_url = reverse_lazy('core:diagnostico_list')
@@ -2330,7 +2330,7 @@ class AvisoFuncionamientoListView(TenantLoginRequiredMixin, ListView):
     def get_queryset(self):
         return models.AvisoFuncionamiento.objects.filter(consultorio=self.request.tenant)
 
-class AvisoFuncionamientoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class AvisoFuncionamientoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.AvisoFuncionamiento
     form_class = forms.AvisoFuncionamientoForm
     template_name = 'core/cofepris/aviso_funcionamiento_form.html'
@@ -2341,7 +2341,7 @@ class AvisoFuncionamientoCreateView(TenantLoginRequiredMixin, SuccessMessageMixi
         form.instance.consultorio = self.request.tenant
         return super().form_valid(form)
 
-class AvisoFuncionamientoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class AvisoFuncionamientoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.AvisoFuncionamiento
     form_class = forms.AvisoFuncionamientoForm
     template_name = 'core/cofepris/aviso_funcionamiento_form.html'
@@ -2353,21 +2353,21 @@ class EquipoListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/cofepris/equipo_list.html'
     context_object_name = 'equipos'
 
-class EquipoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class EquipoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Equipo
     form_class = forms.EquipoForm
     template_name = 'core/cofepris/equipo_form.html'
     success_url = reverse_lazy('core:equipo_list')
     success_message = "Equipo '%(nombre)s' registrado con éxito."
 
-class EquipoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class EquipoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Equipo
     form_class = forms.EquipoForm
     template_name = 'core/cofepris/equipo_form.html'
     success_url = reverse_lazy('core:equipo_list')
     success_message = "Equipo '%(nombre)s' actualizado con éxito."
 
-class EquipoDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class EquipoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.Equipo
     template_name = 'core/cofepris/equipo_confirm_delete.html'
     success_url = reverse_lazy('core:equipo_list')
@@ -2379,7 +2379,7 @@ class ResiduosListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/cofepris/residuos_list.html'
     context_object_name = 'recolecciones'
 
-class ResiduosCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class ResiduosCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Residuos
     form_class = forms.ResiduosForm
     template_name = 'core/cofepris/residuos_form.html'
@@ -2390,14 +2390,14 @@ class ResiduosCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateVi
         form.instance.consultorio = self.request.tenant
         return super().form_valid(form)
 
-class ResiduosUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class ResiduosUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Residuos
     form_class = forms.ResiduosForm
     template_name = 'core/cofepris/residuos_form.html'
     success_url = reverse_lazy('core:residuos_list')
     success_message = "Recolección de residuos actualizada con éxito."
 
-class ResiduosDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class ResiduosDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.Residuos
     template_name = 'core/cofepris/residuos_confirm_delete.html'
     success_url = reverse_lazy('core:residuos_list')
@@ -2988,21 +2988,21 @@ class PreguntaHistorialListView(TenantLoginRequiredMixin, ListView):
     template_name = 'core/configuracion/pregunta_list.html'
     context_object_name = 'preguntas'
 
-class PreguntaHistorialCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class PreguntaHistorialCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.PreguntaHistorial
     fields = ['texto', 'tipo', 'opciones', 'orden', 'activa']
     template_name = 'core/configuracion/pregunta_form.html'
     success_url = reverse_lazy('core:pregunta_list')
     success_message = "Pregunta creada con éxito."
 
-class PreguntaHistorialUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class PreguntaHistorialUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.PreguntaHistorial
     fields = ['texto', 'tipo', 'opciones', 'orden', 'activa']
     template_name = 'core/configuracion/pregunta_form.html'
     success_url = reverse_lazy('core:pregunta_list')
     success_message = "Pregunta actualizada con éxito."
 
-class PreguntaHistorialDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class PreguntaHistorialDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.PreguntaHistorial
     template_name = 'core/configuracion/pregunta_confirm_delete.html'
     success_url = reverse_lazy('core:pregunta_list')
@@ -3285,20 +3285,20 @@ class ProveedorListView(TenantLoginRequiredMixin, ListView):
     context_object_name = 'proveedores'
     paginate_by = 15
 
-class ProveedorCreateView(TenantLoginRequiredMixin, CreateView):
+class ProveedorCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
     model = models.Proveedor
     template_name = 'core/proveedor_form.html'
     fields = ['nombre', 'rfc', 'nombre_contacto', 'telefono', 'email', 'direccion_fiscal']
     success_url = reverse_lazy('core:proveedor_list')
 
-class ProveedorUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class ProveedorUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Proveedor
     template_name = 'core/proveedor_form.html'
     fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
     success_url = reverse_lazy('core:proveedor_list')
     success_message = "Proveedor '%(nombre)s' actualizado con éxito."
 
-class ProveedorDeleteView(TenantLoginRequiredMixin, DeleteView):
+class ProveedorDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Proveedor
     template_name = 'core/proveedor_confirm_delete.html'
     success_url = reverse_lazy('core:proveedor_list')
@@ -3382,21 +3382,21 @@ class InsumoListView(TenantLoginRequiredMixin, ListView):
         
         return context
 
-class InsumoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class InsumoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
     fields = ['nombre', 'descripcion', 'proveedor', 'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario']
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' creado con éxito."
 
-class InsumoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class InsumoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
     fields = ['nombre', 'descripcion', 'unidad_medida', 'stock_minimo', 'precio_unitario']
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' actualizado con éxito."
 
-class InsumoDeleteView(TenantLoginRequiredMixin, DeleteView):
+class InsumoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteView):
     model = models.Insumo
     template_name = 'core/insumo_confirm_delete.html'
     success_url = reverse_lazy('core:insumo_list')
@@ -3407,7 +3407,7 @@ class InsumoDeleteView(TenantLoginRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 # --- PAGOS ---
-class RegistrarPagoView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class RegistrarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Pago
     form_class = forms.PagoForm
     template_name = 'core/registrar_abono.html'
@@ -3424,7 +3424,7 @@ class RegistrarPagoView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateVie
             initial['cita'] = cita
         return initial
 
-class ProcesarPagoView(TenantLoginRequiredMixin, CreateView):
+class ProcesarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
     model = models.Pago
     template_name = 'core/pago_abono_paciente.html'
     form_class = forms.PagoForm
@@ -3739,7 +3739,7 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-class CitaCreateView(AjaxLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class CitaCreateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Cita
     form_class = forms.CitaForm
     template_name = 'core/cita_form.html'
@@ -3779,7 +3779,7 @@ class CitaCreateView(AjaxLoginRequiredMixin, SuccessMessageMixin, CreateView):
             }, status=400)
         return super().form_invalid(form)
 
-class CitaUpdateView(AjaxLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class CitaUpdateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Cita
     form_class = forms.CitaForm
     template_name = 'core/cita_form.html'
@@ -3814,7 +3814,7 @@ class CitaUpdateView(AjaxLoginRequiredMixin, SuccessMessageMixin, UpdateView):
             }, status=200)
         return super().form_invalid(form)
 
-class CitaDeleteView(AjaxLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class CitaDeleteView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.Cita
     success_url = reverse_lazy('core:cita_list')
     success_message = "Cita eliminada exitosamente."
@@ -3926,7 +3926,7 @@ class PacientesPendientesPagoListView(TenantLoginRequiredMixin, ListView):
         return context
     
     
-class RegistrarPagoPacienteView(TenantLoginRequiredMixin, CreateView):
+class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
     model = models.Pago
     form_class = forms.PagoForm
     template_name = 'core/registrar_pago_paciente.html'
@@ -4060,7 +4060,7 @@ def get_horario_dentista_api(request, dentista_id):
 # ==================== VISTAS FALTANTES IMPORTANTES ====================
 
 # --- REGISTRAR ABONO ---
-class RegistrarAbonoView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class RegistrarAbonoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     """
     Vista para registrar un abono general (no vinculado a una cita específica)
     """
@@ -4130,21 +4130,21 @@ class UnidadDentalDetailView(TenantLoginRequiredMixin, DetailView):
         context['dentistas_asociados'] = models.PerfilDentista.objects.filter(id__in=dentistas_ids).order_by('apellido', 'nombre')
         return context
 
-class UnidadDentalCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class UnidadDentalCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.UnidadDental
     template_name = 'core/unidad_dental_form.html'
     form_class = forms.UnidadDentalForm
     success_url = reverse_lazy('core:unidad_dental_list')
     success_message = "Unidad dental '%(nombre)s' creada con éxito."
 
-class UnidadDentalUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class UnidadDentalUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.UnidadDental
     template_name = 'core/unidad_dental_form.html'
     form_class = forms.UnidadDentalForm
     success_url = reverse_lazy('core:unidad_dental_list')
     success_message = "Unidad dental '%(nombre)s' actualizada con éxito."
 
-class UnidadDentalDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class UnidadDentalDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.UnidadDental
     template_name = 'core/unidad_dental_confirm_delete.html'
     success_url = reverse_lazy('core:unidad_dental_list')
@@ -4401,14 +4401,14 @@ class CategoriaHistorialListView(TenantLoginRequiredMixin, ListView):
             
         return context
 
-class CategoriaHistorialCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class CategoriaHistorialCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.CategoriaHistorial
     form_class = forms.CategoriaHistorialForm
     template_name = 'core/cuestionario/admin/categoria_form.html'
     success_url = reverse_lazy('core:categoria_historial_list')
     success_message = "Categoría '%(nombre)s' creada exitosamente."
 
-class CategoriaHistorialUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class CategoriaHistorialUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.CategoriaHistorial
     form_class = forms.CategoriaHistorialForm
     template_name = 'core/cuestionario/admin/categoria_form.html'
@@ -4425,14 +4425,14 @@ class PreguntaHistorialListView(TenantLoginRequiredMixin, ListView):
             'categoria__orden', 'orden'
         )
 
-class PreguntaHistorialCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class PreguntaHistorialCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.PreguntaHistorial
     form_class = forms.PreguntaHistorialMejoradaForm
     template_name = 'core/cuestionario/admin/pregunta_form.html'
     success_url = reverse_lazy('core:pregunta_historial_list')
     success_message = "Pregunta creada exitosamente."
 
-class PreguntaHistorialUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class PreguntaHistorialUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.PreguntaHistorial
     form_class = forms.PreguntaHistorialMejoradaForm
     template_name = 'core/cuestionario/admin/pregunta_form.html'
@@ -4715,7 +4715,7 @@ class ConsentimientoInformadoDetailView(TenantLoginRequiredMixin, DetailView):
         
         return context
 
-class ConsentimientoInformadoCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class ConsentimientoInformadoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     """Vista para crear un nuevo consentimiento informado"""
     model = models.ConsentimientoInformado
     template_name = 'core/consentimiento/form.html'
@@ -4731,7 +4731,7 @@ class ConsentimientoInformadoCreateView(TenantLoginRequiredMixin, SuccessMessage
         form.instance.creado_por = self.request.user
         return super().form_valid(form)
 
-class ConsentimientoInformadoUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class ConsentimientoInformadoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     """Vista para actualizar un consentimiento informado"""
     model = models.ConsentimientoInformado
     template_name = 'core/consentimiento/form.html'
