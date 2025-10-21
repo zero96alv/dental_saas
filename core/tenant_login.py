@@ -2,6 +2,8 @@
 Vista de login personalizada que maneja correctamente los redirects
 cuando se usa enrutamiento por path (path-based tenants)
 """
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.contrib.auth.views import LoginView
 from django.conf import settings
 
@@ -50,6 +52,19 @@ class TenantAwareLoginView(LoginView):
             url = f"{tenant_prefix}{url}"
         
         return url
+    
+    def form_valid(self, form):
+        """
+        Sobrescribir para controlar el redirect después del login exitoso.
+        """
+        # Ejecutar el login (esto autentica al usuario)
+        response = super().form_valid(form)
+        
+        # Obtener la URL de éxito con el prefijo del tenant
+        success_url = self.get_success_url()
+        
+        # Crear un nuevo redirect con la URL correcta
+        return HttpResponseRedirect(success_url)
     
     def get_context_data(self, **kwargs):
         """Agregar información del tenant al contexto"""
