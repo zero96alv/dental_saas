@@ -20,7 +20,7 @@ def setup_tenant_modules(schema_name='demo'):
     try:
         tenant = Clinica.objects.get(schema_name=schema_name)
         connection.set_tenant(tenant)
-        print(f"✓ Conectado al tenant: {tenant.name}")
+        print(f"✓ Conectado al tenant: {tenant.nombre}")
     except Clinica.DoesNotExist:
         print(f"✗ ERROR: No existe el tenant con schema_name='{schema_name}'")
         return
