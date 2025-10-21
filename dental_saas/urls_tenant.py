@@ -21,12 +21,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 
-from core.auth_views import CustomLogoutView, CustomLoginView
+from core.auth_views import CustomLogoutView
+from core.tenant_login import TenantAwareLoginView
 from core.debug_views import tenant_debug, user_debug, force_tenant_switch
 
 urlpatterns = [
     # URLs de Autenticación
-    path('accounts/login/', CustomLoginView.as_view(), name='login'),
+    path('accounts/login/', TenantAwareLoginView.as_view(), name='login'),
     # Usar nuestra vista de logout personalizada
     path('accounts/logout/', CustomLogoutView.as_view(), name='logout'),
     
