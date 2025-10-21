@@ -4493,6 +4493,10 @@ class CustomLogoutView(DjangoLogoutView):
     def dispatch(self, request, *args, **kwargs):
         logger.info(f"Iniciando proceso de logout para usuario: {request.user}")
         
+        # Obtener el prefijo del tenant antes de limpiar la sesión
+        tenant_prefix = getattr(request, 'tenant_prefix', '')
+        logger.info(f"Tenant prefix detectado: '{tenant_prefix}'")
+        
         # Limpiar explícitamente la sesión antes del logout oficial
         if hasattr(request, 'session'):
             logger.info(f"Sesión antes del flush: {dict(request.session.items()) if request.session else 'Sin sesion'}")
@@ -4503,10 +4507,11 @@ class CustomLogoutView(DjangoLogoutView):
         logout(request)
         logger.info("Logout de Django ejecutado")
         
-        # Obtener la URL de redirección
+        # Obtener la URL de redirección con el prefijo del tenant
         next_url = self.get_next_page()
         if not next_url:
-            next_url = reverse('login')  # Fallback a login
+            # Usar tenant_prefix si existe, sino usar URL normal
+            next_url = f'{tenant_prefix}/accounts/login/' if tenant_prefix else reverse('login')
         
         logger.info(f"Redirigiendo a: {next_url}")
         
@@ -4555,7 +4560,10 @@ class CustomLogoutView(DjangoLogoutView):
         if next_url:
             return next_url
             
-        # Por defecto, redirigir al login
+        # Por defecto, redirigir al login con prefijo del tenant
+        tenant_prefix = getattr(self.request, 'tenant_prefix', '')
+        if tenant_prefix:
+            return f'{tenant_prefix}/accounts/login/'
         return reverse('login')
 
 # === FUNCIÓN DE REDIRECCIÓN RAÍZ ===
