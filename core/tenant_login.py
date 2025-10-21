@@ -23,18 +23,31 @@ class TenantAwareLoginView(LoginView):
         # Obtener la URL de éxito por defecto (settings.LOGIN_REDIRECT_URL)
         url = super().get_success_url()
         
-        # Obtener el prefijo del tenant desde el path actual
-        current_path = self.request.path
-        if current_path.startswith('/'):
-            parts = current_path.split('/')
-            if len(parts) > 1 and parts[1]:  # Ej: ['', 'demo', 'accounts', 'login', '']
-                tenant_slug = parts[1]
-                # Verificar que no sea 'accounts' (para evitar falsos positivos)
-                if tenant_slug != 'accounts':
-                    tenant_prefix = f"/{tenant_slug}"
-                    # Asegurarse de que la URL empiece con el prefijo
-                    if not url.startswith(tenant_prefix):
-                        url = f"{tenant_prefix}{url}"
+        # Intentar obtener el prefijo del tenant desde diferentes fuentes
+        tenant_prefix = None
+        
+        # 1. Desde el atributo tenant_prefix si existe
+        if hasattr(self.request, 'tenant_prefix'):
+            tenant_prefix = self.request.tenant_prefix
+        
+        # 2. Desde el HTTP_REFERER (URL de donde vino el request)
+        elif 'HTTP_REFERER' in self.request.META:
+            referer = self.request.META['HTTP_REFERER']
+            # Extraer el path del referer: http://example.com/demo/accounts/login/ -> /demo/accounts/login/
+            from urllib.parse import urlparse
+            referer_path = urlparse(referer).path
+            if referer_path.startswith('/'):
+                parts = referer_path.split('/')
+                if len(parts) > 2 and parts[1] and parts[1] != 'accounts':
+                    tenant_prefix = f"/{parts[1]}"
+        
+        # 3. Desde el tenant actual si existe
+        elif hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant_prefix = f"/{self.request.tenant.schema_name}"
+        
+        # Aplicar el prefijo si se encontró
+        if tenant_prefix and not url.startswith(tenant_prefix):
+            url = f"{tenant_prefix}{url}"
         
         return url
     
