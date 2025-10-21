@@ -42,7 +42,7 @@ def setup_tenants_migrations(request):
         try:
             public_tenant, public_created = Clinica.objects.get_or_create(
                 schema_name='public',
-                defaults={'name': 'Public Schema'}
+                defaults={'nombre': 'Public Schema'}
             )
             
             if public_created:
@@ -61,7 +61,7 @@ def setup_tenants_migrations(request):
             demo_tenant, demo_created = Clinica.objects.get_or_create(
                 schema_name='demo',
                 defaults={
-                    'name': 'Clínica Demo',
+                    'nombre': 'Clínica Demo',
                     'telefono': '+52 55 1234 5678',
                     'email': 'contacto@demo.dental-saas.com',
                     'direccion': 'Av. Demo #123, Ciudad Demo, CP 12345'

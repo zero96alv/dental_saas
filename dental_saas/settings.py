@@ -62,7 +62,7 @@ TENANT_DOMAIN_MODEL = "tenants.Domain"
 DEFAULT_TENANT_SCHEMA = 'dev'
 
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',  # Django-tenants estándar
+    'tenants.middleware.PathBasedTenantMiddleware',  # Middleware personalizado para path-based tenants
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Para archivos estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',

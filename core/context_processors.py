@@ -84,7 +84,7 @@ def menu_dinamico(request):
     existentes = set(r['url_name'] for r in reportes_menu)
     # Solo admins ven los fallback si no estaban ya presentes
     try:
-        es_admin = request.user.is_superuser or request.user.groups.filter(name='Administrador').exists()
+        es_admin = request.user.is_superuser or request.user.groups.filter(nombre='Administrador').exists()
     except Exception:
         es_admin = False
     if es_admin:

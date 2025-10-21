@@ -13,7 +13,7 @@ def landing_page(request):
         from tenants.models import Clinica
         
         # Obtener todas las clínicas (excluyendo public)
-        clinicas = Clinica.objects.exclude(schema_name='public').order_by('name')
+        clinicas = Clinica.objects.exclude(schema_name='public').order_by('nombre')
         
         # Si no hay clínicas, mostrar setup
         if not clinicas.exists():
@@ -69,7 +69,7 @@ def clinic_not_found(request, clinic_slug):
         from tenants.models import Clinica
         
         # Obtener clínicas disponibles
-        available_clinics = Clinica.objects.exclude(schema_name='public').values_list('schema_name', 'name')
+        available_clinics = Clinica.objects.exclude(schema_name='public').values_list('schema_name', 'nombre')
         
         html = f"""
         <!DOCTYPE html>
