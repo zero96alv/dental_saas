@@ -67,8 +67,8 @@ from .views_prueba import (
 app_name = 'core'
 
 urlpatterns = [
-    path('', views.redirect_to_dashboard, name='home'),
-    path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('', DashboardView.as_view(), name='home'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),  # Alias para compatibilidad
     
     # Dashboard Financiero
     path('finanzas/', DashboardFinancieroView.as_view(), name='dashboard_financiero'),

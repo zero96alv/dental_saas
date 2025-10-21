@@ -25,17 +25,6 @@ class TenantAwareLoginView(LoginView):
         # Obtener la URL de éxito por defecto (settings.LOGIN_REDIRECT_URL)
         url = super().get_success_url()
         
-        # DEBUG: Ver qué está pasando
-        print(f"[LOGIN DEBUG] URL original: {url}")
-        print(f"[LOGIN DEBUG] Request path: {self.request.path}")
-        print(f"[LOGIN DEBUG] Request META path: {self.request.META.get('PATH_INFO', 'N/A')}")
-        print(f"[LOGIN DEBUG] Has tenant_prefix: {hasattr(self.request, 'tenant_prefix')}")
-        if hasattr(self.request, 'tenant_prefix'):
-            print(f"[LOGIN DEBUG] Tenant prefix value: {self.request.tenant_prefix}")
-        print(f"[LOGIN DEBUG] HTTP_REFERER: {self.request.META.get('HTTP_REFERER', 'N/A')}")
-        if hasattr(self.request, 'tenant'):
-            print(f"[LOGIN DEBUG] Has tenant: True, value: {self.request.tenant}")
-        
         # Intentar obtener el prefijo del tenant desde diferentes fuentes
         tenant_prefix = None
         
@@ -61,9 +50,6 @@ class TenantAwareLoginView(LoginView):
         # Aplicar el prefijo si se encontró
         if tenant_prefix and not url.startswith(tenant_prefix):
             url = f"{tenant_prefix}{url}"
-        
-        print(f"[LOGIN DEBUG] Final URL with prefix: {url}")
-        print(f"[LOGIN DEBUG] Tenant prefix used: {tenant_prefix}")
         
         return url
     
