@@ -5,6 +5,7 @@ from django.urls import path
 from tenants.views import tenant_check_view
 from core.setup_views import setup_tenants_migrations
 from core.simple_setup import simple_setup
+from core.setup_domains import setup_domains
 from core.tenant_switch import tenant_switch_view, switch_to_tenant
 from core.debug_views import tenant_debug, user_debug, force_tenant_switch
 from core.landing_views import landing_page, clinic_not_found
@@ -18,6 +19,7 @@ urlpatterns = [
     path('check/', tenant_check_view, name='tenant_check'),
     path('setup-tenants/', setup_tenants_migrations, name='setup_tenants'),
     path('simple-setup/', simple_setup, name='simple_setup'),
+    path('setup-domains/', setup_domains, name='setup_domains'),
     
     # Herramientas de tenants
     path('tenants/', tenant_switch_view, name='tenant_switch'),

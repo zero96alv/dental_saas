@@ -62,15 +62,13 @@ TENANT_DOMAIN_MODEL = "tenants.Domain"
 DEFAULT_TENANT_SCHEMA = 'dev'
 
 MIDDLEWARE = [
-    'core.clinic_route_middleware.ClinicRouteMiddleware',  # Nuevo: Rutas de clínicas
+    'django_tenants.middleware.main.TenantMainMiddleware',  # Django-tenants estándar
     'django.middleware.security.SecurityMiddleware',
-#    'django.contrib.staticfiles.middleware.StaticFilesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'core.middleware.LocalTimezoneMiddleware',    # Forzar zona horaria local
-    'core.middleware.ForceAuthenticationMiddleware',  # Forzar autenticación
     'core.middleware.NoCacheMiddleware',          # Prevenir cacheo de respuestas
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -78,6 +76,7 @@ MIDDLEWARE = [
 
 PUBLIC_SCHEMA_URLCONF = 'dental_saas.urls_public'
 ROOT_URLCONF = 'dental_saas.urls_tenant'
+TENANT_URLCONF_MODULE = 'dental_saas.urls_tenant'
 
 TEMPLATES = [
     {
