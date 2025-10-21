@@ -21,7 +21,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-eytvqwz+s!1h2k
 DEBUG = True  # Habilitado temporalmente para desarrollo
 
 # Parse ALLOWED_HOSTS from environment variable or use defaults
-allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost,192.168.100.4,192.168.100.*')
+allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost,.ondigitalocean.app')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
 
 # --- Multi-Tenant Configuration ---
@@ -64,6 +64,7 @@ DEFAULT_TENANT_SCHEMA = 'dev'
 MIDDLEWARE = [
     'django_tenants.middleware.main.TenantMainMiddleware',  # Django-tenants estándar
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para archivos estáticos
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,20 +99,36 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dental_saas.wsgi.application'
 
 # --- Database Configuration ---
-DATABASES = {
-    'default': {
-        'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': os.environ.get('DB_NAME', 'dental_db'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'admin12345'),
-        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-        'OPTIONS': {
-            'client_encoding': 'UTF8',
-            'connect_timeout': 60,  # Timeout más largo para desarrollo
-        },
+# Soporte para DATABASE_URL (DigitalOcean, Heroku, etc.)
+import dj_database_url
+
+if os.environ.get('DATABASE_URL'):
+    # Configuración para producción (DigitalOcean, Heroku, etc.)
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+    # Cambiar engine a django-tenants
+    DATABASES['default']['ENGINE'] = 'django_tenants.postgresql_backend'
+else:
+    # Configuración para desarrollo local
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django_tenants.postgresql_backend',
+            'NAME': os.environ.get('DB_NAME', 'dental_db'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'admin12345'),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'OPTIONS': {
+                'client_encoding': 'UTF8',
+                'connect_timeout': 60,
+            },
+        }
+    }
 
 # --- Password Validation ---
 AUTH_PASSWORD_VALIDATORS = [
@@ -135,10 +152,15 @@ if os.environ.get('DJANGO_SETTINGS_MODULE'):
     timezone.activate(TIME_ZONE)
 
 # --- Static Files ---
-# Usar URL absoluta con prefijo para evitar 404/MIME en navegadores
+# Configuración optimizada para DigitalOcean con WhiteNoise
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Para producción
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# WhiteNoise Configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
 
 # --- Media Files (User Uploads) ---
 MEDIA_URL = '/media/'

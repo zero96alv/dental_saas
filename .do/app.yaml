@@ -1,0 +1,83 @@
+# DigitalOcean App Platform Configuration
+# Dental SaaS Multi-Tenant Django Application
+
+name: dental-saas
+region: nyc
+
+# Servicios
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: zero96alv/dental_saas
+    branch: main
+    deploy_on_push: true
+  
+  # Configuración de la aplicación Django
+  run_command: |
+    python manage.py collectstatic --noinput
+    python manage.py migrate_schemas --shared
+    python manage.py migrate_all_tenants
+    gunicorn dental_saas.wsgi:application --bind=0.0.0.0:8080 --workers=2
+  
+  # Build commands
+  build_command: |
+    pip install --upgrade pip
+    pip install -r requirements.txt
+  
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs  # $5/month
+  
+  # Variables de entorno
+  envs:
+  - key: DJANGO_SETTINGS_MODULE
+    value: dental_saas.settings
+  - key: DJANGO_SECRET_KEY
+    type: SECRET
+    value: "your-secret-key-here"  # Se configurará en DigitalOcean
+  - key: DEBUG
+    value: "False"
+  - key: ALLOWED_HOSTS
+    value: ".ondigitalocean.app,localhost,127.0.0.1"
+  - key: DATABASE_URL
+    type: SECRET
+    value: "${db.DATABASE_URL}"  # Auto-generado por DigitalOcean
+  
+  # Configuración de salud
+  health_check:
+    http_path: /
+    initial_delay_seconds: 30
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+
+# Base de datos PostgreSQL
+databases:
+- name: db
+  engine: PG
+  version: "15"
+  size: basic  # $15/month
+  num_nodes: 1
+
+# Workers (opcional para tareas asíncronas)
+workers:
+- name: worker
+  source_dir: /
+  github:
+    repo: zero96alv/dental_saas
+    branch: main
+    deploy_on_push: true
+  
+  run_command: python manage.py process_tasks
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  
+  envs:
+  - key: DJANGO_SETTINGS_MODULE
+    value: dental_saas.settings
+  - key: DATABASE_URL
+    type: SECRET
+    value: "${db.DATABASE_URL}"

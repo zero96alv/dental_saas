@@ -1,22 +1,60 @@
-asgiref==3.9.1
-crispy-bootstrap5==2025.6
+# ========================================
+# DENTAL SAAS - REQUIREMENTS FOR PRODUCTION
+# DigitalOcean App Platform Optimized
+# ========================================
+
+# Core Django Framework
 Django==5.2.4
-django-crispy-forms==2.4
-django-extensions==4.1
 django-tenants==3.8.0
-psycopg==3.2.9
-psycopg-binary==3.2.9
-python-dotenv==1.1.1
+asgiref==3.9.1
 sqlparse==0.5.3
 tzdata==2025.2
-Faker==26.0.0
-gunicorn==23.0.0
-Pillow==10.4.0
-python-decouple==3.8
+
+# Database
+psycopg==3.2.9
+psycopg-binary==3.2.9
 dj-database-url==2.2.0
+
+# Web Server
+gunicorn==23.0.0
+
+# Static Files & Media
 whitenoise==6.7.0
-django-cors-headers==4.4.0
+Pillow==10.4.0
+
+# Forms & UI
+django-crispy-forms==2.4
+crispy-bootstrap5==2025.6
+
+# Development & Admin Tools
+django-extensions==4.1
+
+# Configuration Management
+python-decouple==3.8
+python-dotenv==1.1.1
+
+# HTTP & CORS
 requests==2.32.3
-pytz==2024.2
+django-cors-headers==4.4.0
+
+# Data Processing
 reportlab==4.2.5
 openpyxl==3.1.5
+
+# Testing & Development Data
+Faker==26.0.0
+
+# Date & Time Utilities
+pytz==2024.2
+
+# Additional Dependencies
+certifi==2025.10.5
+charset-normalizer==3.4.4
+idna==3.11
+urllib3==2.5.0
+typing-extensions==4.15.0
+six==1.17.0
+packaging==25.0
+et-xmlfile==2.0.0
+python-dateutil==2.9.0.post0
+chardet==5.2.0
