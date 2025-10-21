@@ -17,12 +17,13 @@ class PathBasedTenantMiddleware:
     
     def __init__(self, get_response):
         self.get_response = get_response
-        # Lista de paths que NO son tenants
+        # Lista de paths que NO son tenants (solo esquema público)
         self.excluded_paths = [
             '/admin/',
             '/static/',
             '/media/',
             '/setup/',
+            '/simple-setup/',
             '/api/',
             '/__debug__/',
         ]
@@ -45,6 +46,9 @@ class PathBasedTenantMiddleware:
         if len(path_parts) > 0:
             tenant_slug = path_parts[0]
             
+            # Primero asegurarse de estar en esquema público para buscar
+            connection.set_schema_to_public()
+            
             try:
                 # Buscar el tenant
                 tenant = Clinica.objects.get(schema_name=tenant_slug)
@@ -57,6 +61,7 @@ class PathBasedTenantMiddleware:
                 
                 # Ajustar el path para que Django resuelva correctamente las URLs
                 # /demo/pacientes/ -> /pacientes/
+                # /demo/accounts/login/ -> /accounts/login/
                 request.path_info = '/' + '/'.join(path_parts[1:])
                 if request.path_info != '/' and not request.path_info.endswith('/'):
                     request.path_info += '/'
