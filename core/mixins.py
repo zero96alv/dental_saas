@@ -110,3 +110,31 @@ class TenantAccessMixin(AccessMixin):
             login_url = f'{tenant_prefix}/{login_url}'
         
         return login_url
+
+
+class TenantSuccessUrlMixin:
+    """
+    Mixin para que success_url incluya el prefijo del tenant.
+    Usar en vistas CreateView, UpdateView, DeleteView.
+    
+    Uso:
+        class MiVista(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
+            success_url = reverse_lazy('core:lista')
+    """
+    
+    def get_success_url(self):
+        """
+        Obtiene la URL de éxito incluyendo el prefijo del tenant si existe
+        """
+        success_url = super().get_success_url()
+        
+        # Obtener el prefijo del tenant del request
+        tenant_prefix = getattr(self.request, 'tenant_prefix', '')
+        
+        # Si existe prefijo y la URL no lo incluye ya, agregarlo
+        if tenant_prefix and not success_url.startswith(tenant_prefix):
+            if success_url.startswith('/'):
+                success_url = success_url[1:]
+            success_url = f'{tenant_prefix}/{success_url}'
+        
+        return success_url

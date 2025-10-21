@@ -1,6 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
-from core.mixins import TenantLoginRequiredMixin, tenant_login_required
+from core.mixins import TenantLoginRequiredMixin, tenant_login_required, TenantSuccessUrlMixin
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Sum, Avg, Min, Max, F, Q
@@ -557,7 +557,7 @@ class UsuarioListView(TenantLoginRequiredMixin, ListView):
             logger.exception("Error obteniendo listado de usuarios")
             raise
 
-class UsuarioCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class UsuarioCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = User
     form_class = forms.UserForm
     template_name = 'core/usuario_form.html'
@@ -588,7 +588,7 @@ class UsuarioCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateVie
         messages.warning(self.request, "Se asignó la contraseña temporal 'password123'. El usuario debe cambiarla.")
         return super().form_valid(form)
 
-class UsuarioUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class UsuarioUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     
     model = User  # Usa tu modelo de usuario si es personalizado
     form_class = forms.UserForm
@@ -656,7 +656,7 @@ class UsuarioUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateVie
         context['form'] = form
         return self.render_to_response(context)
 
-class UsuarioDeleteView(TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class UsuarioDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = User
     template_name = 'core/usuario_confirm_delete.html'
     success_url = reverse_lazy('core:usuario_list')
