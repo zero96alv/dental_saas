@@ -14,7 +14,7 @@ class TenantAwareLoginView(LoginView):
     esta vista asegura que después del login el usuario sea redirigido
     a la URL correcta que incluye el prefijo del tenant.
     """
-    template_name = 'core/auth/login.html'  # Usar el template existente
+    template_name = 'core/login.html'  # Usar el template existente
     
     def get_success_url(self):
         """
