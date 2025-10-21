@@ -124,4 +124,21 @@ class ClinicRouteMiddleware(TenantMainMiddleware):
     def __call__(self, request):
         # Guardar request para acceso en get_tenant
         self.current_request = request
+        
+        # IMPORTANTE: Reescribir URL si estamos en una ruta de clínica
+        clinic_slug = self._extract_clinic_from_path(request.path)
+        if clinic_slug:
+            # Eliminar el prefijo de clínica de la URL para que Django la procese correctamente
+            # Ejemplo: /demo/accounts/login/ → /accounts/login/
+            original_path = request.path
+            new_path = original_path.replace(f'/{clinic_slug}', '', 1)
+            if new_path == '':
+                new_path = '/'
+            
+            # Reescribir la URL en el request
+            request.path = new_path
+            request.path_info = new_path
+            
+            print(f"🔄 URL reescrita: {original_path} → {new_path}")
+        
         return super().__call__(request)
