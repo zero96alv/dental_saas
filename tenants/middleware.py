@@ -56,8 +56,9 @@ class PathBasedTenantMiddleware:
                 # Establecer el tenant
                 connection.set_tenant(tenant)
                 
-                # Guardar el tenant en el request para uso posterior
+                # Guardar el tenant y el prefijo en el request para uso posterior
                 request.tenant = tenant
+                request.tenant_prefix = f'/{tenant_slug}'
                 
                 # Ajustar el path para que Django resuelva correctamente las URLs
                 # /demo/pacientes/ -> /pacientes/
