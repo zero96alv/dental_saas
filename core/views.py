@@ -1,5 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
+from core.mixins import TenantLoginRequiredMixin
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Sum, Avg, Min, Max, F, Q
@@ -446,7 +447,7 @@ class AjaxLoginRequiredMixin(LoginRequiredMixin):
             return JsonResponse({'error': 'Autenticación requerida. Por favor, inicie sesión de nuevo.'}, status=403)
         return super().dispatch(request, *args, **kwargs)
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class DashboardView(TenantLoginRequiredMixin, TemplateView):
     def get_template_names(self):
         user = self.request.user
         if hasattr(user, 'paciente_perfil'):
