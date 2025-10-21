@@ -17,10 +17,19 @@ class TenantLoginRequiredMixin(LoginRequiredMixin):
         """
         Obtiene la URL de login incluyendo el prefijo del tenant si existe
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         login_url = super().get_login_url()
         
         # Obtener el prefijo del tenant del request
         tenant_prefix = getattr(self.request, 'tenant_prefix', '')
+        
+        logger.info(f"[TenantLoginRequiredMixin] Original login_url: {login_url}")
+        logger.info(f"[TenantLoginRequiredMixin] tenant_prefix: '{tenant_prefix}'")
+        logger.info(f"[TenantLoginRequiredMixin] request.path: {self.request.path}")
+        logger.info(f"[TenantLoginRequiredMixin] request.path_info: {self.request.path_info}")
+        logger.info(f"[TenantLoginRequiredMixin] has tenant attr: {hasattr(self.request, 'tenant')}")
         
         # Si existe prefijo y la URL no lo incluye ya, agregarlo
         if tenant_prefix and not login_url.startswith(tenant_prefix):
@@ -28,6 +37,9 @@ class TenantLoginRequiredMixin(LoginRequiredMixin):
             if login_url.startswith('/'):
                 login_url = login_url[1:]
             login_url = f'{tenant_prefix}/{login_url}'
+            logger.info(f"[TenantLoginRequiredMixin] Modified login_url: {login_url}")
+        else:
+            logger.warning(f"[TenantLoginRequiredMixin] No tenant_prefix or already in URL")
         
         return login_url
 
