@@ -181,14 +181,24 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # --- Session Configuration ---
 # CRÍTICO: Configuración para path-based tenants
 SESSION_COOKIE_AGE = 86400  # 24 horas
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Sesión expira al cerrar navegador
-SESSION_SAVE_EVERY_REQUEST = True  # Actualiza sesión en cada request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # NO cerrar sesión al cerrar navegador para evitar pérdidas
+SESSION_SAVE_EVERY_REQUEST = False  # NO actualizar en cada request para mejor rendimiento
 SESSION_COOKIE_HTTPONLY = True  # Previene acceso a cookies desde JavaScript
 SESSION_COOKIE_SECURE = False  # True en producción con HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Usar base de datos para sesiones
+# Usar cache para sesiones para evitar problemas con multi-tenant DB
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_PATH = '/'  # IMPORTANTE: Cookie debe funcionar en todos los paths para path-based tenants
 CSRF_COOKIE_PATH = '/'  # CSRF también debe funcionar en todos los paths
+
+# Cache Configuration para sesiones
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'dental-saas-sessions',
+    }
+}
 
 # --- Email Configuration (Gmail SMTP) ---
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

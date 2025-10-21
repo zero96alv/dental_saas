@@ -6,6 +6,9 @@ from django.conf import settings
 from django.http import Http404
 from django.db import connection
 from tenants.models import Clinica
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PathBasedTenantMiddleware:
@@ -59,6 +62,10 @@ class PathBasedTenantMiddleware:
                 # Guardar el tenant y el prefijo en el request para uso posterior
                 request.tenant = tenant
                 request.tenant_prefix = f'/{tenant_slug}'
+                
+                # DEBUG: Log session info
+                logger.info(f"[Middleware] Tenant: {tenant_slug}, Path: {request.path}, User authenticated: {request.user.is_authenticated if hasattr(request, 'user') else 'N/A'}")
+                logger.info(f"[Middleware] Session key: {request.session.session_key if hasattr(request, 'session') else 'NO SESSION'}")
                 
                 # Ajustar el path para que Django resuelva correctamente las URLs
                 # /demo/pacientes/ -> /pacientes/
