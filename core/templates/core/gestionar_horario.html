@@ -1,4 +1,5 @@
-{% extends "core/base.html" %}
+{% load static %}
+{% load tenant_urls %}{% extends "core/base.html" %}
 {% load crispy_forms_tags %}
 
 {% block title %}
@@ -77,14 +78,14 @@
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                     {% if puede_editar %}
-                        <a href="{% url 'core:usuario_list' %}" class="btn btn-secondary me-md-2">
+                        <a href="{% tenant_url 'core:usuario_list' %}" class="btn btn-secondary me-md-2">
                             <i class="bi bi-x-circle-fill me-1"></i> Cancelar
                         </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-circle-fill me-1"></i> Guardar Horario
                         </button>
                     {% else %}
-                        <a href="{% url 'core:dashboard' %}" class="btn btn-secondary me-md-2">
+                        <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-secondary me-md-2">
                             <i class="bi bi-arrow-left-circle-fill me-1"></i> Volver al Dashboard
                         </a>
                     {% endif %}

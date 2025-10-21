@@ -1,5 +1,6 @@
-{% extends "core/base.html" %}
 {% load static %}
+{% load tenant_urls %}{% extends "core/base.html" %}
+
 
 {% block title %}Mi Historial Clínico{% endblock %}
 
@@ -62,11 +63,11 @@
             <div class="col-md-4 text-end">
                 <div class="d-grid gap-2">
                     {% if not tiene_cuestionario_completo %}
-                    <a href="{% url 'core:portal_completar_historial' %}" class="btn btn-warning btn-lg">
+                    <a href="{% tenant_url 'core:portal_completar_historial' %}" class="btn btn-warning btn-lg">
                         <i class="fas fa-edit me-2"></i>Completar mi Historial
                     </a>
                     {% else %}
-                    <a href="{% url 'core:portal_completar_historial' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% tenant_url 'core:portal_completar_historial' %}" class="btn btn-outline-light btn-lg">
                         <i class="fas fa-sync-alt me-2"></i>Actualizar mi Historial
                     </a>
                     {% endif %}
@@ -121,7 +122,7 @@
                         <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
                         <h5 class="text-muted">No tienes historial clínico registrado</h5>
                         <p class="text-muted">Completa tu historial clínico para que nuestro equipo médico pueda brindarte la mejor atención.</p>
-                        <a href="{% url 'core:portal_completar_historial' %}" class="btn btn-primary btn-lg">
+                        <a href="{% tenant_url 'core:portal_completar_historial' %}" class="btn btn-primary btn-lg">
                             <i class="fas fa-plus-circle me-2"></i>Completar mi Historial
                         </a>
                     </div>
@@ -196,13 +197,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-primary">
+                        <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-outline-primary">
                             <i class="fas fa-home me-2"></i>Inicio
                         </a>
-                        <a href="{% url 'core:portal_pagos' %}" class="btn btn-outline-primary">
+                        <a href="{% tenant_url 'core:portal_pagos' %}" class="btn btn-outline-primary">
                             <i class="fas fa-credit-card me-2"></i>Mis Pagos
                         </a>
-                        <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary">
+                        <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-outline-secondary">
                             <i class="fas fa-calendar me-2"></i>Mis Citas
                         </a>
                     </div>
