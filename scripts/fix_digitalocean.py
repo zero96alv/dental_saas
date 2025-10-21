@@ -43,8 +43,8 @@ def fix_digitalocean():
         )
         print(f"   Dominio {hostname}: {'✅ Creado' if created else 'ℹ️ Ya existe'}")
         
-        # PASO 3: Crear clínicas (sin migrar aún)
-        print("\n🏥 PASO 3: Creando clínicas...")
+        # PASO 3: Crear clínicas Y sus esquemas
+        print("\n🏥 PASO 3: Creando clínicas y esquemas...")
         clinicas_config = [
             {'schema_name': 'demo', 'nombre': 'Clínica Demo'},
             {'schema_name': 'sgdental', 'nombre': 'SG Dental'},
@@ -52,13 +52,24 @@ def fix_digitalocean():
         ]
         
         clinicas_creadas = []
+        from django.db import connection as db_conn
+        
         for config in clinicas_config:
+            # Primero crear el esquema en PostgreSQL si no existe
+            with db_conn.cursor() as cursor:
+                try:
+                    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {config['schema_name']}")
+                    print(f"   ✅ Esquema '{config['schema_name']}' creado/verificado en PostgreSQL")
+                except Exception as e:
+                    print(f"   ⚠️ Error creando esquema {config['schema_name']}: {e}")
+            
+            # Luego crear el tenant en Django
             tenant, created = Clinica.objects.get_or_create(
                 schema_name=config['schema_name'],
                 defaults={'nombre': config['nombre']}
             )
             clinicas_creadas.append(tenant)
-            print(f"   {config['nombre']}: {'✅ Creada' if created else 'ℹ️ Ya existe'}")
+            print(f"   {config['nombre']}: {'✅ Tenant creado' if created else 'ℹ️ Tenant ya existe'}")
         
         # PASO 4: Migrar esquema compartido (si no está hecho)
         print("\n🔄 PASO 4: Verificando migraciones compartidas...")
@@ -68,27 +79,24 @@ def fix_digitalocean():
         except Exception as e:
             print(f"   ℹ️ Esquema público ya migrado o error: {e}")
         
-        # PASO 5: Migrar cada tenant individualmente
+        # PASO 5: Migrar cada tenant individualmente usando migrate_schemas
         print("\n🔄 PASO 5: Migrando esquemas de tenants...")
         for clinica in clinicas_creadas:
             print(f"\n   📊 Migrando {clinica.nombre} ({clinica.schema_name})...")
             try:
-                # Cambiar al esquema del tenant
-                connection.set_tenant(clinica)
-                
-                # Ejecutar migraciones
-                call_command('migrate', verbosity=0, interactive=False)
-                
+                # Usar migrate_schemas que es más confiable para django-tenants
+                call_command(
+                    'migrate_schemas',
+                    schema_name=clinica.schema_name,
+                    verbosity=1,
+                    interactive=False
+                )
                 print(f"      ✅ Esquema {clinica.schema_name} migrado correctamente")
                 
             except Exception as e:
-                print(f"      ⚠️ Error en {clinica.schema_name}: {e}")
-                # Intentar con migrate_schemas
-                try:
-                    call_command('migrate_schemas', schema_name=clinica.schema_name, verbosity=0)
-                    print(f"      ✅ Esquema {clinica.schema_name} migrado con migrate_schemas")
-                except Exception as e2:
-                    print(f"      ❌ Error persistente: {e2}")
+                print(f"      ❌ Error en {clinica.schema_name}: {e}")
+                import traceback
+                traceback.print_exc()
         
         # PASO 6: Configurar usuarios admin para cada clínica
         print("\n👤 PASO 6: Configurando usuarios admin...")
