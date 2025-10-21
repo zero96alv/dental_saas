@@ -36,7 +36,7 @@ class TenantAwareLoginView(LoginView):
         """Agregar información del tenant al contexto"""
         context = super().get_context_data(**kwargs)
         
-        if hasattr(self.request, 'tenant'):
+        if hasattr(self.request, 'tenant') and self.request.tenant:
             context['tenant'] = self.request.tenant
             context['tenant_nombre'] = self.request.tenant.nombre
         
