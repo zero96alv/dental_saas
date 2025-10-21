@@ -186,17 +186,21 @@ SESSION_SAVE_EVERY_REQUEST = False  # NO actualizar en cada request para mejor r
 SESSION_COOKIE_HTTPONLY = True  # Previene acceso a cookies desde JavaScript
 SESSION_COOKIE_SECURE = False  # True en producción con HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
-# Usar cache para sesiones para evitar problemas con multi-tenant DB
+# Usar file-based cache para sesiones (compartido entre workers de Gunicorn)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_PATH = '/'  # IMPORTANTE: Cookie debe funcionar en todos los paths para path-based tenants
+SESSION_COOKIE_NAME = 'sessionid'  # Nombre estándar de cookie
 CSRF_COOKIE_PATH = '/'  # CSRF también debe funcionar en todos los paths
 
-# Cache Configuration para sesiones
+# Cache Configuration para sesiones - Usar FileBasedCache para compartir entre workers
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'dental-saas-sessions',
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/django_cache',  # Directorio temporal para cache
+        'OPTIONS': {
+            'MAX_ENTRIES': 10000
+        }
     }
 }
 
