@@ -23,12 +23,18 @@ class TenantAwareLoginView(LoginView):
         # Obtener la URL de éxito por defecto (settings.LOGIN_REDIRECT_URL)
         url = super().get_success_url()
         
-        # Si hay tenant_prefix en el request, agregarlo
-        if hasattr(self.request, 'tenant_prefix'):
-            tenant_prefix = self.request.tenant_prefix
-            # Asegurarse de que la URL empiece con el prefijo
-            if not url.startswith(tenant_prefix):
-                url = f"{tenant_prefix}{url}"
+        # Obtener el prefijo del tenant desde el path actual
+        current_path = self.request.path
+        if current_path.startswith('/'):
+            parts = current_path.split('/')
+            if len(parts) > 1 and parts[1]:  # Ej: ['', 'demo', 'accounts', 'login', '']
+                tenant_slug = parts[1]
+                # Verificar que no sea 'accounts' (para evitar falsos positivos)
+                if tenant_slug != 'accounts':
+                    tenant_prefix = f"/{tenant_slug}"
+                    # Asegurarse de que la URL empiece con el prefijo
+                    if not url.startswith(tenant_prefix):
+                        url = f"{tenant_prefix}{url}"
         
         return url
     
