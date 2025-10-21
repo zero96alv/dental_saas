@@ -1,6 +1,7 @@
 # core/views_permissions.py
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import Group
+from core.mixins import TenantLoginRequiredMixin
 from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
@@ -15,7 +16,7 @@ from .models_permissions import ModuloSistema, SubmenuItem, PermisoRol, LogAcces
 from .permissions_utils import PermisoDinamicoMixin
 
 
-class PermisosAdminView(LoginRequiredMixin, TemplateView):
+class PermisosAdminView(TenantLoginRequiredMixin, TemplateView):
     """
     Vista principal para administrar permisos dinámicos.
     """
@@ -38,7 +39,7 @@ class PermisosAdminView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class ModuloSistemaListView(LoginRequiredMixin, ListView):
+class ModuloSistemaListView(TenantLoginRequiredMixin, ListView):
     model = ModuloSistema
     template_name = 'core/permisos/modulo_list.html'
     context_object_name = 'modulos'
@@ -48,7 +49,7 @@ class ModuloSistemaListView(LoginRequiredMixin, ListView):
         return ModuloSistema.objects.prefetch_related('submenus').order_by('orden', 'nombre')
 
 
-class ModuloSistemaCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+class ModuloSistemaCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = ModuloSistema
     template_name = 'core/permisos/modulo_form.html'
     fields = ['nombre', 'descripcion', 'icono', 'orden', 'activo', 'url_pattern']
@@ -56,7 +57,7 @@ class ModuloSistemaCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateVie
     success_message = "Módulo '%(nombre)s' creado con éxito."
 
 
-class ModuloSistemaUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class ModuloSistemaUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = ModuloSistema
     template_name = 'core/permisos/modulo_form.html'
     fields = ['nombre', 'descripcion', 'icono', 'orden', 'activo', 'url_pattern']
@@ -64,7 +65,7 @@ class ModuloSistemaUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateVie
     success_message = "Módulo '%(nombre)s' actualizado con éxito."
 
 
-class ModuloSistemaDeleteView(LoginRequiredMixin, DeleteView):
+class ModuloSistemaDeleteView(TenantLoginRequiredMixin, DeleteView):
     model = ModuloSistema
     template_name = 'core/permisos/modulo_confirm_delete.html'
     success_url = reverse_lazy('core:modulo_list')
@@ -74,7 +75,7 @@ class ModuloSistemaDeleteView(LoginRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 
-class SubmenuItemListView(LoginRequiredMixin, ListView):
+class SubmenuItemListView(TenantLoginRequiredMixin, ListView):
     model = SubmenuItem
     template_name = 'core/permisos/submenu_list.html'
     context_object_name = 'submenus'
@@ -96,7 +97,7 @@ class SubmenuItemListView(LoginRequiredMixin, ListView):
         return context
 
 
-class SubmenuItemCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+class SubmenuItemCreateView(TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = SubmenuItem
     template_name = 'core/permisos/submenu_form.html'
     fields = [
@@ -107,7 +108,7 @@ class SubmenuItemCreateView(LoginRequiredMixin, SuccessMessageMixin, CreateView)
     success_message = "Elemento de submenú '%(nombre)s' creado con éxito."
 
 
-class SubmenuItemUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class SubmenuItemUpdateView(TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = SubmenuItem
     template_name = 'core/permisos/submenu_form.html'
     fields = [
@@ -118,7 +119,7 @@ class SubmenuItemUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView)
     success_message = "Elemento de submenú '%(nombre)s' actualizado con éxito."
 
 
-class SubmenuItemDeleteView(LoginRequiredMixin, DeleteView):
+class SubmenuItemDeleteView(TenantLoginRequiredMixin, DeleteView):
     model = SubmenuItem
     template_name = 'core/permisos/submenu_confirm_delete.html'
     success_url = reverse_lazy('core:submenu_list')
@@ -128,7 +129,7 @@ class SubmenuItemDeleteView(LoginRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 
-class PermisosRolMatrizView(LoginRequiredMixin, TemplateView):
+class PermisosRolMatrizView(TenantLoginRequiredMixin, TemplateView):
     """
     Vista de matriz para gestionar permisos de roles de forma visual.
     """
@@ -198,7 +199,7 @@ class PermisosRolMatrizView(LoginRequiredMixin, TemplateView):
             return JsonResponse({'error': str(e)}, status=500)
 
 
-class LogAccesoListView(LoginRequiredMixin, ListView):
+class LogAccesoListView(TenantLoginRequiredMixin, ListView):
     """
     Vista para mostrar logs de acceso.
     """
