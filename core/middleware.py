@@ -65,7 +65,12 @@ class ForceAuthenticationMiddleware:
 
         # TERCERO: Si el usuario no está autenticado, redirigir al login
         if not request.user.is_authenticated:
-            # IMPORTANTE: Si estamos en una ruta de clínica, mantener el contexto
+            # IMPORTANTE: Si ya estamos en una página de login, NO redirigir (evitar bucle infinito)
+            if path.endswith('/accounts/login/') or '/accounts/login/' in path:
+                logger.info(f"ForceAuth: Ya estamos en login ({path}), permitiendo acceso")
+                return self.get_response(request)
+            
+            # Si estamos en una ruta de clínica, mantener el contexto
             clinic_slug = self._extract_clinic_from_path(path)
             if clinic_slug:
                 # Estamos en una clínica, redirigir al login de esa clínica
