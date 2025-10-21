@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Agenda de Citas{% endblock %}
@@ -96,7 +97,7 @@
         $('#id_dentista').select2({ theme: 'bootstrap-5', dropdownParent: $('#citaModal') });
         $('#id_servicios_planeados').select2({ theme: 'bootstrap-5', dropdownParent: $('#citaModal') });
 
-        let eventsUrl = "{% url 'core:agenda_events' %}";
+        let eventsUrl = "{% tenant_url 'core:agenda_events' %}";
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
           locale: 'es',
@@ -115,7 +116,7 @@
           
           select: function(info) {
             citaForm.reset();
-            citaForm.action = "{% url 'core:cita_create' %}"; // URL para crear
+            citaForm.action = "{% tenant_url 'core:cita_create' %}"; // URL para crear
             $('#id_cliente').val(null).trigger('change');
             $('#id_dentista').val(null).trigger('change');
             $('#id_servicios_planeados').empty().trigger('change');

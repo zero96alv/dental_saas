@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Citas Pendientes de Pago{% endblock %}
@@ -61,7 +62,7 @@
                         <button type="submit" class="btn btn-primary me-2">
                             <i class="fas fa-search"></i> Buscar
                         </button>
-                        <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-outline-secondary">
+                        <a href="{% tenant_url 'core:citas_pendientes_pago' %}" class="btn btn-outline-secondary">
                             <i class="fas fa-times"></i> Limpiar
                         </a>
                     </div>
@@ -105,7 +106,7 @@
                     <button class="btn btn-primary" disabled>
                         <i class="fas fa-calendar-alt"></i> Ver por Citas Individuales (Actual)
                     </button>
-                    <a href="{% url 'core:pacientes_pendientes_pago' %}" class="btn btn-outline-primary">
+                    <a href="{% tenant_url 'core:pacientes_pendientes_pago' %}" class="btn btn-outline-primary">
                         <i class="fas fa-users"></i> Ver por Saldo Global
                     </a>
                 </div>
@@ -148,12 +149,12 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group" role="group">
-                                    <a href="{% url 'core:cita_detail' cita.id %}" 
+                                    <a href="{% tenant_url 'core:cita_detail' cita.id %}" 
                                        class="btn btn-sm btn-outline-info" 
                                        title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'core:procesar_pago' pk=cita.id %}" 
+                                    <a href="{% tenant_url 'core:procesar_pago' pk=cita.id %}" 
                                        class="btn btn-sm btn-success" 
                                        title="Procesar pago">
                                         <i class="fas fa-dollar-sign"></i> Pago
@@ -169,7 +170,7 @@
                                 <p class="text-muted">
                                     {% if filtros_actuales.paciente or filtros_actuales.fecha or filtros_actuales.dentista %}
                                         No hay citas que coincidan con los filtros aplicados.
-                                        <a href="{% url 'core:citas_pendientes_pago' %}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{% tenant_url 'core:citas_pendientes_pago' %}" class="btn btn-sm btn-outline-primary">
                                             Ver todas las citas
                                         </a>
                                     {% else %}

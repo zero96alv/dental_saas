@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Gestión de Equipos Médicos{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Gestión de Equipos Médicos</h2>
-        <a href="{% url 'core:equipo_create' %}" class="btn btn-primary">
+        <a href="{% tenant_url 'core:equipo_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> Registrar Equipo
         </a>
     </div>
@@ -32,8 +33,8 @@
                             <td>{{ equipo.registro_sanitario|default:"N/A" }}</td>
                             <td>{{ equipo.fecha_vencimiento_calibracion|date:"d/m/Y" }}</td>
                             <td class="text-end">
-                                <a href="{% url 'core:equipo_edit' equipo.pk %}" class="btn btn-sm btn-warning">Editar</a>
-                                <a href="{% url 'core:equipo_delete' equipo.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                                <a href="{% tenant_url 'core:equipo_edit' equipo.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                                <a href="{% tenant_url 'core:equipo_delete' equipo.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
                             </td>
                         </tr>
                         {% empty %}

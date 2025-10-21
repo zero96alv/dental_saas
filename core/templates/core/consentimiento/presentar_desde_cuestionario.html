@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Presentar Consentimiento - {{ cuestionario.paciente }}{% endblock %}
@@ -51,7 +52,7 @@
                             </p>
                         </div>
                         <div class="col-md-4 text-md-end">
-                            <a href="{% url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
+                            <a href="{% tenant_url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
                                class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left"></i> Volver al Cuestionario
                             </a>
@@ -208,7 +209,7 @@
                                 <!-- Botones de acción -->
                                 <div class="d-flex justify-content-between align-items-center mt-4">
                                     <div>
-                                        <a href="{% url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
+                                        <a href="{% tenant_url 'core:cuestionario_detalle' paciente_id=cuestionario.paciente.id %}" 
                                            class="btn btn-outline-secondary">
                                             <i class="fas fa-times"></i> Cancelar
                                         </a>

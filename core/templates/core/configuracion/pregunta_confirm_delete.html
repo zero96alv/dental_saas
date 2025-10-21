@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Confirmar Eliminación{% endblock %}
 
@@ -18,7 +19,7 @@
                     <form method="post">
                         {% csrf_token %}
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'core:pregunta_list' %}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{% tenant_url 'core:pregunta_list' %}" class="btn btn-secondary">Cancelar</a>
                             <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
                         </div>
                     </form>

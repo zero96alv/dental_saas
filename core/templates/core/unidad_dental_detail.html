@@ -1,5 +1,6 @@
 
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Administrar {{ unidad.nombre }}{% endblock %}
 
@@ -79,13 +80,13 @@
     </div>
     
     <div class="mt-4 d-flex gap-2">
-        <a href="{% url 'core:unidad_dental_list' %}" class="btn btn-secondary">
+        <a href="{% tenant_url 'core:unidad_dental_list' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i> Volver a la lista de unidades
         </a>
-        <a href="{% url 'core:unidad_dental_edit' unidad.pk %}" class="btn btn-warning">
+        <a href="{% tenant_url 'core:unidad_dental_edit' unidad.pk %}" class="btn btn-warning">
             <i class="bi bi-pencil-square me-1"></i> Editar
         </a>
-        <a href="{% url 'core:unidad_dental_delete' unidad.pk %}" class="btn btn-danger" onclick="return confirm('¿Eliminar esta unidad?');">
+        <a href="{% tenant_url 'core:unidad_dental_delete' unidad.pk %}" class="btn btn-danger" onclick="return confirm('¿Eliminar esta unidad?');">
             <i class="bi bi-trash me-1"></i> Eliminar
         </a>
     </div>

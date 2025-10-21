@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Odontograma Completo - {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
@@ -175,7 +176,7 @@
                     </p>
                 </div>
                 <div class="btn-group">
-                    <a href="{% url 'core:paciente_detail' paciente.id %}" class="btn btn-outline-secondary">
+                    <a href="{% tenant_url 'core:paciente_detail' paciente.id %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Volver al Paciente
                     </a>
                     <button type="button" class="btn btn-outline-primary" id="btn-vista-previa">

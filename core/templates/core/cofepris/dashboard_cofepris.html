@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Dashboard de Cumplimiento COFEPRIS{% endblock %}
 
@@ -32,7 +33,7 @@
                     <p>Gestione el documento legal más importante de la clínica.</p>
                 </div>
                 <div class="card-footer">
-                    <a href="{% url 'core:aviso_list' %}" class="btn btn-primary">Gestionar Aviso</a>
+                    <a href="{% tenant_url 'core:aviso_list' %}" class="btn btn-primary">Gestionar Aviso</a>
                 </div>
             </div>
         </div>
@@ -47,7 +48,7 @@
                     <p>Controle los registros sanitarios y fechas de calibración.</p>
                 </div>
                 <div class="card-footer">
-                    <a href="{% url 'core:equipo_list' %}" class="btn btn-primary">Gestionar Equipos</a>
+                    <a href="{% tenant_url 'core:equipo_list' %}" class="btn btn-primary">Gestionar Equipos</a>
                 </div>
             </div>
         </div>
@@ -62,7 +63,7 @@
                     <p>Lleve un registro de los manifiestos de recolección.</p>
                 </div>
                 <div class="card-footer">
-                    <a href="{% url 'core:residuos_list' %}" class="btn btn-primary">Gestionar Residuos</a>
+                    <a href="{% tenant_url 'core:residuos_list' %}" class="btn btn-primary">Gestionar Residuos</a>
                 </div>
             </div>
         </div>

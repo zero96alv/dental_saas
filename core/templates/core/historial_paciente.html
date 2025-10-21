@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Historial de {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
@@ -27,7 +28,7 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>Historial Clínico de {{ paciente.nombre }} {{ paciente.apellido }}</h1>
-        <a href="{% url 'core:paciente_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver a Pacientes</a>
+        <a href="{% tenant_url 'core:paciente_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver a Pacientes</a>
     </div>
     <hr>
 
@@ -106,9 +107,9 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-    const odontogramaApiUrl = `{% url 'core:odontograma_api_get' paciente.pk %}`;
-    const odontogramaUpdateApiUrl = `{% url 'core:odontograma_api_update' paciente.pk %}`;
-    const diagnosticosApiUrl = `{% url 'core:diagnostico_api_list' %}`;
+    const odontogramaApiUrl = `{% tenant_url 'core:odontograma_api_get' paciente.pk %}`;
+    const odontogramaUpdateApiUrl = `{% tenant_url 'core:odontograma_api_update' paciente.pk %}`;
+    const diagnosticosApiUrl = `{% tenant_url 'core:diagnostico_api_list' %}`;
 
     const dienteModalEl = document.getElementById('dienteModal');
     const dienteModal = new bootstrap.Modal(dienteModalEl);

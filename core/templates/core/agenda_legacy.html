@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -282,7 +283,7 @@
         
         <div class="action-buttons">
             <button class="btn-legacy" onclick="showNewAppointmentForm()">Nueva Cita</button>
-            <a href="{% url 'core:cita_list' %}" class="btn-legacy btn-outline">Ver Lista</a>
+            <a href="{% tenant_url 'core:cita_list' %}" class="btn-legacy btn-outline">Ver Lista</a>
             <button class="btn-legacy btn-outline" onclick="location.reload()">Actualizar</button>
             <button class="btn-legacy btn-outline" onclick="testDebug()">Test Debug</button>
         </div>
@@ -293,7 +294,7 @@
 <div id="legacyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
     <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; margin-bottom: 20px;">
         <h3>Nueva Cita</h3>
-        <form id="legacyForm" method="POST" action="{% url 'core:cita_create' %}">
+        <form id="legacyForm" method="POST" action="{% tenant_url 'core:cita_create' %}">
             {% csrf_token %}
             <input type="hidden" name="fecha_hora" id="legacy_fecha_hora">
             
@@ -357,7 +358,7 @@ var dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 // Función para cargar eventos desde el servidor
 function loadEvents() {
-    var url = '{% url "core:agenda_events" %}';
+    var url = '{% tenant_url "core:agenda_events" %}';
     var params = [];
     
     if (currentFilter) {
@@ -702,7 +703,7 @@ function closeLegacyModal() {
 // Función para cargar pacientes
 function loadPatients() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '{% url "core:pacientes_api" %}', true);
+    xhr.open('GET', '{% tenant_url "core:pacientes_api" %}', true);
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4 && xhr.status === 200) {
             try {
@@ -738,7 +739,7 @@ function loadAvailableHours() {
     horaSelect.innerHTML = '<option value="">Cargando...</option>';
     
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '{% url "core:api_horarios_disponibles" dentista_id=0 %}'.replace('0', dentistaId) + '?fecha=' + fecha, true);
+    xhr.open('GET', '{% tenant_url "core:api_horarios_disponibles" dentista_id=0 %}'.replace('0', dentistaId) + '?fecha=' + fecha, true);
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
             if (xhr.status === 200) {

@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -251,7 +252,7 @@
         if (isOldIOS || isOldAndroid || isOldSafari || isOldChrome || noIntl || noPromises || noArrowFunctions) {
             console.log('Dispositivo antiguo detectado, redirigiendo...');
             // Redirección inmediata
-            window.location.href = '{% url "core:agenda_legacy" %}';
+            window.location.href = '{% tenant_url "core:agenda_legacy" %}';
             return true;
         }
         
@@ -418,7 +419,7 @@ function initializeModernAgenda() {
                 telefono: this.telefono.value,
                 fecha_nacimiento: this.fecha_nacimiento.value
             };
-            fetch('{% url "core:crear_paciente_ajax" %}', {
+            fetch('{% tenant_url "core:crear_paciente_ajax" %}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                 body: JSON.stringify(payload)
@@ -446,7 +447,7 @@ function initializeModernAgenda() {
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            events: '{% url "core:agenda_events" %}',
+            events: '{% tenant_url "core:agenda_events" %}',
             selectable: true,
             editable: true,
             
@@ -481,7 +482,7 @@ function initializeModernAgenda() {
         }
         
         function editAppointment(citaId) {
-            $.getJSON(`{% url 'core:cita_detail_api' 0 %}`.replace('0', citaId), function(data){
+            $.getJSON(`{% tenant_url 'core:cita_detail_api' 0 %}`.replace('0', citaId), function(data){
                 currentCitaId = citaId;
                 modalTitle.textContent = `Editar Cita #${citaId}`;
                 const fecha = data.fecha_hora.split('T')[0];
@@ -512,7 +513,7 @@ function initializeModernAgenda() {
         function loadAvailableHours(dentistaId, fecha, selectedHour) {
             horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
             $.ajax({
-                url: `{% url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', dentistaId),
+                url: `{% tenant_url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', dentistaId),
                 data: { fecha: fecha },
                 success: function(response) {
                     horaSelect.empty().append('<option value="">Seleccione horario</option>');
@@ -559,7 +560,7 @@ function initializeModernAgenda() {
         
         function submitAppointmentForm() {
             const formData = new FormData(citaForm);
-            const url = currentCitaId ? `/citas/${currentCitaId}/update/` : `{% url "core:cita_create" %}`;
+            const url = currentCitaId ? `/citas/${currentCitaId}/update/` : `{% tenant_url "core:cita_create" %}`;
             const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
             formData.append('csrfmiddlewaretoken', csrftoken);
@@ -596,7 +597,7 @@ function initializeModernAgenda() {
                 error: function(xhr) {
                     if (xhr.status === 403) {
                         Toastify({ text: 'Su sesión ha expirado. Redirigiendo...', duration: 3000, className: 'error' }).showToast();
-                        setTimeout(() => window.location.href = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname), 2000);
+                        setTimeout(() => window.location.href = "{% tenant_url 'login' %}?next=" + encodeURIComponent(window.location.pathname), 2000);
                     } else {
                         Toastify({ text: 'Error de comunicación con el servidor.', duration: 3000, className: 'error' }).showToast();
                     }
@@ -652,7 +653,7 @@ function initializeModernAgenda() {
             telefono: this.telefono.value,
             fecha_nacimiento: this.fecha_nacimiento.value
         };
-        fetch('{% url "core:crear_paciente_ajax" %}', {
+        fetch('{% tenant_url "core:crear_paciente_ajax" %}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
             body: JSON.stringify(payload)
@@ -705,7 +706,7 @@ function initializeModernAgenda() {
 
     // Configuración simple del calendario
     var calendarConfig = {
-        events: '{% url "core:agenda_events" %}',
+        events: '{% tenant_url "core:agenda_events" %}',
         locale: 'es',
         selectable: true,
         editable: true,
@@ -738,7 +739,7 @@ function initializeModernAgenda() {
         eventClick: function(info) {
             // Cargar datos de la cita y mostrar en el modal para edición
             const citaId = info.event.id;
-            $.getJSON(`{% url 'core:cita_detail_api' 0 %}`.replace('0', citaId), function(data){
+            $.getJSON(`{% tenant_url 'core:cita_detail_api' 0 %}`.replace('0', citaId), function(data){
                 currentCitaId = citaId;
                 modalTitle.textContent = `Editar Cita #${citaId}`;
                 const fecha = data.fecha_hora.split('T')[0];
@@ -754,7 +755,7 @@ function initializeModernAgenda() {
                 // Cargar horas disponibles y seleccionar la hora de la cita
                 horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
                 $.ajax({
-                    url: `{% url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', data.dentista),
+                    url: `{% tenant_url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', data.dentista),
                     data: { fecha: fecha },
                     success: function(response) {
                         horaSelect.empty().append('<option value="">Seleccione horario</option>');
@@ -829,7 +830,7 @@ function initializeModernAgenda() {
 
         if (dentistaId && selectedDate) {
             $.ajax({
-                url: `{% url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', dentistaId),
+                url: `{% tenant_url 'core:api_horarios_disponibles' dentista_id=0 %}`.replace('0', dentistaId),
                 data: { fecha: selectedDate },
                 success: function(response) {
                     horaSelect.empty().append('<option value="">Seleccione horario</option>');
@@ -850,7 +851,7 @@ function initializeModernAgenda() {
     citaForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const formData = new FormData(this);
-        const url = currentCitaId ? `/citas/${currentCitaId}/update/` : `{% url "core:cita_create" %}`;
+        const url = currentCitaId ? `/citas/${currentCitaId}/update/` : `{% tenant_url "core:cita_create" %}`;
 
         // **LA CORRECCIÓN CLAVE Y DEFINITIVA**
         // Añadir el token CSRF manualmente al FormData.
@@ -910,7 +911,7 @@ function initializeModernAgenda() {
                         className: 'error'
                     }).showToast();
                     setTimeout(() => {
-                        window.location.href = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname);
+                        window.location.href = "{% tenant_url 'login' %}?next=" + encodeURIComponent(window.location.pathname);
                     }, 2000); // Redirigir después de 2 segundos
                 } else {
                     // Para otros errores, mostrar el mensaje genérico

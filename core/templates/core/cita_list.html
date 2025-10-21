@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 {% load custom_tags %}
 
@@ -42,7 +43,7 @@
             <p class="text-muted mb-0">Total: {{ stats.total }} citas</p>
         </div>
         <div>
-            <a href="{% url 'core:agenda' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'core:agenda' %}" class="btn btn-primary">
                 <i class="bi bi-calendar-plus me-1"></i>Agendar Nueva Cita
             </a>
         </div>
@@ -149,7 +150,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-search me-1"></i>Filtrar
                     </button>
-                    <a href="{% url 'core:cita_list' %}" class="btn btn-outline-secondary">
+                    <a href="{% tenant_url 'core:cita_list' %}" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i>Limpiar
                     </a>
                 </div>
@@ -240,24 +241,24 @@
                         <!-- Acciones -->
                         <div class="col-md-2 text-end">
                             <div class="btn-group-vertical" role="group">
-                                <a href="{% url 'core:cita_manage' cita.pk %}" class="btn btn-sm btn-outline-dark">
+                                <a href="{% tenant_url 'core:cita_manage' cita.pk %}" class="btn btn-sm btn-outline-dark">
                                     <i class="bi bi-tools me-1"></i>Gestionar
                                 </a>
                                 {% if user|has_group:'Recepcionista' and cita.estado == 'PRO' %}
-                                    <a href="{% url 'core:cita_cambiar_estado' cita.pk %}" 
+                                    <a href="{% tenant_url 'core:cita_cambiar_estado' cita.pk %}" 
                                        class="btn btn-sm btn-outline-info">
                                         <i class="bi bi-check-circle me-1"></i>Confirmar
                                     </a>
                                 {% endif %}
                                 {% if user|has_group:'Dentista' and cita.estado == 'CON' %}
-                                    <a href="{% url 'core:cita_finalizar' cita.pk %}" 
+                                    <a href="{% tenant_url 'core:cita_finalizar' cita.pk %}" 
                                        class="btn btn-sm btn-outline-success">
                                         <i class="bi bi-clipboard-check me-1"></i>Atender/Finalizar
                                     </a>
                                 {% endif %}
                                 {% if cita.estado == 'ATN' %}
                                     {% if user|has_group:'Recepcionista,Administrador' %}
-                                        <a href="{% url 'core:cita_finalizar' cita.pk %}" 
+                                        <a href="{% tenant_url 'core:cita_finalizar' cita.pk %}" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-cash me-1"></i>Finalizar y cobrar
                                         </a>
@@ -268,7 +269,7 @@
                     </div>
                 </div>
                 <div class="card-footer text-end">
-                    <a href="{% url 'core:paciente_detail' cita.paciente.pk %}" class="btn btn-sm btn-outline-dark">
+                    <a href="{% tenant_url 'core:paciente_detail' cita.paciente.pk %}" class="btn btn-sm btn-outline-dark">
                         <i class="bi bi-person me-1"></i>Ver Paciente
                     </a>
                 </div>
@@ -281,7 +282,7 @@
                     <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
                     <h4 class="text-muted mt-3">No hay citas que mostrar</h4>
                     <p class="text-muted">Intenta cambiar los filtros o agenda una nueva cita.</p>
-                    <a href="{% url 'core:agenda' %}" class="btn btn-primary">
+                    <a href="{% tenant_url 'core:agenda' %}" class="btn btn-primary">
                         <i class="bi bi-calendar-plus me-1"></i>Agendar Nueva Cita
                     </a>
                 </div>

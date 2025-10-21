@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Reporte de Ingresos{% endblock %}
@@ -23,7 +24,7 @@
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-funnel-fill me-1"></i> Filtrar
                     </button>
-                    <a href="{% url 'core:exportar_ingresos_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success w-100 mt-2">
+                    <a href="{% tenant_url 'core:exportar_ingresos_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success w-100 mt-2">
                         <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar a Excel
                     </a>
                 </div>
@@ -101,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const ctx = document.getElementById('ingresosChart').getContext('2d');
-    const url = `{% url 'core:reporte_ingresos_api' %}?{{ request.GET.urlencode }}`;
+    const url = `{% tenant_url 'core:reporte_ingresos_api' %}?{{ request.GET.urlencode }}`;
 
     fetch(url)
         .then(response => response.json())

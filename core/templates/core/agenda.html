@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 {% load crispy_forms_tags %}
 
@@ -619,7 +620,7 @@ function ocultarLoading() {
                     telefono: this.telefono.value,
                     fecha_nacimiento: this.fecha_nacimiento.value
                 };
-                fetch('{% url "core:crear_paciente_ajax" %}', {
+                fetch('{% tenant_url "core:crear_paciente_ajax" %}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify(payload)
@@ -649,7 +650,7 @@ function ocultarLoading() {
                 },
                 events: function(fetchInfo, successCallback, failureCallback) {
                     mostrarLoading();
-                    fetch('{% url "core:agenda_events" %}?' + new URLSearchParams({
+                    fetch('{% tenant_url "core:agenda_events" %}?' + new URLSearchParams({
                         dentista: $('#dentistaFilter').val() || '',
                         estado: $('#estadoFilter').val() || '',
                         start: fetchInfo.startStr,
@@ -1041,7 +1042,7 @@ function ocultarLoading() {
             function loadAvailableHours(dentistaId, fecha, selectedHour) {
                 horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
                 $.ajax({
-                    url: '{% url 'core:api_horarios_disponibles' dentista_id=0 %}'.replace('0', dentistaId),
+                    url: '{% tenant_url 'core:api_horarios_disponibles' dentista_id=0 %}'.replace('0', dentistaId),
                     data: { fecha: fecha },
                     success: function(response) {
                         horaSelect.empty().append('<option value="">Seleccione horario</option>');
@@ -1065,7 +1066,7 @@ function ocultarLoading() {
             
             function submitAppointmentForm() {
                 const formData = new FormData(citaForm);
-                const url = currentCitaId ? '/citas/' + currentCitaId + '/update/' : '{% url "core:cita_create" %}';
+                const url = currentCitaId ? '/citas/' + currentCitaId + '/update/' : '{% tenant_url "core:cita_create" %}';
                 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                 
                 formData.append('csrfmiddlewaretoken', csrftoken);
@@ -1102,7 +1103,7 @@ function ocultarLoading() {
                     error: function(xhr) {
                         if (xhr.status === 403) {
                             Toastify({ text: 'Su sesión ha expirado. Redirigiendo...', duration: 3000, className: 'error' }).showToast();
-                            setTimeout(function() { window.location.href = "{% url 'login' %}?next=" + encodeURIComponent(window.location.pathname); }, 2000);
+                            setTimeout(function() { window.location.href = "{% tenant_url 'login' %}?next=" + encodeURIComponent(window.location.pathname); }, 2000);
                         } else {
                             Toastify({ text: 'Error de comunicación con el servidor.', duration: 3000, className: 'error' }).showToast();
                         }
@@ -1163,7 +1164,7 @@ function ocultarLoading() {
             '<i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>' +
             '<h5>Gestionar Citas</h5>' +
             '<p>Ver y gestionar todas las citas</p>' +
-            '<a href="{% url 'core:cita_list' %}" class="btn btn-primary btn-lg">Ir a Lista de Citas</a>' +
+            '<a href="{% tenant_url 'core:cita_list' %}" class="btn btn-primary btn-lg">Ir a Lista de Citas</a>' +
             '</div>' +
             '</div>' +
             '</div>' +
@@ -1173,7 +1174,7 @@ function ocultarLoading() {
             '<i class="fas fa-list fa-3x text-success mb-3"></i>' +
             '<h5>Calendario Simplificado</h5>' +
             '<p>Versión compatible con dispositivos antiguos</p>' +
-            '<a href="{% url 'core:agenda_legacy' %}" class="btn btn-success btn-lg">Usar Versión Simple</a>' +
+            '<a href="{% tenant_url 'core:agenda_legacy' %}" class="btn btn-success btn-lg">Usar Versión Simple</a>' +
             '</div>' +
             '</div>' +
             '</div>' +

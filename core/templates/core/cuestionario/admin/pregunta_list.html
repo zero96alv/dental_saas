@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Administrar Preguntas - Cuestionario{% endblock %}
@@ -14,13 +15,13 @@
                     <p class="text-muted">Administrar las preguntas del historial clínico según normas COFEPRIS</p>
                 </div>
                 <div>
-                    <a href="{% url 'core:pregunta_historial_create' %}" class="btn btn-success">
+                    <a href="{% tenant_url 'core:pregunta_historial_create' %}" class="btn btn-success">
                         <i class="fas fa-plus"></i> Nueva Pregunta
                     </a>
-                    <a href="{% url 'core:categoria_historial_list' %}" class="btn btn-outline-info">
+                    <a href="{% tenant_url 'core:categoria_historial_list' %}" class="btn btn-outline-info">
                         <i class="fas fa-folder-open"></i> Categorías
                     </a>
-                    <a href="{% url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
+                    <a href="{% tenant_url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Volver
                     </a>
                 </div>
@@ -188,7 +189,7 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <a href="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" 
+                                                <a href="{% tenant_url 'core:pregunta_historial_edit' pk=pregunta.id %}" 
                                                    class="btn btn-outline-warning"
                                                    data-bs-toggle="tooltip" title="Editar pregunta">
                                                     <i class="fas fa-edit"></i>
@@ -224,11 +225,11 @@
                                 {% endif %}
                             </p>
                             {% if not request.GET %}
-                                <a href="{% url 'core:pregunta_historial_create' %}" class="btn btn-success">
+                                <a href="{% tenant_url 'core:pregunta_historial_create' %}" class="btn btn-success">
                                     <i class="fas fa-plus"></i> Crear Primera Pregunta
                                 </a>
                             {% else %}
-                                <a href="{% url 'core:pregunta_historial_list' %}" class="btn btn-primary">
+                                <a href="{% tenant_url 'core:pregunta_historial_list' %}" class="btn btn-primary">
                                     <i class="fas fa-refresh"></i> Limpiar Filtros
                                 </a>
                             {% endif %}
@@ -363,7 +364,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <a href="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="btn btn-warning">
+                <a href="{% tenant_url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Editar
                 </a>
             </div>
@@ -393,7 +394,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" action="{% url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="d-inline">
+                <form method="post" action="{% tenant_url 'core:pregunta_historial_edit' pk=pregunta.id %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">

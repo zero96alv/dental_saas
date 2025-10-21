@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Gestionar Cita #{{ cita.id }}{% endblock %}
@@ -8,8 +9,8 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Gestionar Cita #{{ cita.id }}</h2>
     <div>
-      <a class="btn btn-secondary" href="{% url 'core:cita_list' %}"><i class="bi bi-arrow-left"></i> Volver a Citas</a>
-      <a class="btn btn-outline-primary" href="{% url 'core:paciente_detail' cita.paciente.id %}"><i class="bi bi-person"></i> Ver Paciente</a>
+      <a class="btn btn-secondary" href="{% tenant_url 'core:cita_list' %}"><i class="bi bi-arrow-left"></i> Volver a Citas</a>
+      <a class="btn btn-outline-primary" href="{% tenant_url 'core:paciente_detail' cita.paciente.id %}"><i class="bi bi-person"></i> Ver Paciente</a>
     </div>
   </div>
 
@@ -96,8 +97,8 @@
             </div>
             <div class="card-body">
               <div class="mb-3">
-                <a class="btn btn-outline-secondary btn-sm me-2" href="{% url 'core:paciente_history' cita.paciente.id %}"><i class="bi bi-clock-history"></i> Ver historial completo</a>
-                <a class="btn btn-outline-primary btn-sm me-2" href="{% url 'core:paciente_cuestionario' cita.paciente.id %}"><i class="bi bi-ui-checks"></i> Cuestionario</a>
+                <a class="btn btn-outline-secondary btn-sm me-2" href="{% tenant_url 'core:paciente_history' cita.paciente.id %}"><i class="bi bi-clock-history"></i> Ver historial completo</a>
+                <a class="btn btn-outline-primary btn-sm me-2" href="{% tenant_url 'core:paciente_cuestionario' cita.paciente.id %}"><i class="bi bi-ui-checks"></i> Cuestionario</a>
               </div>
               
               <!-- Mostrar últimas entradas del historial -->
@@ -172,7 +173,7 @@
               
               <div class="text-center">
                 <h6>Acceso Rápido</h6>
-                <a href="{% url 'core:historial_create' cliente_id=cita.paciente.id %}" class="btn btn-outline-secondary btn-sm">
+                <a href="{% tenant_url 'core:historial_create' cliente_id=cita.paciente.id %}" class="btn btn-outline-secondary btn-sm">
                   <i class="bi bi-file-earmark-plus"></i>
                   Formulario Avanzado
                 </a>
@@ -309,7 +310,7 @@
           <div class="card mt-3">
             <div class="card-body text-center">
               <h6>Odontograma del Paciente</h6>
-              <a href="{% url 'core:odontograma_48' cita.paciente.id %}" class="btn btn-outline-primary">
+              <a href="{% tenant_url 'core:odontograma_48' cita.paciente.id %}" class="btn btn-outline-primary">
                 <i class="bi bi-diagram-2"></i>
                 Abrir Odontograma
               </a>
@@ -330,7 +331,7 @@
               <li>No hay pagos registrados.</li>
             {% endfor %}
           </ul>
-          <a href="{% url 'core:procesar_pago' cita.id %}" class="btn btn-success">Registrar pago</a>
+          <a href="{% tenant_url 'core:procesar_pago' cita.id %}" class="btn btn-success">Registrar pago</a>
         </div>
       </div>
     </div>
@@ -349,7 +350,7 @@
   }
   function cambiarEstado(estado){
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    fetch('{% url "core:cita_cambiar_estado" cita.id %}', {
+    fetch('{% tenant_url "core:cita_cambiar_estado" cita.id %}', {
       method: 'POST',
       headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With':'XMLHttpRequest' },
       body: new URLSearchParams({ estado })
@@ -399,7 +400,7 @@
       const formData = new FormData(this);
       const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
       
-      fetch('{% url "core:cita_manage" cita.id %}', {
+      fetch('{% tenant_url "core:cita_manage" cita.id %}', {
         method: 'POST',
         headers: {
           'X-CSRFToken': csrftoken,
@@ -449,7 +450,7 @@
       const formData = new FormData(this);
       const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
       
-      fetch('{% url "core:cita_manage" cita.id %}', {
+      fetch('{% tenant_url "core:cita_manage" cita.id %}', {
         method: 'POST',
         headers: {
           'X-CSRFToken': csrftoken,
@@ -497,7 +498,7 @@
       const formData = new FormData(this);
       const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
       
-      fetch('{% url "core:cita_manage" cita.id %}', {
+      fetch('{% tenant_url "core:cita_manage" cita.id %}', {
         method: 'POST',
         headers: {
           'X-CSRFToken': csrftoken,

@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -365,7 +366,7 @@
                         <small class="text-muted">Esta información será parte del expediente médico oficial.</small>
                     </div>
                     <div class="btn-group" role="group">
-                        <a href="{% url 'core:paciente_detail' paciente.pk %}" 
+                        <a href="{% tenant_url 'core:paciente_detail' paciente.pk %}" 
                            class="btn btn-outline-secondary">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </a>

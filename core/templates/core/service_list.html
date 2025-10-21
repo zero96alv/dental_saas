@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Centro de Gestión de Servicios{% endblock %}
@@ -290,7 +291,7 @@
             <p class="text-muted mb-0">Catálogo completo con análisis de rentabilidad y popularidad</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'core:service_create' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'core:service_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Nuevo Servicio
             </a>
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-collapse">
@@ -451,7 +452,7 @@
                         <button type="submit" class="btn btn-outline-primary">
                             <i class="fas fa-search"></i>
                         </button>
-                        <a href="{% url 'core:service_list' %}" class="btn btn-outline-secondary">
+                        <a href="{% tenant_url 'core:service_list' %}" class="btn btn-outline-secondary">
                             <i class="fas fa-times"></i>
                         </a>
                     </div>
@@ -609,13 +610,13 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
-                                                <a class="dropdown-item" href="{% url 'core:service_edit' servicio.pk %}">
+                                                <a class="dropdown-item" href="{% tenant_url 'core:service_edit' servicio.pk %}">
                                                     <i class="fas fa-edit me-2"></i>Editar
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <a class="dropdown-item text-danger" href="{% url 'core:service_delete' servicio.pk %}">
+                                                <a class="dropdown-item text-danger" href="{% tenant_url 'core:service_delete' servicio.pk %}">
                                                     <i class="fas fa-trash me-2"></i>Eliminar
                                                 </a>
                                             </li>
@@ -762,7 +763,7 @@
                                         <div class="row mt-3">
                                             <div class="col-12">
                                                 <div class="action-buttons text-end">
-                                                    <a href="{% url 'core:service_edit' servicio.pk %}" class="btn btn-outline-primary btn-sm">
+                                                    <a href="{% tenant_url 'core:service_edit' servicio.pk %}" class="btn btn-outline-primary btn-sm">
                                                         <i class="fas fa-edit me-1"></i>Editar Servicio
                                                     </a>
                                                     <button class="btn btn-outline-info btn-sm">
@@ -787,7 +788,7 @@
                 <i class="fas fa-tooth fa-4x text-muted mb-4"></i>
                 <h4 class="text-muted">No hay servicios registrados</h4>
                 <p class="text-muted">Comience creando su catálogo de servicios dentales</p>
-                <a href="{% url 'core:service_create' %}" class="btn btn-primary mt-3">
+                <a href="{% tenant_url 'core:service_create' %}" class="btn btn-primary mt-3">
                     <i class="fas fa-plus me-2"></i>Crear Primer Servicio
                 </a>
             </div>

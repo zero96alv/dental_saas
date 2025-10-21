@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Firmar Consentimiento - {{ paciente_consentimiento.paciente }}{% endblock %}
@@ -70,7 +71,7 @@
                                     <i class="fas fa-file-pdf"></i> {{ paciente_consentimiento.consentimiento.titulo }}
                                 </h5>
                                 <div>
-                                    <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=paciente_consentimiento.consentimiento.id %}" 
+                                    <a href="{% tenant_url 'core:descargar_consentimiento_pdf' consentimiento_id=paciente_consentimiento.consentimiento.id %}" 
                                        class="btn btn-outline-primary btn-sm" target="_blank">
                                         <i class="fas fa-download"></i> Descargar PDF
                                     </a>
@@ -207,7 +208,7 @@
                                     <button type="submit" class="btn btn-success btn-lg" id="btn-firmar">
                                         <i class="fas fa-signature"></i> Firmar Consentimiento
                                     </button>
-                                    <a href="{% url 'core:paciente_consentimiento_detail' pk=paciente_consentimiento.id %}" 
+                                    <a href="{% tenant_url 'core:paciente_consentimiento_detail' pk=paciente_consentimiento.id %}" 
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-times"></i> Cancelar
                                     </a>

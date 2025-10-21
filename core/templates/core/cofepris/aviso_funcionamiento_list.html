@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Aviso de Funcionamiento{% endblock %}
 
@@ -7,7 +8,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Aviso de Funcionamiento</h2>
         {% if not avisos %}
-            <a href="{% url 'core:aviso_create' %}" class="btn btn-primary">
+            <a href="{% tenant_url 'core:aviso_create' %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle me-1"></i> Registrar Aviso
             </a>
         {% endif %}
@@ -29,7 +30,7 @@
                             No adjunto.
                         {% endif %}
                     </p>
-                    <a href="{% url 'core:aviso_edit' aviso.pk %}" class="btn btn-warning">Editar Aviso</a>
+                    <a href="{% tenant_url 'core:aviso_edit' aviso.pk %}" class="btn btn-warning">Editar Aviso</a>
                 {% endfor %}
             {% else %}
                 <div class="alert alert-info">No hay un Aviso de Funcionamiento registrado para esta clínica.</div>

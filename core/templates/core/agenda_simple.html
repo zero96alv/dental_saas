@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Agenda Simple{% endblock %}
@@ -177,7 +178,7 @@
                             <button class="btn btn-primary" onclick="showNewCitaForm()">
                                 <i class="fas fa-plus"></i> Nueva Cita
                             </button>
-                            <a href="{% url 'core:cita_list' %}" class="btn btn-success">
+                            <a href="{% tenant_url 'core:cita_list' %}" class="btn btn-success">
                                 <i class="fas fa-list"></i> Ver Todas las Citas
                             </a>
                         </div>

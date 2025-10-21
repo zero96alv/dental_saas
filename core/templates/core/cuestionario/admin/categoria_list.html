@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Administrar Categorías - Cuestionario{% endblock %}
@@ -14,10 +15,10 @@
                     <p class="text-muted">Administrar las categorías del historial clínico según normas COFEPRIS</p>
                 </div>
                 <div>
-                    <a href="{% url 'core:categoria_historial_create' %}" class="btn btn-success">
+                    <a href="{% tenant_url 'core:categoria_historial_create' %}" class="btn btn-success">
                         <i class="fas fa-plus"></i> Nueva Categoría
                     </a>
-                    <a href="{% url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
+                    <a href="{% tenant_url 'core:cuestionario_lista' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Volver
                     </a>
                 </div>
@@ -93,12 +94,12 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <a href="{% url 'core:categoria_historial_edit' pk=categoria.id %}" 
+                                                <a href="{% tenant_url 'core:categoria_historial_edit' pk=categoria.id %}" 
                                                    class="btn btn-outline-warning"
                                                    data-bs-toggle="tooltip" title="Editar categoría">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <a href="{% url 'core:pregunta_historial_list' %}?categoria={{ categoria.id }}" 
+                                                <a href="{% tenant_url 'core:pregunta_historial_list' %}?categoria={{ categoria.id }}" 
                                                    class="btn btn-outline-info"
                                                    data-bs-toggle="tooltip" title="Ver preguntas">
                                                     <i class="fas fa-question-circle"></i>
@@ -123,7 +124,7 @@
                             <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
                             <h4 class="text-muted">No hay categorías configuradas</h4>
                             <p class="text-muted">Cree la primera categoría para organizar las preguntas del cuestionario.</p>
-                            <a href="{% url 'core:categoria_historial_create' %}" class="btn btn-success">
+                            <a href="{% tenant_url 'core:categoria_historial_create' %}" class="btn btn-success">
                                 <i class="fas fa-plus"></i> Crear Primera Categoría
                             </a>
                         </div>
@@ -138,11 +139,11 @@
                         <div class="card-body">
                             <h6><i class="fas fa-tools"></i> Acciones Rápidas</h6>
                             <div class="list-group list-group-flush">
-                                <a href="{% url 'core:pregunta_historial_list' %}" class="list-group-item list-group-item-action">
+                                <a href="{% tenant_url 'core:pregunta_historial_list' %}" class="list-group-item list-group-item-action">
                                     <i class="fas fa-question-circle text-primary"></i>
                                     Administrar Preguntas
                                 </a>
-                                <a href="{% url 'core:cuestionario_lista' %}" class="list-group-item list-group-item-action">
+                                <a href="{% tenant_url 'core:cuestionario_lista' %}" class="list-group-item list-group-item-action">
                                     <i class="fas fa-clipboard-list text-success"></i>
                                     Ver Cuestionarios Completados
                                 </a>
@@ -206,7 +207,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" action="{% url 'core:categoria_historial_edit' pk=categoria.id %}" class="d-inline">
+                <form method="post" action="{% tenant_url 'core:categoria_historial_edit' pk=categoria.id %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger">

@@ -1,9 +1,10 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% block content %}
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Formas de Pago (SAT)</h1>
-    <a class="btn btn-primary" href="{% url 'core:sat_forma_pago_create' %}">Nueva</a>
+    <a class="btn btn-primary" href="{% tenant_url 'core:sat_forma_pago_create' %}">Nueva</a>
   </div>
   <table class="table table-striped">
     <thead>
@@ -21,8 +22,8 @@
         <td>{{ i.descripcion }}</td>
         <td>{{ i.activo|yesno:"Sí,No" }}</td>
         <td class="text-end">
-          <a href="{% url 'core:sat_forma_pago_edit' i.pk %}" class="btn btn-sm btn-secondary">Editar</a>
-          <a href="{% url 'core:sat_forma_pago_delete' i.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+          <a href="{% tenant_url 'core:sat_forma_pago_edit' i.pk %}" class="btn btn-sm btn-secondary">Editar</a>
+          <a href="{% tenant_url 'core:sat_forma_pago_delete' i.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
         </td>
       </tr>
     {% empty %}

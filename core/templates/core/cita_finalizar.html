@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Finalizar Consulta{% endblock %}
@@ -41,7 +42,7 @@
 
                 <hr>
                 <div class="d-flex justify-content-end">
-                    <a href="{% url 'core:agenda' %}" class="btn btn-secondary me-2">Cancelar</a>
+                    <a href="{% tenant_url 'core:agenda' %}" class="btn btn-secondary me-2">Cancelar</a>
                     <button type="submit" class="btn btn-success">
                         <i class="bi bi-send-check-fill me-1"></i> Enviar a Caja
                     </button>

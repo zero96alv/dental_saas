@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Listado de Personal{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2><i class="bi bi-heart-pulse-fill me-2"></i> Personal de la Clínica</h2>
-        <a href="{% url 'core:usuario_create' %}" class="btn btn-primary">
+        <a href="{% tenant_url 'core:usuario_create' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle-fill me-1"></i> Añadir Personal
         </a>
     </div>
@@ -46,11 +47,11 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'core:gestionar_horario' dentista_id=dentista.id %}" class="btn btn-sm btn-info" title="Gestionar Horarios">
+                                <a href="{% tenant_url 'core:gestionar_horario' dentista_id=dentista.id %}" class="btn btn-sm btn-info" title="Gestionar Horarios">
                                     <i class="bi bi-calendar-week"></i>
                                 </a>
                                 {% if dentista.usuario %}
-                                <a href="{% url 'core:usuario_edit' pk=dentista.usuario.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                                <a href="{% tenant_url 'core:usuario_edit' pk=dentista.usuario.pk %}" class="btn btn-sm btn-warning" title="Editar">
                                     <i class="bi bi-pencil-fill"></i>
                                 </a>
                                 {% endif %}

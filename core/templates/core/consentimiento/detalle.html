@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}{{ object.titulo }} - Consentimiento Informado{% endblock %}
@@ -90,10 +91,10 @@
                         </div>
                         <div class="col-md-4 text-md-end">
                             <div class="action-buttons">
-                                <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" class="btn btn-light btn-lg me-2">
+                                <a href="{% tenant_url 'core:consentimiento_edit' pk=object.pk %}" class="btn btn-light btn-lg me-2">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
-                                <a href="{% url 'core:consentimiento_list' %}" class="btn btn-outline-light btn-lg">
+                                <a href="{% tenant_url 'core:consentimiento_list' %}" class="btn btn-outline-light btn-lg">
                                     <i class="fas fa-arrow-left"></i> Volver
                                 </a>
                             </div>
@@ -223,11 +224,11 @@
                                     <a href="{{ object.archivo_pdf.url }}" target="_blank" class="btn btn-outline-primary">
                                         <i class="fas fa-eye"></i> Ver PDF
                                     </a>
-                                    <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
+                                    <a href="{% tenant_url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-download"></i> Descargar PDF
                                     </a>
-                                    <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                    <a href="{% tenant_url 'core:consentimiento_edit' pk=object.pk %}" 
                                        class="btn btn-outline-success">
                                         <i class="fas fa-edit"></i> Editar Documento
                                     </a>
@@ -240,7 +241,7 @@
                                     <i class="fas fa-exclamation-triangle"></i>
                                     No hay archivo PDF asociado
                                 </div>
-                                <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                <a href="{% tenant_url 'core:consentimiento_edit' pk=object.pk %}" 
                                    class="btn btn-warning w-100">
                                     <i class="fas fa-upload"></i> Subir PDF
                                 </a>
@@ -289,7 +290,7 @@
                                                class="btn btn-sm btn-outline-primary me-2">
                                                 <i class="fas fa-external-link-alt"></i> Abrir en nueva ventana
                                             </a>
-                                            <a href="{% url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
+                                            <a href="{% tenant_url 'core:descargar_consentimiento_pdf' consentimiento_id=object.pk %}" 
                                                class="btn btn-sm btn-outline-secondary">
                                                 <i class="fas fa-download"></i> Descargar
                                             </a>
@@ -315,7 +316,7 @@
                                             <i class="fas fa-file-pdf fa-4x text-muted mb-3"></i>
                                             <h4>No hay archivo PDF</h4>
                                             <p class="text-muted">Este documento no tiene un archivo PDF asociado.</p>
-                                            <a href="{% url 'core:consentimiento_edit' pk=object.pk %}" 
+                                            <a href="{% tenant_url 'core:consentimiento_edit' pk=object.pk %}" 
                                                class="btn btn-primary">
                                                 <i class="fas fa-upload"></i> Subir PDF
                                             </a>
@@ -521,7 +522,7 @@ function cargarEstadisticas() {
 function duplicarDocumento() {
     if (confirm('¿Deseas crear una copia de este documento?')) {
         // En producción, esto sería una llamada AJAX
-        window.location.href = '{% url "core:consentimiento_create" %}?duplicar={{ object.pk }}';
+        window.location.href = '{% tenant_url "core:consentimiento_create" %}?duplicar={{ object.pk }}';
     }
 }
 

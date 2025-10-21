@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load static %}
 
 {% block title %}Dashboard Financiero{% endblock %}
@@ -582,7 +583,7 @@
                 </div>
                 {% if pagos_recientes %}
                     <div class="text-center p-3 border-top">
-                        <a href="{% url 'core:pago_list' %}" class="btn btn-outline-primary btn-sm">
+                        <a href="{% tenant_url 'core:pago_list' %}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-list me-1"></i>
                             Ver Todos los Pagos
                         </a>
@@ -606,7 +607,7 @@
 
                 <div class="reports-grid">
                     {% for reporte in reportes_disponibles %}
-                        <a href="{% url reporte.url %}" class="report-card" style="--report-accent: 
+                        <a href="{% tenant_url reporte.url %}" class="report-card" style="--report-accent: 
                             {% if 'ingresos' in reporte.url %}#28a745
                             {% elif 'saldos' in reporte.url %}#ffc107
                             {% elif 'facturacion' in reporte.url %}#17a2b8

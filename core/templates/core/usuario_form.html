@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}{% if object %}Editar Usuario{% else %}Nuevo Usuario{% endif %}{% endblock %}
@@ -38,11 +39,11 @@
         <div class="mt-3 d-flex justify-content-between">
             <div>
                 <button type="submit" class="btn btn-primary">Guardar</button>
-                <a href="{% url 'core:usuario_list' %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% tenant_url 'core:usuario_list' %}" class="btn btn-secondary">Cancelar</a>
             </div>
             {% if object %}
             <div>
-                <a href="{% url 'core:usuario_reset_password' object.pk %}" class="btn btn-danger">Restablecer Contraseña</a>
+                <a href="{% tenant_url 'core:usuario_reset_password' object.pk %}" class="btn btn-danger">Restablecer Contraseña</a>
             </div>
             {% endif %}
         </div>

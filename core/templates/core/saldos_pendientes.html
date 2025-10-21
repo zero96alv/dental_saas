@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load tenant_urls %}
 {% block content %}
 <div class="container mt-4">
     <h2><i class="bi bi-cash-coin me-2"></i>Saldos Pendientes por Paciente</h2>
@@ -28,10 +29,10 @@
                         <td>{{ paciente.nombre }} {{ paciente.apellido }}</td>
                         <td class="text-end">${{ paciente.saldo_global|floatformat:2 }}</td>
                         <td class="text-end">
-                            <a href="{% url 'core:registrar_pago_paciente' paciente_id=paciente.id %}" class="btn btn-sm btn-success">
+                            <a href="{% tenant_url 'core:registrar_pago_paciente' paciente_id=paciente.id %}" class="btn btn-sm btn-success">
                                 <i class="bi bi-cash-coin me-1"></i> Procesar Pago
                             </a>
-                            <a href="{% url 'core:paciente_detail' pk=paciente.id %}" class="btn btn-sm btn-outline-secondary">
+                            <a href="{% tenant_url 'core:paciente_detail' pk=paciente.id %}" class="btn btn-sm btn-outline-secondary">
                                 Detalles
                             </a>
                         </td>

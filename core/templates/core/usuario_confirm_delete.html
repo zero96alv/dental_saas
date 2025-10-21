@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 
 {% block title %}Eliminar Usuario{% endblock %}
 
@@ -51,7 +52,7 @@
                 </div>
                 
                 <div class="card-footer d-flex justify-content-between">
-                    <a href="{% url 'core:usuario_list' %}" class="btn btn-secondary">
+                    <a href="{% tenant_url 'core:usuario_list' %}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>
                         Cancelar
                     </a>

@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tenant_urls %}
 {% load crispy_forms_tags %}
 
 {% block title %}Historial Clínico - {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
@@ -114,11 +115,11 @@
                         </div>
                         <div class="col-md-4 text-md-end">
                             <div class="btn-group" role="group">
-                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                <a href="{% tenant_url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
                                    class="btn btn-outline-warning">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
-                                <a href="{% url 'core:paciente_detail' pk=paciente.id %}" 
+                                <a href="{% tenant_url 'core:paciente_detail' pk=paciente.id %}" 
                                    class="btn btn-outline-primary">
                                     <i class="fas fa-user"></i> Perfil Paciente
                                 </a>
@@ -285,7 +286,7 @@
                                 <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
                                 <h4 class="text-muted">No hay cuestionario completado</h4>
                                 <p class="text-muted">Este paciente aún no ha completado su historial clínico.</p>
-                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                <a href="{% tenant_url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
                                    class="btn btn-primary">
                                     <i class="fas fa-plus-circle"></i> Completar Cuestionario
                                 </a>
@@ -435,12 +436,12 @@
                                 </div>
                                 
                                 <div class="d-grid gap-2">
-                                    <a href="{% url 'core:paciente_consentimiento_detail' pk=ultimo_cuestionario.consentimiento_presentado.id %}" 
+                                    <a href="{% tenant_url 'core:paciente_consentimiento_detail' pk=ultimo_cuestionario.consentimiento_presentado.id %}" 
                                        class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-eye"></i> Ver Consentimiento
                                     </a>
                                     {% if ultimo_cuestionario.consentimiento_presentado.estado == 'PENDIENTE' %}
-                                        <a href="{% url 'core:firmar_consentimiento' paciente_consentimiento_id=ultimo_cuestionario.consentimiento_presentado.id %}" 
+                                        <a href="{% tenant_url 'core:firmar_consentimiento' paciente_consentimiento_id=ultimo_cuestionario.consentimiento_presentado.id %}" 
                                            class="btn btn-warning btn-sm">
                                             <i class="fas fa-signature"></i> Firmar Consentimiento
                                         </a>
@@ -451,7 +452,7 @@
                                     <i class="fas fa-file-contract fa-2x mb-2"></i>
                                     <p class="mb-2">Consentimiento informado requerido</p>
                                     <div class="d-grid">
-                                        <a href="{% url 'core:presentar_consentimiento_desde_cuestionario' cuestionario_id=ultimo_cuestionario.id %}" 
+                                        <a href="{% tenant_url 'core:presentar_consentimiento_desde_cuestionario' cuestionario_id=ultimo_cuestionario.id %}" 
                                            class="btn btn-primary btn-sm">
                                             <i class="fas fa-plus-circle"></i> Presentar Consentimiento
                                         </a>
@@ -476,15 +477,15 @@
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
-                                <a href="{% url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
+                                <a href="{% tenant_url 'core:cuestionario_completar' paciente_id=paciente.id %}" 
                                    class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i> Editar Cuestionario
                                 </a>
-                                <a href="{% url 'core:historial_create' cliente_id=paciente.id %}" 
+                                <a href="{% tenant_url 'core:historial_create' cliente_id=paciente.id %}" 
                                    class="btn btn-success btn-sm">
                                     <i class="fas fa-plus"></i> Agregar Evolución
                                 </a>
-                                <a href="{% url 'core:paciente_history' pk=paciente.id %}" 
+                                <a href="{% tenant_url 'core:paciente_history' pk=paciente.id %}" 
                                    class="btn btn-info btn-sm">
                                     <i class="fas fa-file-medical"></i> Ver Historial Completo
                                 </a>
