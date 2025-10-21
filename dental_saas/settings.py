@@ -23,6 +23,8 @@ DEBUG = True  # Habilitado temporalmente para desarrollo
 # Parse ALLOWED_HOSTS from environment variable or use defaults
 allowed_hosts_str = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost,.ondigitalocean.app')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
+# Agregar IP del servidor y wildcard para desarrollo
+ALLOWED_HOSTS.extend(['142.93.87.37', '*'])  # TODO: Remover '*' en producción
 
 # --- Multi-Tenant Configuration ---
 DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
