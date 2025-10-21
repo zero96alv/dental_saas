@@ -65,20 +65,76 @@ class ForceAuthenticationMiddleware:
 
         # TERCERO: Si el usuario no está autenticado, redirigir al login
         if not request.user.is_authenticated:
-            login_url = settings.LOGIN_URL
-            
-            # Preservar parámetro tenant si existe
-            tenant_param = request.GET.get('tenant')
-            if tenant_param:
-                login_url += f'?tenant={tenant_param}'
-                logger.info(f"ForceAuth: Redirigiendo usuario no autenticado desde {path} a {login_url} (preservando tenant={tenant_param})")
+            # IMPORTANTE: Si estamos en una ruta de clínica, mantener el contexto
+            clinic_slug = self._extract_clinic_from_path(path)
+            if clinic_slug:
+                # Estamos en una clínica, redirigir al login de esa clínica
+                login_url = f'/{clinic_slug}/accounts/login/'
+                logger.info(f"ForceAuth: Redirigiendo desde {path} al login de clínica: {login_url}")
             else:
-                logger.info(f"ForceAuth: Redirigiendo usuario no autenticado desde {path} a {login_url}")
+                # Usar login estándar para rutas públicas
+                login_url = settings.LOGIN_URL
+                
+                # Preservar parámetro tenant si existe
+                tenant_param = request.GET.get('tenant')
+                if tenant_param:
+                    login_url += f'?tenant={tenant_param}'
+                    logger.info(f"ForceAuth: Redirigiendo desde {path} a {login_url} (tenant={tenant_param})")
+                else:
+                    logger.info(f"ForceAuth: Redirigiendo desde {path} a {login_url}")
             
             return redirect(login_url)
         
         logger.info(f"ForceAuth: Permitiendo acceso autenticado a {path}")
         return self.get_response(request)
+    
+    def _extract_clinic_from_path(self, path):
+        """
+        Extrae slug de clínica de la URL para mantener contexto en redirects.
+        Reutiliza la misma lógica que el ClinicRouteMiddleware.
+        """
+        # Limpiar la ruta
+        path = path.strip('/')
+        
+        if not path:
+            return None
+        
+        # Obtener el primer segmento
+        first_segment = path.split('/')[0]
+        
+        # Excluir rutas especiales que NO son clínicas
+        excluded_paths = {
+            'admin', 'static', 'media', 'api', 'debug', 'accounts',
+            'setup-tenants', 'simple-setup', 'tenants', 'switch'
+        }
+        
+        if first_segment in excluded_paths:
+            return None
+        
+        # Si es un slug válido, retornarlo
+        if self._is_valid_clinic_slug(first_segment):
+            return first_segment
+        
+        return None
+    
+    def _is_valid_clinic_slug(self, slug):
+        """
+        Valida que el slug sea un nombre válido de clínica.
+        Misma lógica que ClinicRouteMiddleware.
+        """
+        import re
+        
+        if not slug or len(slug) < 3 or len(slug) > 20:
+            return False
+        
+        # Patrón: letras, números y guiones, no empezar/terminar con guión
+        pattern = r'^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]$'
+        
+        if len(slug) == 3:
+            # Para slugs de 3 caracteres, permitir solo letras/números
+            pattern = r'^[a-zA-Z0-9]+$'
+        
+        return bool(re.match(pattern, slug))
 
 class NoCacheMiddleware:
     """
