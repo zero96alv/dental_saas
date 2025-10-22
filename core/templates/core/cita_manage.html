@@ -202,10 +202,76 @@
           <div class="card h-100">
             <div class="card-body">
               <h5 class="mb-3"><i class="bi bi-diagram-2 me-1"></i> Odontograma</h5>
-              <div class="odontograma-wrapper" style="min-height: 640px;">
-                {% include 'core/partials/odontograma_48_responsive.html' %}
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom odontograma">
+                  <button class="btn btn-outline-secondary" id="odo-zoom-out"><i class="bi bi-zoom-out"></i></button>
+                  <button class="btn btn-outline-secondary" id="odo-zoom-reset"><i class="bi bi-aspect-ratio"></i></button>
+                  <button class="btn btn-outline-secondary" id="odo-zoom-in"><i class="bi bi-zoom-in"></i></button>
+                </div>
+              </div>
+              <div id="odontograma-stage" class="odontograma-wrapper" style="min-height: 700px; overflow: auto; border: 1px solid #e9ecef; border-radius: 8px; background: #f8f9fa;">
+                <div id="odontograma-scale" style="transform-origin: 0 0;">
+                  {% include 'core/partials/odontograma_clinico_profesional.html' %}
+                </div>
               </div>
               <small class="text-muted d-block mt-2">Haga clic en los dientes; se agregarán al campo “Dientes Tratados”.</small>
+              <script>
+                (function(){
+                  let scale = 1.0;
+                  const minScale = 0.6, maxScale = 2.0, step = 0.1;
+                  const scaleEl = document.getElementById('odontograma-scale');
+                  function applyScale(){ scaleEl.style.transform = `scale(${scale})`; }
+                  document.getElementById('odo-zoom-in')?.addEventListener('click', function(){ scale = Math.min(maxScale, +(scale + step).toFixed(2)); applyScale(); });
+                  document.getElementById('odo-zoom-out')?.addEventListener('click', function(){ scale = Math.max(minScale, +(scale - step).toFixed(2)); applyScale(); });
+                  document.getElementById('odo-zoom-reset')?.addEventListener('click', function(){ scale = 1.0; applyScale(); });
+
+                  // Vincular clics en dientes
+                  function bindToothClicks(){
+                    document.querySelectorAll('#odontograma-stage .diente, #odontograma-stage .diente-clinico').forEach(function(d){
+                      d.addEventListener('click', function(e){
+                        e.stopPropagation();
+                        document.querySelectorAll('#odontograma-stage .diente.selected, #odontograma-stage .diente-clinico.selected').forEach(x=>x.classList.remove('selected'));
+                        d.classList.add('selected');
+                        const id = d.id || '';
+                        const num = id.replace('diente-','');
+                        const ev = new CustomEvent('dienteSeleccionado', { detail: { numeroDiente: num, elemento: d } });
+                        document.dispatchEvent(ev);
+                      });
+                    });
+                  }
+
+                  // Colorear desde API estados actuales
+                  async function hydrateFromApi(){
+                    try{
+                      const url = '{% tenant_url "core:odontograma_api_get" cita.paciente.id %}';
+                      const r = await fetch(url, { headers: { 'Accept':'application/json' } });
+                      if(!r.ok) return;
+                      const data = await r.json();
+                      const mapa = data.dientes || {};
+                      const keys = Object.keys(mapa);
+                      const classMap = {
+                        'SANO':'sano', 'CARIES':'caries', 'OBTURACION':'obturada', 'OBTURADA':'obturada', 'CORONA':'corona',
+                        'EXTRAIDO':'extraida', 'EXTRAIDA':'extraida', 'IMPLANTE':'implante', 'ENDODONCIA':'endodoncia'
+                      };
+                      keys.forEach(k=>{
+                        const info = mapa[k];
+                        const el = document.getElementById('diente-'+k);
+                        if(!el) return;
+                        // limpiar clases previas
+                        el.classList.remove('sano','caries','obturada','corona','extraida','implante','endodoncia');
+                        const cls = classMap[(info.diagnostico_nombre||'').toUpperCase()] || null;
+                        if(cls) el.classList.add(cls);
+                        // aplicar color directo si viene
+                        const oc = el.querySelector('.superficie-oclusal') || el.querySelector('path');
+                        if(oc && info.diagnostico_color){ oc.style.fill = info.diagnostico_color; }
+                      });
+                    }catch(_e){}
+                  }
+
+                  bindToothClicks();
+                  hydrateFromApi();
+                })();
+              </script>
             </div>
           </div>
         </div>
