@@ -203,6 +203,16 @@
             <div class="card-body">
               <h5 class="mb-3"><i class="bi bi-diagram-2 me-1"></i> Odontograma</h5>
               <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <label for="odo-variant" class="form-label mb-0 small text-muted">Diseño:</label>
+                  <select id="odo-variant" class="form-select form-select-sm" style="width:auto;">
+                    <option value="clinico_profesional">Clínico profesional</option>
+                    <option value="responsive_48">Responsive 48</option>
+                    <option value="anatomico_48">Anatómico 48</option>
+                    <option value="profesional_v2">Profesional V2</option>
+                    <option value="movil_optimizado">Móvil optimizado</option>
+                  </select>
+                </div>
                 <div class="btn-group btn-group-sm" role="group" aria-label="Zoom odontograma">
                   <button class="btn btn-outline-secondary" id="odo-zoom-out"><i class="bi bi-zoom-out"></i></button>
                   <button class="btn btn-outline-secondary" id="odo-zoom-reset"><i class="bi bi-aspect-ratio"></i></button>
@@ -267,6 +277,22 @@
                       });
                     }catch(_e){}
                   }
+
+                  // Cargar variante por API
+                  async function loadVariant(variant){
+                    const url = '{% tenant_url "core:odontograma_partial" %}?variant=' + encodeURIComponent(variant);
+                    const r = await fetch(url, { headers: { 'Accept':'text/html' } });
+                    if(!r.ok) return;
+                    const html = await r.text();
+                    scaleEl.innerHTML = html;
+                    bindToothClicks();
+                    hydrateFromApi();
+                  }
+
+                  // Eventos UI
+                  document.getElementById('odo-variant')?.addEventListener('change', function(){
+                    loadVariant(this.value);
+                  });
 
                   bindToothClicks();
                   hydrateFromApi();

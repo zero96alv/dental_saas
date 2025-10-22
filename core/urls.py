@@ -98,6 +98,7 @@ urlpatterns = [
     path('api/odontograma/<int:cliente_id>/', odontograma_api_get, name='odontograma_api_get'),
     path('api/odontograma/<int:cliente_id>/update/', odontograma_api_update, name='odontograma_api_update'),
     path('api/diagnosticos/', diagnostico_api_list, name='diagnostico_api_list'),
+    path('api/odontograma/partial/', views.odontograma_partial, name='odontograma_partial'),
     path('api/reportes/ingresos/', reporte_ingresos_api, name='reporte_ingresos_api'),
     path('api/dentista/<int:dentista_id>/servicios/', get_servicios_for_dentista_api, name='api_servicios_por_dentista'),
     path('api/dentista/<int:dentista_id>/horario/', get_horario_dentista_api, name='api_horario_dentista'),

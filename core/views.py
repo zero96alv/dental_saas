@@ -2076,6 +2076,22 @@ def diagnostico_api_list(request):
     return JsonResponse(data, safe=False)
 
 @tenant_login_required
+def odontograma_partial(request):
+    variant = (request.GET.get('variant') or '').strip() or 'clinico_profesional'
+    mapping = {
+        'clinico_profesional': 'core/partials/odontograma_clinico_profesional.html',
+        'responsive_48': 'core/partials/odontograma_48_responsive.html',
+        'anatomico_48': 'core/partials/odontograma_anatomico_48.html',
+        'profesional_v2': 'core/partials/odontograma_profesional_v2.html',
+        'movil_optimizado': 'core/partials/odontograma_movil_optimizado.html',
+    }
+    template = mapping.get(variant)
+    if not template:
+        return JsonResponse({'error': 'Variant not found'}, status=404)
+    html = render_to_string(template)
+    return HttpResponse(html)
+
+@tenant_login_required
 def reporte_ingresos_api(request):
     form = forms.ReporteIngresosForm(request.GET or None)
     data = {'labels': [], 'values': []}
