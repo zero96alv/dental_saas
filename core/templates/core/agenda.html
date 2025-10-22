@@ -1082,7 +1082,12 @@ function ocultarLoading() {
                         horaSelect.prop('disabled', true);
                         
                         // Show user-friendly error
-                        if (xhr.status === 404) {
+                        if (xhr.status === 401) {
+                            Toastify({ text: 'Su sesión ha expirado. Por favor, recargue la página e inicie sesión.', duration: 5000, className: 'error' }).showToast();
+                            setTimeout(function() {
+                                window.location.href = "{% tenant_url 'login' %}?next=" + encodeURIComponent(window.location.pathname);
+                            }, 3000);
+                        } else if (xhr.status === 404) {
                             Toastify({ text: 'Dentista no encontrado', duration: 3000, className: 'error' }).showToast();
                         } else if (xhr.status === 500) {
                             Toastify({ text: 'Error del servidor al cargar horarios', duration: 3000, className: 'error' }).showToast();

@@ -48,6 +48,7 @@ def tenant_login_required(function=None, redirect_field_name='next', login_url=N
     """
     Decorador que requiere autenticación pero mantiene el prefijo del tenant.
     Reemplaza a @login_required estándar para vistas basadas en funciones.
+    Maneja peticiones AJAX devolviendo JSON en lugar de redirigir.
     
     Uso:
         @tenant_login_required
@@ -61,7 +62,16 @@ def tenant_login_required(function=None, redirect_field_name='next', login_url=N
             if request.user.is_authenticated:
                 return view_func(request, *args, **kwargs)
             
-            # Usuario no autenticado, obtener prefijo del tenant
+            # Usuario no autenticado
+            # Si es una petición AJAX, devolver JSON en lugar de redirigir
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('accept', '').startswith('application/json'):
+                from django.http import JsonResponse
+                return JsonResponse({
+                    'error': 'Autenticación requerida',
+                    'message': 'Su sesión ha expirado. Por favor, recargue la página e inicie sesión de nuevo.'
+                }, status=401)
+            
+            # Para peticiones normales, redirigir al login
             tenant_prefix = getattr(request, 'tenant_prefix', '')
             
             # Construir URL de login con prefijo
