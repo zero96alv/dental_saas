@@ -3637,12 +3637,30 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
     template_name = 'core/cita_manage.html'
     context_object_name = 'cita'
 
+    def _ensure_default_diagnosticos(self):
+        """Asegura un set básico de diagnósticos para el odontograma interactivo"""
+        base = [
+            ('SANO', '#27ae60'),
+            ('CARIES', '#e74c3c'),
+            ('OBTURACION', '#f39c12'),
+            ('CORONA', '#3498db'),
+            ('ENDODONCIA', '#e91e63'),
+            ('EXTRAIDO', '#95a5a6'),
+        ]
+        for nombre, color in base:
+            if not models.Diagnostico.objects.filter(nombre__iexact=nombre).exists():
+                try:
+                    models.Diagnostico.objects.create(nombre=nombre, color_hex=color, icono_svg='')
+                except Exception:
+                    pass
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['historial_form'] = forms.HistorialClinicoForm()
         context['puede_facturar'] = self.request.user.groups.filter(name__in=['Administrador','Recepcionista']).exists()
         
-        # Agregar diagnósticos para el formulario de tratamientos
+        # Asegurar diagnósticos base y luego cargar todos
+        self._ensure_default_diagnosticos()
         context['diagnosticos'] = models.Diagnostico.objects.all().order_by('nombre')
         
         return context
