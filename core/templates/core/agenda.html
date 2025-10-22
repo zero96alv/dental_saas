@@ -1050,7 +1050,7 @@ function ocultarLoading() {
                 
                 // Build URL with tenant prefix from request
                 const tenantPrefix = '{{ request.tenant_prefix|default:"" }}';
-                const baseUrl = tenantPrefix ? `/${tenantPrefix}/api/dentista/${dentistaId}/horarios-disponibles/` : `/api/dentista/${dentistaId}/horarios-disponibles/`;
+                const baseUrl = tenantPrefix ? `${tenantPrefix}/api/dentista/${dentistaId}/horarios-disponibles/` : `/api/dentista/${dentistaId}/horarios-disponibles/`;
                 
                 console.log('Tenant prefix:', tenantPrefix);
                 console.log('Fetching from URL:', baseUrl, 'with params:', { fecha: fecha });
