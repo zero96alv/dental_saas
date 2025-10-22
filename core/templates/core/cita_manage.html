@@ -317,19 +317,32 @@
                   function getCSRF(){
                     const v = document.querySelector('[name=csrfmiddlewaretoken]')?.value; return v || '';
                   }
+                  function norm(s){ return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase(); }
+                  const ALIAS = { 'OBTURADA':'OBTURACION', 'EXTRAIDA':'EXTRAIDO', 'ENDODONCIA':'ENDODONCIA', 'SANO':'SANO', 'CARIES':'CARIES', 'CORONA':'CORONA' };
+                  function findDiagId(nombre){
+                    const up = norm(nombre);
+                    if (DIAG_MAP[up]) return DIAG_MAP[up];
+                    const alias = ALIAS[up];
+                    if (alias && DIAG_MAP[alias]) return DIAG_MAP[alias];
+                    // Fallback: buscar por startsWith/contains
+                    const key = Object.keys(DIAG_MAP).find(k=>norm(k)===up || norm(k).startsWith(up) || up.startsWith(norm(k)));
+                    return key ? DIAG_MAP[key] : null;
+                  }
                   async function applyDiagnosisToSelected(nombre, color){
-                    const nombreUp = (nombre||'').toUpperCase();
-                    const diagId = DIAG_MAP[nombreUp];
-                    if (!diagId) return;
+                    const diagId = findDiagId(nombre);
+                    console.log('Aplicar diagnóstico:', nombre, '->', diagId, 'a', Array.from(selected));
+                    if (!diagId || selected.size===0) return;
                     const url = '{% tenant_url "core:odontograma_api_update" cita.paciente.id %}';
-                    const bodyBase = { diagnostico_id: diagId, color_seleccionado: color||'' };
                     const headers = { 'Content-Type':'application/json', 'X-CSRFToken': getCSRF(), 'X-Requested-With':'XMLHttpRequest' };
-                    await Promise.all(Array.from(selected).map(async (num)=>{
-                      // pintar en UI
-                      const el = document.getElementById('diente-'+num);
-                      if (el){ el.classList.remove('sano','caries','obturada','corona','extraida','implante','endodonica','endodoncia'); el.classList.add(nombreUp.toLowerCase()); }
-                      try{ await fetch(url, { method:'POST', headers, body: JSON.stringify({ ...bodyBase, numero_diente: parseInt(num,10) }) }); }catch(_e){}
-                    }));
+                    const lista = Array.from(selected).map(n=>parseInt(n,10));
+                    try{
+                      // Pintar en UI
+                      lista.forEach(num=>{
+                        const el = document.getElementById('diente-'+num);
+                        if (el){ el.classList.remove('sano','caries','obturada','corona','extraida','implante','endodonica','endodoncia'); el.classList.add(norm(nombre).toLowerCase()); }
+                      });
+                      await fetch(url, { method:'POST', headers, body: JSON.stringify({ lista_numeros: lista, diagnostico_id: diagId, color_seleccionado: color||'' }) });
+                    }catch(e){ console.error('Error aplicando diagnóstico:', e); }
                   }
                   document.querySelectorAll('.diag-btn').forEach(btn=>{
                     btn.addEventListener('click', async function(){
