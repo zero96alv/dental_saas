@@ -584,33 +584,27 @@ function ocultarLoading() {
             // Configurar selects nativos (sin Select2 para mayor compatibilidad)
             // Los selects ya funcionan nativamente
 
-            // Lógica de servicios
-            function updateHiddenInput() {
-                const ids = listaServiciosSeleccionados.find('li').map((i, el) => $(el).data('service-id')).get();
-                hiddenServiciosInput.val(ids.join(','));
+            // Lógica de servicios con CheckboxSelectMultiple
+            function updateServiciosList() {
+                listaServiciosSeleccionados.empty();
+                
+                // Buscar todos los checkboxes marcados
+                $('#id_servicios_planeados input[type="checkbox"]:checked').each(function() {
+                    const checkbox = $(this);
+                    const servicioId = checkbox.val();
+                    const servicioLabel = checkbox.next('label').text().trim();
+                    
+                    const li = $('<li class="list-group-item list-group-item-sm py-1 px-2">');
+                    li.html('<i class="fas fa-check-circle text-success me-2"></i>' + servicioLabel);
+                    li.attr('data-service-id', servicioId);
+                    listaServiciosSeleccionados.append(li);
+                });
             }
 
-            serviciosSelect.on('change', function(e) {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.value && !listaServiciosSeleccionados.find('li[data-service-id="' + selectedOption.value + '"]').length) {
-                    const data = { id: selectedOption.value, text: selectedOption.text };
-                    const li = '<li class="list-group-item list-group-item-sm py-1 px-2 d-flex justify-content-between align-items-center" data-service-id="' + data.id + '">' +
-                                    '<span>' + data.text + '</span>' +
-                                    '<button type="button" class="btn-close remove-service-btn" aria-label="Eliminar"></button>' +
-                                '</li>';
-                    listaServiciosSeleccionados.append(li);
-                    updateHiddenInput();
-                    $(this).find('option[value="' + data.id + '"]').prop('disabled', true);
-                    $(this).val('');
-                }
-            });
-
-            listaServiciosSeleccionados.on('click', '.remove-service-btn', function() {
-                const li = $(this).closest('li');
-                const serviceId = li.data('service-id');
-                serviciosSelect.find('option[value="' + serviceId + '"]').prop('disabled', false);
-                li.remove();
-                updateHiddenInput();
+            // Detectar cambios en los checkboxes de servicios
+            $(document).on('change', '#id_servicios_planeados input[type="checkbox"]', function() {
+                console.log('Servicio checkbox changed');
+                updateServiciosList();
             });
 
             // Lógica de pacientes
@@ -822,8 +816,10 @@ function ocultarLoading() {
                 dentistaSelect.val('');
                 unidadDentalSelect.val('');
                 horaSelect.empty().append('<option value="">Primero seleccione fecha y dentista</option>').prop('disabled', true);
+                
+                // Limpiar servicios (desmarcar todos los checkboxes)
+                $('#id_servicios_planeados input[type="checkbox"]').prop('checked', false);
                 listaServiciosSeleccionados.empty();
-                updateHiddenInput();
                 
                 statusIndicator.hide();
                 $('#editarCitaBtn').hide();
@@ -1104,13 +1100,14 @@ function ocultarLoading() {
                 if (selectedDate && selectedTime) {
                     const localDateTime = selectedDate + 'T' + selectedTime + ':00';
                     formData.append('fecha_hora', localDateTime);
+                } else {
+                    console.error('Missing date or time:', { selectedDate, selectedTime });
                 }
                 
-                const serviciosIds = hiddenServiciosInput.val().split(',');
-                formData.delete('servicios_planeados'); 
-                serviciosIds.forEach(function(id) {
-                    if (id) formData.append('servicios_planeados', id);
-                });
+                // Los servicios ya vienen en formData desde los checkboxes
+                // Solo verificar que haya al menos uno seleccionado
+                const serviciosChecked = $('#id_servicios_planeados input[type="checkbox"]:checked').length;
+                console.log('Servicios seleccionados:', serviciosChecked);
 
                 $.ajax({
                     url: url,
