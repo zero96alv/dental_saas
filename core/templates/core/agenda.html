@@ -1048,10 +1048,11 @@ function ocultarLoading() {
                 console.log('Loading hours for dentista:', dentistaId, 'fecha:', fecha);
                 horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
                 
-                // Build URL with tenant prefix
-                const tenantPrefix = '{{ request.session.tenant_prefix|default:"" }}';
+                // Build URL with tenant prefix from request
+                const tenantPrefix = '{{ request.tenant_prefix|default:"" }}';
                 const baseUrl = tenantPrefix ? `/${tenantPrefix}/api/dentista/${dentistaId}/horarios-disponibles/` : `/api/dentista/${dentistaId}/horarios-disponibles/`;
                 
+                console.log('Tenant prefix:', tenantPrefix);
                 console.log('Fetching from URL:', baseUrl, 'with params:', { fecha: fecha });
                 
                 $.ajax({
