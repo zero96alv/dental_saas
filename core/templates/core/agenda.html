@@ -662,14 +662,22 @@ function ocultarLoading() {
                         start: fetchInfo.startStr,
                         end: fetchInfo.endStr
                     }))
-                    .then(response => response.json())
+                    .then(async (response) => {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        const ct = (response.headers.get('content-type') || '').toLowerCase();
+                        if (!ct.includes('application/json')) {
+                            const text = await response.text();
+                            throw new Error('Invalid JSON: ' + text.slice(0, 200));
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         ocultarLoading();
-                        // Agregar clases CSS según el estado
-                        const events = data.map(event => ({
-                            ...event,
-                            className: 'cita-' + event.estado.toLowerCase()
-                        }));
+                        // Mapear estado desde extendedProps y aplicar clase
+                        const events = data.map(event => {
+                            const estado = (event.extendedProps && event.extendedProps.estado) ? event.extendedProps.estado : 'PRO';
+                            return { ...event, className: 'cita-' + estado.toLowerCase(), estado };
+                        });
                         actualizarEstadisticas(events);
                         successCallback(events);
                     })
@@ -854,7 +862,10 @@ function ocultarLoading() {
                 modalTitle.textContent = 'Editar Cita';
                 
                 // Cargar datos de la cita
-                fetch('/citas/' + citaId + '/api/')
+                // Build tenant-aware API URL
+                const tenantPrefix = '{{ request.tenant_prefix|default:"" }}';
+                const citaApiUrl = tenantPrefix ? `${tenantPrefix}/api/citas/${citaId}/` : `/api/citas/${citaId}/`;
+                fetch(citaApiUrl)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -930,60 +941,6 @@ function ocultarLoading() {
                 
                 updateHiddenInput();
             }
-            
-            // Manejo del formulario de cita
-            $('#citaForm').on('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                const url = currentCitaId ? '/citas/' + currentCitaId + '/update/' : '/citas/new/';
-                
-                // Agregar servicios seleccionados
-                formData.set('servicios_seleccionados', hiddenServiciosInput.val());
-                
-                // Construir fecha y hora
-                const fechaSeleccionada = modalDate.textContent;
-                const horaSeleccionada = horaSelect.val();
-                
-                if (!horaSeleccionada) {
-                    alert('Por favor seleccione una hora');
-                    return;
-                }
-                
-                fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        citaModal.hide();
-                        calendar.refetchEvents();
-                        
-                        if (typeof Toastify !== 'undefined') {
-                            Toastify({ 
-                                text: data.message || 'Cita guardada exitosamente', 
-                                duration: 3000, 
-                                className: 'success',
-                                style: {
-                                    background: "linear-gradient(to right, #00b09b, #96c93d)",
-                                }
-                            }).showToast();
-                        } else {
-                            alert(data.message || 'Cita guardada exitosamente');
-                        }
-                    } else {
-                        $('#form-errors').show().text(data.error || 'Error al guardar la cita');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    $('#form-errors').show().text('Error de red al guardar la cita');
-                });
-            });
             
             // Manejo de cambio de estado
             $('.change-status-btn').on('click', function(e) {
@@ -1061,7 +1018,20 @@ function ocultarLoading() {
                     success: function(response) {
                         console.log('Hours loaded successfully:', response);
                         horaSelect.empty().append('<option value="">Seleccione horario</option>');
-                        const opciones = response.horarios_disponibles || [];
+                        let opciones = response.horarios_disponibles || [];
+                        
+                        // Filtro adicional en frontend para el día actual (respaldo)
+                        try {
+                            const hoyStr = new Date().toISOString().split('T')[0];
+                            if (fecha === hoyStr) {
+                                const now = new Date();
+                                const minutosActual = now.getHours() * 60 + now.getMinutes();
+                                opciones = opciones.filter(h => {
+                                    const [hh, mm] = h.split(':').map(Number);
+                                    return (hh * 60 + mm) >= minutosActual;
+                                });
+                            }
+                        } catch (_e) {}
                         
                         if (opciones.length === 0) {
                             horaSelect.empty().append('<option value="">No hay horarios disponibles</option>');
@@ -1072,7 +1042,7 @@ function ocultarLoading() {
                         if (selectedHour && opciones.indexOf(selectedHour) === -1) {
                             opciones.unshift(selectedHour);
                         }
-                        opciones.forEach(function(h) { horaSelect.append('<option value="' + h + '">' + h + '</option>'); });
+                        opciones.forEach(function(h) { horaSelect.append('<option value="' + h + '\">' + h + '</option>'); });
                         if (selectedHour) horaSelect.val(selectedHour);
                         horaSelect.prop('disabled', false);
                     },
