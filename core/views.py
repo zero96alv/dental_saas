@@ -4203,8 +4203,8 @@ class GestionarHorarioView(TenantLoginRequiredMixin, TemplateView):
         if not puede_editar:
             messages.error(request, 'No tienes permisos para editar este horario.')
             from django.http import HttpResponseRedirect
-            tenant_prefix = request.session.get('tenant_prefix', '')
-            redirect_url = f'/{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
+            tenant_prefix = getattr(request, 'tenant_prefix', '')
+            redirect_url = f'{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
             return HttpResponseRedirect(redirect_url)
         
         # Procesar formset
@@ -4230,8 +4230,8 @@ class GestionarHorarioView(TenantLoginRequiredMixin, TemplateView):
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
         
         from django.http import HttpResponseRedirect
-        tenant_prefix = request.session.get('tenant_prefix', '')
-        redirect_url = f'/{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
+        tenant_prefix = getattr(request, 'tenant_prefix', '')
+        redirect_url = f'{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
         return HttpResponseRedirect(redirect_url)
 
 # === VISTAS PARA CUESTIONARIO DE HISTORIAL CLÍNICO ===
