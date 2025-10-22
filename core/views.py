@@ -3739,7 +3739,7 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-class CitaCreateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
+class CitaCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Cita
     form_class = forms.CitaForm
     template_name = 'core/cita_form.html'
@@ -3779,7 +3779,7 @@ class CitaCreateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, Succes
             }, status=400)
         return super().form_invalid(form)
 
-class CitaUpdateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
+class CitaUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Cita
     form_class = forms.CitaForm
     template_name = 'core/cita_form.html'
@@ -3814,7 +3814,7 @@ class CitaUpdateView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, Succes
             }, status=200)
         return super().form_invalid(form)
 
-class CitaDeleteView(AjaxTenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
+class CitaDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
     model = models.Cita
     success_url = reverse_lazy('core:cita_list')
     success_message = "Cita eliminada exitosamente."
