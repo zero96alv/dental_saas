@@ -264,15 +264,17 @@
                         'EXTRAIDO':'extraida', 'EXTRAIDA':'extraida', 'IMPLANTE':'implante', 'ENDODONCIA':'endodoncia'
                       };
                       keys.forEach(k=>{
-                        const info = mapa[k];
+                        const info = mapa[k] || {};
                         const el = document.getElementById('diente-'+k);
                         if(!el) return;
                         // limpiar clases previas
                         el.classList.remove('sano','caries','obturada','corona','extraida','implante','endodoncia');
-                        const cls = classMap[(info.diagnostico_nombre||'').toUpperCase()] || null;
+                        let nombre = (info.diagnostico_nombre||'').toUpperCase();
+                        if(!nombre) nombre = 'SANO';
+                        const cls = classMap[nombre] || 'sano';
                         if(cls) el.classList.add(cls);
                         // aplicar color directo si viene
-                        const oc = el.querySelector('.superficie-oclusal') || el.querySelector('path');
+                        const oc = el.querySelector('.superficie-oclusal') || el.querySelector('.superficie-dental') || el.querySelector('path');
                         if(oc && info.diagnostico_color){ oc.style.fill = info.diagnostico_color; }
                       });
                     }catch(_e){}
@@ -292,6 +294,26 @@
                   // Eventos UI
                   document.getElementById('odo-variant')?.addEventListener('change', function(){
                     loadVariant(this.value);
+                    // Estilo sin marco para móvil
+                    if (this.value === 'movil_optimizado') {
+                      const style = document.createElement('style');
+                      style.innerHTML = `
+                        .odontograma-movil{padding:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
+                        .odontograma-movil svg{background:transparent!important}
+                      `;
+                      scaleEl.appendChild(style);
+                    }
+                  });
+
+                  // Escuchar selección de odontograma móvil
+                  document.addEventListener('dienteMovilSeleccionado', function(e){
+                    const input = document.getElementById('dientes_tratados');
+                    if (!input) return;
+                    const num = String(e.detail?.numeroFDI || '').trim();
+                    if (!num) return;
+                    const actuales = input.value.split(',').map(s=>s.trim()).filter(Boolean);
+                    if (!actuales.includes(num)) { actuales.push(num); input.value = actuales.join(','); }
+                    input.focus();
                   });
 
                   bindToothClicks();
