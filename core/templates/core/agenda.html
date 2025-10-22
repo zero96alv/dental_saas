@@ -584,26 +584,28 @@ function ocultarLoading() {
             // Configurar selects nativos (sin Select2 para mayor compatibilidad)
             // Los selects ya funcionan nativamente
 
-            // Lógica de servicios con CheckboxSelectMultiple
+            // Lógica de servicios con select multiple mejorado
             function updateServiciosList() {
                 listaServiciosSeleccionados.empty();
                 
-                // Buscar todos los checkboxes marcados
-                $('#id_servicios_planeados input[type="checkbox"]:checked').each(function() {
-                    const checkbox = $(this);
-                    const servicioId = checkbox.val();
-                    const servicioLabel = checkbox.next('label').text().trim();
+                // Buscar todas las opciones seleccionadas en el select multiple
+                $('#id_servicios_planeados option:selected').each(function() {
+                    const option = $(this);
+                    const servicioId = option.val();
+                    const servicioLabel = option.text().trim();
                     
-                    const li = $('<li class="list-group-item list-group-item-sm py-1 px-2">');
-                    li.html('<i class="fas fa-check-circle text-success me-2"></i>' + servicioLabel);
+                    const li = $('<li class="list-group-item list-group-item-sm py-1 px-2 d-flex justify-content-between align-items-center">');
+                    li.html('<span><i class="fas fa-check-circle text-success me-2"></i>' + servicioLabel + '</span>');
                     li.attr('data-service-id', servicioId);
                     listaServiciosSeleccionados.append(li);
                 });
+                
+                console.log('Servicios actualizados:', listaServiciosSeleccionados.find('li').length);
             }
 
-            // Detectar cambios en los checkboxes de servicios
-            $(document).on('change', '#id_servicios_planeados input[type="checkbox"]', function() {
-                console.log('Servicio checkbox changed');
+            // Detectar cambios en el select de servicios
+            serviciosSelect.on('change', function() {
+                console.log('Servicios changed');
                 updateServiciosList();
             });
 
@@ -817,8 +819,8 @@ function ocultarLoading() {
                 unidadDentalSelect.val('');
                 horaSelect.empty().append('<option value="">Primero seleccione fecha y dentista</option>').prop('disabled', true);
                 
-                // Limpiar servicios (desmarcar todos los checkboxes)
-                $('#id_servicios_planeados input[type="checkbox"]').prop('checked', false);
+                // Limpiar servicios (deseleccionar todas las opciones)
+                serviciosSelect.val([]);
                 listaServiciosSeleccionados.empty();
                 
                 statusIndicator.hide();
@@ -1024,13 +1026,20 @@ function ocultarLoading() {
             dentistaSelect.on('change', function() {
                 const dentistaId = $(this).val();
                 const selectedDate = citaForm.dataset.selectedDate;
-                console.log('Dentista changed:', dentistaId, 'Date:', selectedDate);
+                console.log('=== DENTISTA CHANGED ==>');
+                console.log('  Dentista ID:', dentistaId);
+                console.log('  Selected Date:', selectedDate);
+                console.log('  Form dataset:', citaForm.dataset);
+                
                 if (dentistaId && selectedDate) {
+                    console.log('  -> Loading hours for', dentistaId, 'on', selectedDate);
                     horaSelect.prop('disabled', false);
                     loadAvailableHours(dentistaId, selectedDate);
                 } else if (!selectedDate) {
+                    console.warn('  -> No date selected');
                     horaSelect.empty().append('<option value="">Seleccione una fecha primero</option>').prop('disabled', true);
                 } else {
+                    console.warn('  -> No dentista selected');
                     horaSelect.empty().append('<option value="">Seleccione dentista</option>').prop('disabled', true);
                 }
             });
