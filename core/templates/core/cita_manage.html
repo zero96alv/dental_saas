@@ -203,16 +203,6 @@
             <div class="card-body">
               <h5 class="mb-3"><i class="bi bi-diagram-2 me-1"></i> Odontograma</h5>
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="d-flex align-items-center gap-2">
-                  <label for="odo-variant" class="form-label mb-0 small text-muted">Diseño:</label>
-                  <select id="odo-variant" class="form-select form-select-sm" style="width:auto;">
-                    <option value="clinico_profesional">Clínico profesional</option>
-                    <option value="responsive_48">Responsive 48</option>
-                    <option value="anatomico_48">Anatómico 48</option>
-                    <option value="profesional_v2">Profesional V2</option>
-                    <option value="movil_optimizado">Móvil optimizado</option>
-                  </select>
-                </div>
                 <div class="btn-group btn-group-sm" role="group" aria-label="Zoom odontograma">
                   <button class="btn btn-outline-secondary" id="odo-zoom-out"><i class="bi bi-zoom-out"></i></button>
                   <button class="btn btn-outline-secondary" id="odo-zoom-reset"><i class="bi bi-aspect-ratio"></i></button>
@@ -220,9 +210,7 @@
                 </div>
               </div>
               <div id="odontograma-stage" class="odontograma-wrapper" style="min-height: 700px; overflow: auto; border: 1px solid #e9ecef; border-radius: 8px; background: #f8f9fa;">
-                <div id="odontograma-scale" style="transform-origin: 0 0;">
-                  {% include 'core/partials/odontograma_clinico_profesional.html' %}
-                </div>
+                <div id="odontograma-scale" style="transform-origin: 0 0;"></div>
               </div>
               <small class="text-muted d-block mt-2">Haga clic en los dientes; se agregarán al campo “Dientes Tratados”.</small>
               <script>
@@ -237,15 +225,17 @@
 
                   // Vincular clics en dientes
                   function bindToothClicks(){
-                    document.querySelectorAll('#odontograma-stage .diente, #odontograma-stage .diente-clinico').forEach(function(d){
+                    const selector = '#odontograma-stage .diente, #odontograma-stage .diente-clinico, #odontograma-stage .diente-movil';
+                    document.querySelectorAll(selector).forEach(function(d){
                       d.addEventListener('click', function(e){
                         e.stopPropagation();
-                        document.querySelectorAll('#odontograma-stage .diente.selected, #odontograma-stage .diente-clinico.selected').forEach(x=>x.classList.remove('selected'));
+                        document.querySelectorAll(selector).forEach(x=>x.classList.remove('selected'));
                         d.classList.add('selected');
                         const id = d.id || '';
                         const num = id.replace('diente-','');
-                        const ev = new CustomEvent('dienteSeleccionado', { detail: { numeroDiente: num, elemento: d } });
-                        document.dispatchEvent(ev);
+                        // Eventos para ambas integraciones
+                        document.dispatchEvent(new CustomEvent('dienteSeleccionado', { detail: { numeroDiente: num, elemento: d } }));
+                        document.dispatchEvent(new CustomEvent('dienteMovilSeleccionado', { detail: { numeroFDI: num, elemento: d } }));
                       });
                     });
                   }
@@ -292,18 +282,16 @@
                   }
 
                   // Eventos UI
-                  document.getElementById('odo-variant')?.addEventListener('change', function(){
-                    loadVariant(this.value);
-                    // Estilo sin marco para móvil
-                    if (this.value === 'movil_optimizado') {
-                      const style = document.createElement('style');
-                      style.innerHTML = `
-                        .odontograma-movil{padding:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
-                        .odontograma-movil svg{background:transparent!important}
-                      `;
-                      scaleEl.appendChild(style);
-                    }
-                  });
+                  // Cargar por defecto la variante móvil (sin marco)
+                  (async function(){
+                    await loadVariant('movil_optimizado');
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                      .odontograma-movil{padding:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
+                      .odontograma-movil svg{background:transparent!important}
+                    `;
+                    scaleEl.appendChild(style);
+                  })();
 
                   // Escuchar selección de odontograma móvil
                   document.addEventListener('dienteMovilSeleccionado', function(e){
