@@ -255,15 +255,11 @@ class CitaForm(forms.ModelForm):
         fields = ['paciente', 'dentista', 'unidad_dental', 'servicios_planeados', 'motivo', 'notas',
             'fecha_hora']
         widgets = {
-            
             'fecha_hora': forms.DateTimeInput(attrs={
                 'type': 'datetime-local', 
                 'class': 'form-control'
             }),
-            'servicios_planeados': forms.SelectMultiple(attrs={
-                'class': 'form-control select2',  # Clase para Select2
-                'multiple': 'multiple'
-            }),
+            'servicios_planeados': forms.CheckboxSelectMultiple(),
             'motivo': forms.Textarea(attrs={
                 'rows': 3, 
                 'class': 'form-control',
@@ -308,20 +304,42 @@ class CitaForm(forms.ModelForm):
         self.fields['motivo'].required = False
     
     def _get_servicios_para_dentista(self, dentista):
-        """Obtener servicios que puede realizar el dentista según sus especialidades"""
-        # Recopilar IDs de servicios de todas las especialidades del dentista
+        """Obtener servicios que puede realizar el dentista según sus especialidades
+        
+        Lógica jerárquica:
+        1. Todos los dentistas pueden realizar servicios de especialidad 'Dentista General'
+        2. Cada especialidad puede incluir servicios de otras especialidades (campo especialidades_incluidas)
+        3. Se devuelven servicios propios + incluidos + generales
+        """
         servicios_ids = set()
         
+        # 1. Siempre incluir servicios de la especialidad "Dentista General" (base para todos)
+        try:
+            especialidad_general = models.Especialidad.objects.get(nombre='Dentista General')
+            servicios_ids.update(
+                models.Servicio.objects.filter(
+                    especialidad=especialidad_general,
+                    activo=True
+                ).values_list('id', flat=True)
+            )
+        except models.Especialidad.DoesNotExist:
+            pass  # Si no existe, solo usar especialidades específicas
+        
+        # 2. Agregar servicios de las especialidades del dentista (usando jerarquía)
         for especialidad in dentista.especialidades.all():
-            # Obtener servicios de la especialidad
+            # Usar el método del modelo que ya maneja especialidades_incluidas
             especialidad_servicios = especialidad.servicios_disponibles()
             servicios_ids.update(especialidad_servicios.values_list('id', flat=True))
         
-        # Retornar queryset filtrado por IDs y activo=True
+        # 3. Retornar queryset filtrado
         if servicios_ids:
             return models.Servicio.objects.filter(id__in=servicios_ids, activo=True).distinct()
         else:
-            return models.Servicio.objects.none()
+            # Si no hay servicios, al menos mostrar los generales
+            return models.Servicio.objects.filter(
+                especialidad__nombre='Dentista General',
+                activo=True
+            )
     
     def clean_fecha_hora(self):
         """Procesar fecha/hora asegurando zona horaria correcta"""

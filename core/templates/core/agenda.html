@@ -398,6 +398,16 @@
                         </div>
                         <div class="modal-body">
                             <div id="form-errors" class="alert alert-danger" style="display: none;"></div>
+                            
+                            <!-- Campo de fecha cuando no se selecciona desde calendario -->
+                            <div class="mb-3" id="fecha-picker-container" style="display: none;">
+                                <label for="id_fecha_cita" class="form-label requiredField">
+                                    <i class="fas fa-calendar"></i> Fecha de la Cita
+                                </label>
+                                <input type="date" id="id_fecha_cita" class="form-control" required>
+                                <small class="text-muted">Seleccione una fecha o haga clic en el calendario</small>
+                            </div>
+                            
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
@@ -788,21 +798,30 @@ function ocultarLoading() {
                 currentCitaId = null;
                 modalTitle.textContent = 'Nueva Cita';
                 
+                const fechaPickerContainer = $('#fecha-picker-container');
+                const fechaPickerInput = $('#id_fecha_cita');
+                
                 if (dateStr) {
+                    // Fecha proporcionada desde calendario
                     const selectedDate = new Date(dateStr + 'T00:00:00');
                     modalDate.textContent = '📅 ' + selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                     citaForm.dataset.selectedDate = dateStr;
+                    fechaPickerContainer.hide();
                     console.log('Date saved in form dataset:', dateStr);
                 } else {
-                    modalDate.textContent = 'Seleccione fecha haciendo clic en el calendario';
+                    // Sin fecha - mostrar selector
+                    modalDate.textContent = 'Seleccione la fecha de la cita';
                     citaForm.dataset.selectedDate = '';
+                    fechaPickerContainer.show();
+                    // Set min date to today
+                    const today = new Date().toISOString().split('T')[0];
+                    fechaPickerInput.attr('min', today);
                 }
 
                 pacienteSelect.val('');
                 dentistaSelect.val('');
                 unidadDentalSelect.val('');
-                serviciosSelect.val('');
-                horaSelect.empty().append('<option value="">Primero seleccione dentista y fecha</option>').prop('disabled', true);
+                horaSelect.empty().append('<option value="">Primero seleccione fecha y dentista</option>').prop('disabled', true);
                 listaServiciosSeleccionados.empty();
                 updateHiddenInput();
                 
@@ -812,6 +831,23 @@ function ocultarLoading() {
                 $('#guardarCitaBtn').show();
                 citaModal.show();
             }
+            
+            // Manejar cambio en el selector de fecha manual
+            $('#id_fecha_cita').on('change', function() {
+                const selectedDate = $(this).val();
+                if (selectedDate) {
+                    citaForm.dataset.selectedDate = selectedDate;
+                    const date = new Date(selectedDate + 'T00:00:00');
+                    modalDate.textContent = '📅 ' + date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    console.log('Manual date selected:', selectedDate);
+                    
+                    // Si ya hay dentista seleccionado, cargar horarios
+                    const dentistaId = dentistaSelect.val();
+                    if (dentistaId) {
+                        loadAvailableHours(dentistaId, selectedDate);
+                    }
+                }
+            });
             
             window.openNewAppointmentModal = openNewAppointmentModal;
             
