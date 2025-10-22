@@ -280,7 +280,11 @@ class CitaForm(forms.ModelForm):
         
         # Configuracion básica
         self.fields['paciente'].queryset = models.Paciente.objects.order_by('apellido', 'nombre')
-        self.fields['dentista'].queryset = models.PerfilDentista.objects.filter(activo=True)
+        # Filtrar dentistas: solo perfiles activos con usuario que tenga grupo Dentista
+        self.fields['dentista'].queryset = models.PerfilDentista.objects.filter(
+            activo=True,
+            usuario__groups__name='Dentista'
+        ).distinct().select_related('usuario').order_by('usuario__last_name', 'usuario__first_name')
         self.fields['unidad_dental'].queryset = models.UnidadDental.objects.all()
         
         # FILTRAR SERVICIOS POR ESPECIALIDAD DEL DENTISTA

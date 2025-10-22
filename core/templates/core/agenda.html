@@ -378,7 +378,7 @@
                         <div class="modal-header">
                             <div>
                                 <h5 class="modal-title" id="citaModalLabel">Nueva Cita</h5>
-                                <small class="text-muted" id="citaModalDate"></small>
+                                <div class="text-primary fw-semibold" id="citaModalDate" style="font-size: 1.1em;"></div>
                             </div>
                             <div id="status-indicator" class="ms-auto" style="display: none;">
                                 <div class="dropdown">
@@ -1012,26 +1012,41 @@ function ocultarLoading() {
             dentistaSelect.on('change', function() {
                 const dentistaId = $(this).val();
                 const selectedDate = citaForm.dataset.selectedDate;
+                console.log('Dentista changed:', dentistaId, 'Date:', selectedDate);
                 if (dentistaId && selectedDate) {
+                    horaSelect.prop('disabled', false);
                     loadAvailableHours(dentistaId, selectedDate);
+                } else if (!selectedDate) {
+                    horaSelect.empty().append('<option value="">Seleccione una fecha primero</option>').prop('disabled', true);
                 } else {
                     horaSelect.empty().append('<option value="">Seleccione dentista</option>').prop('disabled', true);
                 }
             });
 
             function loadAvailableHours(dentistaId, fecha, selectedHour) {
+                console.log('Loading hours for dentista:', dentistaId, 'fecha:', fecha);
                 horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
                 
                 // Build URL with tenant prefix
                 const tenantPrefix = '{{ request.session.tenant_prefix|default:"" }}';
                 const baseUrl = tenantPrefix ? `/${tenantPrefix}/api/dentista/${dentistaId}/horarios-disponibles/` : `/api/dentista/${dentistaId}/horarios-disponibles/`;
                 
+                console.log('Fetching from URL:', baseUrl, 'with params:', { fecha: fecha });
+                
                 $.ajax({
                     url: baseUrl,
                     data: { fecha: fecha },
                     success: function(response) {
+                        console.log('Hours loaded successfully:', response);
                         horaSelect.empty().append('<option value="">Seleccione horario</option>');
                         const opciones = response.horarios_disponibles || [];
+                        
+                        if (opciones.length === 0) {
+                            horaSelect.empty().append('<option value="">No hay horarios disponibles</option>');
+                            horaSelect.prop('disabled', true);
+                            return;
+                        }
+                        
                         if (selectedHour && opciones.indexOf(selectedHour) === -1) {
                             opciones.unshift(selectedHour);
                         }
@@ -1039,9 +1054,18 @@ function ocultarLoading() {
                         if (selectedHour) horaSelect.val(selectedHour);
                         horaSelect.prop('disabled', false);
                     },
-                    error: function(xhr) { 
-                        console.error('Error loading hours:', xhr);
-                        horaSelect.empty().append('<option value="">Error al cargar</option>'); 
+                    error: function(xhr, status, error) { 
+                        console.error('Error loading hours:', xhr.status, status, error);
+                        console.error('Response:', xhr.responseText);
+                        horaSelect.empty().append('<option value="">Error al cargar horarios</option>');
+                        horaSelect.prop('disabled', true);
+                        
+                        // Show user-friendly error
+                        if (xhr.status === 404) {
+                            Toastify({ text: 'Dentista no encontrado', duration: 3000, className: 'error' }).showToast();
+                        } else if (xhr.status === 500) {
+                            Toastify({ text: 'Error del servidor al cargar horarios', duration: 3000, className: 'error' }).showToast();
+                        }
                     }
                 });
             }
