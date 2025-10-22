@@ -781,35 +781,39 @@ function ocultarLoading() {
                 $('#fechaFilter').val(fechaStr);
             }
             
-            // Funciones para manejar citas
-            window.openNewAppointmentModal = function(dateStr) {
-                currentCitaId = null;
+            // Funciones auxiliares - MUST BE DEFINED BEFORE CALENDAR INIT
+            function openNewAppointmentModal(dateStr) {
+                console.log('Opening new appointment modal for date:', dateStr);
                 citaForm.reset();
+                currentCitaId = null;
                 modalTitle.textContent = 'Nueva Cita';
                 
                 if (dateStr) {
-                    const date = new Date(dateStr);
-                    modalDate.textContent = date.toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    });
+                    const selectedDate = new Date(dateStr + 'T00:00:00');
+                    modalDate.textContent = '📅 ' + selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    citaForm.dataset.selectedDate = dateStr;
+                    console.log('Date saved in form dataset:', dateStr);
                 } else {
-                    modalDate.textContent = 'Seleccione fecha y hora';
+                    modalDate.textContent = 'Seleccione fecha haciendo clic en el calendario';
+                    citaForm.dataset.selectedDate = '';
                 }
+
+                pacienteSelect.val('');
+                dentistaSelect.val('');
+                unidadDentalSelect.val('');
+                serviciosSelect.val('');
+                horaSelect.empty().append('<option value="">Primero seleccione dentista y fecha</option>').prop('disabled', true);
+                listaServiciosSeleccionados.empty();
+                updateHiddenInput();
                 
                 statusIndicator.hide();
-                $('#editarCitaBtn, #cancelarCitaBtn').hide();
+                $('#editarCitaBtn').hide();
+                $('#cancelarCitaBtn').hide();
                 $('#guardarCitaBtn').show();
-                
-                // Limpiar servicios seleccionados
-                listaServiciosSeleccionados.empty();
-                serviciosSelect.find('option').prop('disabled', false);
-                hiddenServiciosInput.val('');
-                
                 citaModal.show();
-            };
+            }
+            
+            window.openNewAppointmentModal = openNewAppointmentModal;
             
             function editAppointment(citaId) {
                 currentCitaId = citaId;
@@ -983,30 +987,6 @@ function ocultarLoading() {
             
             console.log('Agenda moderna inicializada correctamente');
             ocultarLoading();
-            
-            // Funciones auxiliares
-            function openNewAppointmentModal(dateStr) {
-                citaForm.reset();
-                currentCitaId = null;
-                modalTitle.textContent = 'Nueva Cita';
-                const selectedDate = new Date(dateStr + 'T00:00:00');
-                modalDate.textContent = 'Para el ' + selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                citaForm.dataset.selectedDate = dateStr;
-
-                pacienteSelect.val('');
-                dentistaSelect.val('');
-                unidadDentalSelect.val('');
-                serviciosSelect.val('');
-                horaSelect.empty().append('<option value="">Seleccione dentista</option>').prop('disabled', true);
-                listaServiciosSeleccionados.empty();
-                updateHiddenInput();
-                
-                statusIndicator.hide();
-                $('#editarCitaBtn').hide();
-                $('#cancelarCitaBtn').hide();
-                $('#guardarCitaBtn').show();
-                citaModal.show();
-            }
             
             // Event listeners
             dentistaSelect.on('change', function() {
