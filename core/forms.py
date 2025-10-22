@@ -552,7 +552,10 @@ class UnidadDentalForm(forms.ModelForm):
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            'dentistas_permitidos': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 8}),
+            'dentistas_permitidos': forms.CheckboxSelectMultiple(),
+        }
+        labels = {
+            'dentistas_permitidos': 'Dentistas Permitidos',
         }
 
 class CompraForm(forms.ModelForm):
