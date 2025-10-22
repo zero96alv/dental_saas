@@ -484,52 +484,6 @@
     });
   }
   
-  // Manejar formulario de tratamiento
-  const formTratamiento = document.getElementById('form-tratamiento');
-  if (formTratamiento) {
-    formTratamiento.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const submitBtn = this.querySelector('button[type="submit"]');
-      const originalText = submitBtn.innerHTML;
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="bi bi-clock"></i> Registrando...';
-      
-      const formData = new FormData(this);
-      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-      
-      fetch('{% tenant_url "core:cita_manage" cita.id %}', {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': csrftoken,
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showMsg(data.message, true);
-          this.reset();
-          // Recargar después de un momento para mostrar el nuevo tratamiento
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } else {
-          showMsg(data.error || 'Error al registrar tratamiento', false);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showMsg('Error de conexión', false);
-      })
-      .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-      });
-    });
-  }
-  
   // Manejar mostrar/ocultar fecha de seguimiento
   const checkboxSeguimiento = document.getElementById('requiere_seguimiento');
   const contenedorFecha = document.getElementById('fecha-seguimiento-container');
