@@ -2028,9 +2028,16 @@ def odontograma_48_view(request, cliente_id):
 def odontograma_api_update(request, cliente_id):
     try:
         data = json.loads(request.body)
+        lista_numeros = data.get('lista_numeros') or []
         numero_diente = data.get('numero_diente')
         diagnostico_id = data.get('diagnostico_id')
         color_seleccionado = data.get('color_seleccionado', '')
+        nota = (data.get('nota') or '').strip()
+
+        if not lista_numeros:
+            if numero_diente is None:
+                return JsonResponse({'status': 'error', 'message': 'numero_diente o lista_numeros requerido'}, status=400)
+            lista_numeros = [numero_diente]
 
         paciente = models.Paciente.objects.get(pk=cliente_id)
         diagnostico = models.Diagnostico.objects.get(pk=diagnostico_id)
@@ -2040,29 +2047,35 @@ def odontograma_api_update(request, cliente_id):
             ultima_cita = models.Cita.objects.filter(paciente=paciente).order_by('-fecha_hora').first()
             dentista = ultima_cita.dentista if ultima_cita else None
 
-        obj, created = models.EstadoDiente.objects.update_or_create(
-            paciente=paciente,
-            numero_diente=numero_diente,
-            defaults={
-                'diagnostico': diagnostico,
-                'color_seleccionado': color_seleccionado
-            }
-        )
+        # Actualizar/crear estados para todos los dientes
+        actualizados = []
+        for num in lista_numeros:
+            if num is None:
+                continue
+            obj, created = models.EstadoDiente.objects.update_or_create(
+                paciente=paciente,
+                numero_diente=int(num),
+                defaults={
+                    'diagnostico': diagnostico,
+                    'color_seleccionado': color_seleccionado
+                }
+            )
+            actualizados.append((int(num), created))
 
-        descripcion = (
-            f"Se {'asignó' if created else 'actualizó'} el diagnóstico '{diagnostico.nombre}' "
-            f"al diente {numero_diente}."
-        )
+        # Registrar una sola entrada en historial (más legible)
+        numeros_txt = ', '.join(str(n) for n, _ in actualizados)
+        descripcion = f"Se actualizaron dientes [{numeros_txt}] con diagnóstico '{diagnostico.nombre}'."
         if color_seleccionado:
-            descripcion += f" Se asignó el color {color_seleccionado}."
-
+            descripcion += f" Color: {color_seleccionado}."
+        if nota:
+            descripcion += f" Nota: {nota}"
         models.HistorialClinico.objects.create(
             paciente=paciente,
             descripcion_evento=descripcion,
             registrado_por=dentista
         )
 
-        return JsonResponse({'status': 'success', 'message': 'Odontograma actualizado.'})
+        return JsonResponse({'status': 'success', 'message': 'Odontograma actualizado.', 'dientes': [n for n, _ in actualizados]})
 
     except (models.Paciente.DoesNotExist, models.Diagnostico.DoesNotExist) as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=404)
