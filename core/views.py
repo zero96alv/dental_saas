@@ -1809,6 +1809,10 @@ def get_horarios_ocupados(request):
 
 @tenant_login_required
 def get_horarios_disponibles_api(request, dentista_id):
+    # Verificar si el usuario está autenticado para peticiones AJAX
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Autenticación requerida'}, status=401)
+    
     fecha_str = request.GET.get('fecha')  # Formato: YYYY-MM-DD
 
     if not fecha_str:
