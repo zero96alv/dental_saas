@@ -246,9 +246,12 @@
                   // Vincular clics en dientes (toggle multi-selección)
                   function bindToothClicks(){
                     const selector = '#odontograma-stage .diente, #odontograma-stage .diente-clinico, #odontograma-stage .diente-movil';
-                    document.querySelectorAll(selector).forEach(function(d){
+                    const nodos = document.querySelectorAll(selector);
+                    console.log('Dientes enlazados:', nodos.length);
+                    nodos.forEach(function(d){
                       d.addEventListener('click', function(e){
                         e.stopPropagation();
+                        console.log('Click diente:', d.id);
                         const id = d.id || '';
                         const num = id.replace('diente-','');
                         if (!num) return;
@@ -352,9 +355,10 @@
                   async function loadVariant(variant){
                     const url = '{% tenant_url "core:odontograma_partial" %}?variant=' + encodeURIComponent(variant);
                     const r = await fetch(url, { headers: { 'Accept':'text/html' } });
-                    if(!r.ok) return;
+                    if(!r.ok){ console.error('Error cargando odontograma:', r.status); return; }
                     const html = await r.text();
                     scaleEl.innerHTML = html;
+                    console.log('Odontograma cargado:', variant);
                     bindToothClicks();
                     hydrateFromApi();
                   }
