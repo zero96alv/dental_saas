@@ -358,20 +358,51 @@
     msg.classList.add(ok ? 'alert-success' : 'alert-danger');
     msg.textContent = text;
   }
+  function getCookie(name){
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+  function getCSRF(){
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken') || '';
+  }
+  function activateTab(target){
+    try {
+      const btn = document.querySelector(`[data-bs-target="${target}"]`);
+      if (btn && window.bootstrap && bootstrap.Tab){
+        new bootstrap.Tab(btn).show();
+      } else if (btn) { btn.click(); }
+    } catch(_e){}
+  }
   function cambiarEstado(estado){
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    const csrftoken = getCSRF();
     fetch('{% tenant_url "core:cita_cambiar_estado" cita.id %}', {
       method: 'POST',
-      headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With':'XMLHttpRequest' },
+      headers: { 'X-CSRFToken': csrftoken, 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' },
       body: new URLSearchParams({ estado })
-    }).then(r => r.json()).then(data => {
+    }).then(async r => {
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    }).then(data => {
       if (data.success){
         showMsg(data.message, true);
         document.getElementById('cita-estado').textContent = estadoMap[estado] || estado;
+        // Flujos asociados
+        if (estado === 'ATN') {
+          activateTab('#tratamientos');
+          document.getElementById('descripcion')?.focus();
+        }
+        if (estado === 'COM') {
+          activateTab('#pagos');
+        }
+        if (estado === 'CAN') {
+          // Deshabilitar acciones
+          ['pro','con','atn','com','can'].forEach(s=>{ const b=document.getElementById('btn-'+s); if(b) b.disabled=true; });
+        }
       } else {
         showMsg(data.error || 'Error al cambiar estado', false);
       }
-    }).catch(() => showMsg('Error de red', false));
+    }).catch((e) => showMsg('Error de red', false));
   }
   const estadoMap = { PRO:'Programada', CON:'Confirmada', ATN:'Atendida', COM:'Completada', CAN:'Cancelada' };
   ['pro','con','atn','com','can'].forEach(suf=>{
@@ -408,27 +439,28 @@
       submitBtn.innerHTML = '<i class="bi bi-clock"></i> Guardando...';
       
       const formData = new FormData(this);
-      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      const csrftoken = getCSRF();
       
       fetch('{% tenant_url "core:cita_manage" cita.id %}', {
         method: 'POST',
         headers: {
           'X-CSRFToken': csrftoken,
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept':'application/json'
         },
         body: formData
       })
-      .then(response => response.json())
+      .then(async r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(data => {
         if (data.success) {
           showMsg(data.message, true);
           // Limpiar formulario
           this.reset();
-          fechaSeguimientoContainer.style.display = 'none';
+          fechaSeguimientoContainer && (fechaSeguimientoContainer.style.display = 'none');
           // Recargar la página después de un momento para mostrar el nuevo tratamiento
           setTimeout(() => {
             window.location.reload();
-          }, 1500);
+          }, 1000);
         } else {
           showMsg(data.error || 'Error al registrar tratamiento', false);
         }
@@ -458,17 +490,18 @@
       submitBtn.innerHTML = '<i class="bi bi-clock"></i> Guardando...';
       
       const formData = new FormData(this);
-      const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+      const csrftoken = getCSRF();
       
       fetch('{% tenant_url "core:cita_manage" cita.id %}', {
         method: 'POST',
         headers: {
           'X-CSRFToken': csrftoken,
-          'X-Requested-With': 'XMLHttpRequest'
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept':'application/json'
         },
         body: formData
       })
-      .then(response => response.json())
+      .then(async r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
       .then(data => {
         if (data.success) {
           showMsg(data.message, true);
@@ -477,7 +510,7 @@
           // Recargar la página después de un momento para mostrar la nueva entrada
           setTimeout(() => {
             window.location.reload();
-          }, 1500);
+          }, 1000);
         } else {
           showMsg(data.error || 'Error al agregar entrada al historial', false);
         }
@@ -514,5 +547,6 @@
     });
   }
 
+})();
 </script>
 {% endblock %}
