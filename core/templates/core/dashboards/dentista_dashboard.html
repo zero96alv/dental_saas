@@ -9,7 +9,7 @@
     <p>Bienvenido, Dr(a). {{ user.last_name }}.</p>
     
     <div class="row">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title">Agenda</h5>
@@ -18,7 +18,16 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Mis Citas</h5>
+                    <p class="card-text">Listado solo de mis citas.</p>
+                    <a href="{% tenant_url 'core:cita_list' %}" class="btn btn-outline-primary">Ir a Mis Citas</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title">Pacientes</h5>

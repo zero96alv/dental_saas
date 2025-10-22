@@ -42,13 +42,23 @@
               <p><strong>Fecha y hora:</strong> {{ cita.fecha_hora }}</p>
               <p><strong>Unidad:</strong> {{ cita.unidad_dental }}</p>
               <p><strong>Estado:</strong> <span id="cita-estado">{{ cita.get_estado_display }}</span></p>
-              <div class="d-grid gap-2 d-md-block">
-                <button class="btn btn-outline-secondary btn-sm me-1" data-estado="PRO" id="btn-pro">Programar</button>
-                <button class="btn btn-primary btn-sm me-1" data-estado="CON" id="btn-con">Confirmar</button>
-                <button class="btn btn-warning btn-sm me-1" data-estado="ATN" id="btn-atn">Atender</button>
-                <button class="btn btn-success btn-sm me-1" data-estado="COM" id="btn-com">Completar</button>
-                <button class="btn btn-danger btn-sm" data-estado="CAN" id="btn-can">Cancelar</button>
+              <div class="btn-toolbar flex-wrap" role="toolbar" aria-label="Acciones de Estado">
+                <div class="btn-group btn-group-sm me-2 mb-2" role="group">
+                  <button class="btn btn-outline-secondary" data-estado="PRO" id="btn-pro">Programar</button>
+                  <button class="btn btn-primary" data-estado="CON" id="btn-con">Confirmar</button>
+                  <button class="btn btn-warning" data-estado="ATN" id="btn-atn">Atender</button>
+                </div>
+                <div class="btn-group btn-group-sm mb-2" role="group">
+                  <button class="btn btn-success" data-estado="COM" id="btn-com">Completar</button>
+                  <button class="btn btn-danger" data-estado="CAN" id="btn-can">Cancelar</button>
+                </div>
               </div>
+              <style>
+                @media (max-width: 576px){
+                  .btn-toolbar .btn-group { width: 100%; }
+                  .btn-toolbar .btn-group .btn { flex: 1 0 auto; }
+                }
+              </style>
             </div>
           </div>
         </div>

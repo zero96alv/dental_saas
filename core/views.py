@@ -1140,14 +1140,14 @@ class EspecialidadListView(TenantLoginRequiredMixin, ListView):
 class EspecialidadCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Especialidad
     template_name = 'core/especialidad_form.html'
-    fields = ['nombre']
+    fields = ['nombre', 'especialidades_incluidas']
     success_url = reverse_lazy('core:especialidad_list')
     success_message = "Especialidad '%(nombre)s' creada con éxito."
 
 class EspecialidadUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Especialidad
     template_name = 'core/especialidad_form.html'
-    fields = ['nombre']
+    fields = ['nombre', 'especialidades_incluidas']
     success_url = reverse_lazy('core:especialidad_list')
     success_message = "Especialidad '%(nombre)s' actualizada con éxito."
 
@@ -3630,14 +3630,16 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
     
     def _handle_historial_entry(self, request, cita):
         """Manejar creación de entrada de historial clínico"""
+        # Permitir a Dentista asignado, Administrador y Recepcionista
+        perfil_dentista = None
         try:
-            # Obtener dentista
             perfil_dentista = models.PerfilDentista.objects.get(usuario=request.user)
         except models.PerfilDentista.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Sin permisos de dentista'}, status=403)
+            pass
+        if not (perfil_dentista or request.user.is_superuser or request.user.groups.filter(name__in=['Administrador','Recepcionista']).exists()):
+            return JsonResponse({'success': False, 'error': 'Sin permisos'}, status=403)
         
         try:
-            # Importar función helper
             from .models import crear_entrada_historial_clinico
             
             tipo_registro = request.POST.get('tipo_registro', 'CONSULTA')
@@ -3646,7 +3648,7 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
             if not descripcion:
                 return JsonResponse({'success': False, 'error': 'La descripción es obligatoria'}, status=400)
             
-            # Crear entrada
+            # Crear entrada (registrado_por puede ser None si no es dentista)
             entrada = crear_entrada_historial_clinico(
                 paciente=cita.paciente,
                 tipo_registro=tipo_registro,
@@ -3668,12 +3670,17 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
     
     def _handle_tratamiento(self, request, cita):
         """Manejar registro de tratamientos en la cita"""
-        # Verificar permisos (dentista de la cita o admin)
+        # Verificar permisos: Dentista asignado, Administrador o Recepcionista
+        autorizado = False
+        perfil_dentista = None
         try:
             perfil_dentista = models.PerfilDentista.objects.get(usuario=request.user)
-            if cita.dentista != perfil_dentista and not request.user.is_superuser:
-                return JsonResponse({'success': False, 'error': 'Sin permisos'}, status=403)
+            autorizado = (cita.dentista == perfil_dentista)
         except models.PerfilDentista.DoesNotExist:
+            autorizado = False
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Administrador','Recepcionista']).exists():
+            autorizado = True
+        if not autorizado:
             return JsonResponse({'success': False, 'error': 'Sin permisos'}, status=403)
         
         try:
