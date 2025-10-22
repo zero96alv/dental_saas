@@ -4198,7 +4198,9 @@ class GestionarHorarioView(TenantLoginRequiredMixin, TemplateView):
         
         if not puede_editar:
             messages.error(request, 'No tienes permisos para editar este horario.')
-            return redirect('core:gestionar_horario', dentista_id=dentista_id)
+            tenant_prefix = request.session.get('tenant_prefix', '')
+            redirect_url = f'/{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
+            return redirect(redirect_url)
         
         # Procesar formset
         formset = forms.HorarioLaboralFormSet(
@@ -4222,7 +4224,9 @@ class GestionarHorarioView(TenantLoginRequiredMixin, TemplateView):
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
         
-        return redirect('core:gestionar_horario', dentista_id=dentista_id)
+        tenant_prefix = request.session.get('tenant_prefix', '')
+        redirect_url = f'/{tenant_prefix}/dentistas/{dentista_id}/horario/' if tenant_prefix else f'/dentistas/{dentista_id}/horario/'
+        return redirect(redirect_url)
 
 # === VISTAS PARA CUESTIONARIO DE HISTORIAL CLÍNICO ===
 

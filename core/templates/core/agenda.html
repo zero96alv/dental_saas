@@ -979,27 +979,7 @@ function ocultarLoading() {
                 });
             });
             
-            // Cargar horarios cuando cambia el dentista
-            dentistaSelect.on('change', function() {
-                const dentistaId = this.value;
-                horaSelect.empty().append('<option value="">Seleccione una hora</option>');
-                
-                if (dentistaId) {
-                    // Cargar horarios disponibles
-                    fetch('/agenda/horarios/' + dentistaId + '/')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                data.horarios.forEach(hora => {
-                                    horaSelect.append('<option value="' + hora.value + '">' + hora.text + '</option>');
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error cargando horarios:', error);
-                        });
-                }
-            });
+            // REMOVED: Duplicate dentista change handler - using the one at line 1032
             
             console.log('Agenda moderna inicializada correctamente');
             ocultarLoading();
@@ -1041,8 +1021,13 @@ function ocultarLoading() {
 
             function loadAvailableHours(dentistaId, fecha, selectedHour) {
                 horaSelect.empty().append('<option value="">Cargando...</option>').prop('disabled', true);
+                
+                // Build URL with tenant prefix
+                const tenantPrefix = '{{ request.session.tenant_prefix|default:"" }}';
+                const baseUrl = tenantPrefix ? `/${tenantPrefix}/api/dentista/${dentistaId}/horarios-disponibles/` : `/api/dentista/${dentistaId}/horarios-disponibles/`;
+                
                 $.ajax({
-                    url: '{% tenant_url 'core:api_horarios_disponibles' dentista_id=0 %}'.replace('0', dentistaId),
+                    url: baseUrl,
                     data: { fecha: fecha },
                     success: function(response) {
                         horaSelect.empty().append('<option value="">Seleccione horario</option>');
@@ -1054,7 +1039,10 @@ function ocultarLoading() {
                         if (selectedHour) horaSelect.val(selectedHour);
                         horaSelect.prop('disabled', false);
                     },
-                    error: function() { horaSelect.empty().append('<option value="">Error al cargar</option>'); }
+                    error: function(xhr) { 
+                        console.error('Error loading hours:', xhr);
+                        horaSelect.empty().append('<option value="">Error al cargar</option>'); 
+                    }
                 });
             }
             
