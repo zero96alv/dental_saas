@@ -1836,8 +1836,15 @@ def get_horarios_disponibles_api(request, dentista_id):
         )
         ocupados = []
         for cita in citas:
-            # Asegurarse de que cita.duracion_estimada no sea None o cause error
-            duracion = cita.duracion_estimada if cita.duracion_estimada is not None else 0
+            # Duración estimada de la cita (fallback a suma de servicios o 30 min)
+            duracion = cita.duracion_estimada or 0
+            if not duracion or duracion <= 0:
+                try:
+                    duracion = sum(s.duracion_minutos for s in cita.servicios_planeados.all())
+                except Exception:
+                    duracion = 0
+            if not duracion:
+                duracion = 30
             hora_fin = cita.fecha_hora + timedelta(minutes=duracion)
             ocupados.append((cita.fecha_hora, hora_fin))
 
@@ -1845,8 +1852,9 @@ def get_horarios_disponibles_api(request, dentista_id):
         disponibles = []
         intervalo = 30  # minutos
         
-        now = timezone.now() # Obtener la hora actual con zona horaria
-        today = now.date()
+        # Usar hora local para comparaciones con los horarios (que son locales)
+        now_local = timezone.localtime()  # datetime aware en zona local
+        today = now_local.date()
 
         for horario in horarios:
             # Hacer los datetimes aware para compararlos con cita.fecha_hora
@@ -1856,8 +1864,7 @@ def get_horarios_disponibles_api(request, dentista_id):
 
             # Si la fecha es hoy, ajustar el inicio para que sea la hora actual o posterior
             if fecha == today:
-                # Asegurarse de que `now` también sea aware para la comparación
-                now_aware = timezone.make_aware(datetime.now())
+                now_aware = now_local
                 if actual < now_aware:
                     actual = now_aware
                     # Redondear al próximo intervalo si no coincide exactamente
