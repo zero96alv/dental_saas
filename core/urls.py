@@ -15,7 +15,7 @@ from .views import (
     ProveedorListView, ProveedorCreateView, ProveedorUpdateView, ProveedorDeleteView,
     InsumoListView, InsumoCreateView, InsumoUpdateView, InsumoDeleteView,
     CompraListView, CompraCreateView, CompraUpdateView, CompraDeleteView, RecibirCompraView,
-    AgendaView, AgendaLegacyView, CitaListView, CitasPendientesPagoListView, FinalizarCitaView,
+    AgendaView, AgendaLegacyView, CitaListView, CitasPendientesPagoListView,  # FinalizarCitaView deprecated
     CitaDetailView, CitaCreateView, CitaUpdateView, CitaDeleteView, CitaManageView,
     CambiarEstadoCitaView,
     ProcesarPagoView, RegistrarPagoView, ReciboPagoView, RegistrarAbonoView, finalizar_cita_form_content,
@@ -113,8 +113,8 @@ urlpatterns = [
     path('pacientes/pendientes/', PacientesPendientesPagoListView.as_view(), name='pacientes_pendientes_pago'),
     path('citas/<int:pk>/procesar-pago/', ProcesarPagoView.as_view(), name='procesar_pago'),
     path('citas/', CitaListView.as_view(), name='cita_list'),
-    path('citas/<int:pk>/estado/', CambiarEstadoCitaView.as_view(), name='cita_cambiar_estado'), 
-    path('citas/<int:pk>/finalizar/', FinalizarCitaView.as_view(), name='cita_finalizar'),
+    path('citas/<int:pk>/estado/', CambiarEstadoCitaView.as_view(), name='cita_cambiar_estado'),
+    # path('citas/<int:pk>/finalizar/', FinalizarCitaView.as_view(), name='cita_finalizar'),  # DEPRECATED
     path('citas/<int:pk>/finalizar/content/', finalizar_cita_form_content, name='finalizar_cita_form_content'),
     path('citas/<int:cita_id>/enviar-a-caja/', views.enviar_a_caja_api, name='enviar_a_caja_api'),
     path('citas/<int:pk>/', CitaDetailView.as_view(), name='cita_detail'),

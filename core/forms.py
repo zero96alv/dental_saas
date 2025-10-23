@@ -509,9 +509,11 @@ class PagoForm(forms.ModelForm):
             if self.permitir_destino:
                 from django.db.models import Sum as _Sum
                 opciones = [('saldo', 'Saldo general del paciente')]
-                citas = models.Cita.objects.filter(paciente=self.paciente_instance, estado__in=['ATN', 'COM']).prefetch_related('servicios_realizados', 'pagos').order_by('-fecha_hora')
+                # servicios_realizados ahora es @property, no se puede prefetch
+                citas = models.Cita.objects.filter(paciente=self.paciente_instance, estado__in=['ATN', 'COM']).prefetch_related('pagos', 'tratamientos_realizados__servicios').order_by('-fecha_hora')
                 for c in citas:
-                    total_serv = sum(s.precio for s in c.servicios_realizados.all())
+                    # Usar la propiedad costo_real que ya tiene el fallback implementado
+                    total_serv = c.costo_real
                     pagado = c.pagos.aggregate(total=_Sum('monto'))['total'] or 0
                     saldo_cita = float(total_serv) - float(pagado)
                     if saldo_cita > 0.005:
@@ -700,62 +702,26 @@ class ReporteServiciosForm(forms.Form):
         label="Filtrar por Dentista"
     )
 
-# En forms.py - REEMPLAZAR FinalizarCitaForm existente
-# En forms.py - REEMPLAZAR FinalizarCitaForm existente
-class FinalizarCitaForm(forms.ModelForm):
-    confirmar_finalizacion = forms.BooleanField(
-        required=True,
-        label="Confirmo que he completado la atención del paciente",
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
-    )
-    
-    class Meta:
-        model = models.Cita
-        fields = ['servicios_realizados', 'notas', 'confirmar_finalizacion']
-        widgets = {
-            'servicios_realizados': forms.CheckboxSelectMultiple(attrs={
-                'class': 'form-check-input'
-            }),
-            'notas': forms.Textarea(attrs={
-                'rows': 4, 
-                'class': 'form-control',
-                'placeholder': 'Notas sobre el tratamiento realizado...'
-            })
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.dentista = kwargs.pop('dentista', None)
-        super().__init__(*args, **kwargs)
-        
-        # Solo mostrar servicios que el dentista puede realizar
-        if self.dentista and self.instance.pk:
-            servicios_disponibles = self._get_servicios_para_dentista(self.dentista)
-            self.fields['servicios_realizados'].queryset = servicios_disponibles
-            
-            # Sugerir los servicios planeados como preseleccionados
-            if not self.instance.servicios_realizados.exists():
-                self.initial['servicios_realizados'] = self.instance.servicios_planeados.all()
-        else:
-            self.fields['servicios_realizados'].queryset = models.Servicio.objects.filter(activo=True)
-        
-        # Labels y help text
-        self.fields['servicios_realizados'].label = "Servicios Realmente Realizados"
-        self.fields['servicios_realizados'].help_text = "Seleccione solo los servicios que efectivamente se realizaron"
-        self.fields['notas'].label = "Notas del Tratamiento"
-        self.fields['notas'].required = False
-    
-    def _get_servicios_para_dentista(self, dentista):
-        """Obtener servicios que puede realizar el dentista"""
-        servicios = models.Servicio.objects.none()
-        for especialidad in dentista.especialidades.all():
-            servicios = servicios.union(especialidad.servicios_disponibles())
-        return servicios.filter(activo=True).distinct()
-    
-    def clean_servicios_realizados(self):
-        servicios = self.cleaned_data.get('servicios_realizados')
-        if not servicios:
-            raise ValidationError("Debe seleccionar al menos un servicio realizado.")
-        return servicios
+# DEPRECATED: FinalizarCitaForm ya no se usa
+# Ahora se usa TratamientoCita para registrar servicios realizados
+# servicios_realizados es ahora una @property calculada desde TratamientoCita.servicios
+# Mantener comentado para referencia histórica
+
+# class FinalizarCitaForm(forms.ModelForm):
+#     confirmar_finalizacion = forms.BooleanField(
+#         required=True,
+#         label="Confirmo que he completado la atención del paciente",
+#         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+#     )
+#
+#     class Meta:
+#         model = models.Cita
+#         fields = ['servicios_realizados', 'notas', 'confirmar_finalizacion']
+#         ...
+#
+# El flujo actual es:
+# 1. Dentista registra tratamiento en TratamientoCita (incluye servicios)
+# 2. servicios_realizados se calcula automáticamente desde tratamientos
 class PacientePlanPagoForm(forms.ModelForm):
     class Meta:
         model = models.Paciente

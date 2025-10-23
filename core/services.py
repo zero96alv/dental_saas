@@ -20,22 +20,25 @@ class PacienteService:
         """
         with transaction.atomic():
             # Calcular total de cargos de citas atendidas/completadas
-            total_cargos = models.Cita.objects.filter(
+            # Como servicios_realizados ahora es @property, iteramos las citas
+            citas_facturables = models.Cita.objects.filter(
                 paciente=paciente,
                 estado__in=['ATN', 'COM']
-            ).aggregate(
-                total=Sum('servicios_realizados__precio')
-            )['total'] or Decimal('0.00')
-            
+            )
+
+            total_cargos = Decimal('0.00')
+            for cita in citas_facturables:
+                total_cargos += Decimal(str(cita.costo_real))
+
             # Calcular total de pagos
             total_pagos = paciente.pagos.aggregate(
                 total=Sum('monto')
             )['total'] or Decimal('0.00')
-            
+
             # Actualizar saldo
             paciente.saldo_global = total_cargos - total_pagos
             paciente.save(update_fields=['saldo_global'])
-            
+
             return paciente.saldo_global
 
 

@@ -1619,95 +1619,18 @@ class CitasPendientesPagoListView(TenantLoginRequiredMixin, ListView):
         context['total_citas_pendientes'] = len(citas_list)
         
         return context
-        
+
+# DEPRECATED: FinalizarCitaView ya no se usa
+# Ahora se usa CitaManageView con TratamientoCita para registrar tratamientos
+# Este view usaba FinalizarCitaForm que dependía del campo servicios_realizados (ya eliminado)
+# Flujo actual: CitaManageView → registrar tratamiento → TratamientoCita
+"""
 class FinalizarCitaView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Cita
-    form_class = forms.FinalizarCitaForm
+    form_class = forms.FinalizarCitaForm  # Ya no existe
     template_name = 'core/cita_finalizar.html'
-    success_url = reverse_lazy('core:agenda')
-    success_message = "La cita ha sido marcada como 'Atendida' y enviada a caja."
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['paciente_form'] = forms.PacientePlanPagoForm(self.request.POST, instance=self.object.paciente)
-        else:
-            context['paciente_form'] = forms.PacientePlanPagoForm(instance=self.object.paciente)
-        return context
-
-    def form_valid(self, form):
-        context = self.get_context_data()
-        paciente_form = context['paciente_form']
-        
-        if paciente_form.is_valid():
-            with transaction.atomic():
-                paciente = paciente_form.save()
-                
-                cita = form.save(commit=False)
-                
-                # Determinar dentista registrador (usuario autenticado o dentista de la cita)
-                dentista_reg = getattr(getattr(self.request.user, 'perfil_dentista', None), 'pk', None)
-                if dentista_reg:
-                    dentista_reg = self.request.user.perfil_dentista
-                else:
-                    dentista_reg = cita.dentista
-                
-                servicios = form.cleaned_data['servicios_realizados']
-                consumo_descripcion = []
-
-                for servicio in servicios:
-                    for item in servicio.servicioinsumo_set.all():
-                        insumo_a_consumir = item.insumo
-                        cantidad_necesaria = item.cantidad
-                        
-                        lotes_disponibles = models.LoteInsumo.objects.filter(
-                            insumo=insumo_a_consumir,
-                            unidad_dental=cita.unidad_dental,
-                            cantidad__gt=0
-                        ).order_by('fecha_caducidad')
-
-                        for lote in lotes_disponibles:
-                            if cantidad_necesaria <= 0:
-                                break
-                            
-                            cantidad_a_tomar = min(lote.cantidad, cantidad_necesaria)
-                            
-                            lote.cantidad -= cantidad_a_tomar
-                            lote.save()
-                            
-                            cantidad_necesaria -= cantidad_a_tomar
-                            
-                            consumo_descripcion.append(
-                                f"{cantidad_a_tomar} de {insumo_a_consumir.nombre} (Lote: {lote.numero_lote or 'N/A'}, Cad: {lote.fecha_caducidad or 'N/A'})"
-                            )
-                
-                if consumo_descripcion:
-                    descripcion_evento = "Consumo de insumos para la cita: " + ", ".join(consumo_descripcion) + "."
-                    models.HistorialClinico.objects.create(
-                        paciente=cita.paciente,
-                        descripcion_evento=descripcion_evento,
-                        registrado_por=dentista_reg
-                    )
-                
-                models.HistorialClinico.objects.create(
-                    paciente=cita.paciente,
-                    descripcion_evento=f"Cita atendida por Dr. {dentista_reg}. Servicios: {', '.join(s.nombre for s in servicios)}.",
-                    registrado_por=dentista_reg
-                )
-
-                cita.estado = 'ATN'
-                cita.save()
-                form.save_m2m()
-                
-                paciente.actualizar_saldo_global()
-
-            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': True, 'redirect_url': str(self.get_success_url())}, status=200)
-            return super().form_valid(form)
-        else:
-            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'errors': form.errors}, status=200)
-            return self.form_invalid(form)
+    ...
+"""
 
 class HistorialPacienteView(TenantLoginRequiredMixin, DetailView):
     model = models.Paciente

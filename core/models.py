@@ -488,15 +488,10 @@ class Cita(models.Model):
         blank=True,
         help_text="Servicios que se planea realizar"
     )
-    
-    # SERVICIOS REALIZADOS (al finalizar cita) - CAMPO EXISTENTE
-    servicios_realizados = models.ManyToManyField(
-        'Servicio', 
-        related_name='citas_realizadas',
-        blank=True,
-        help_text="Servicios que realmente se realizaron"
-    )
-    
+
+    # NOTA: servicios_realizados ahora se calcula desde TratamientoCita.servicios
+    # Ver @property servicios_realizados más abajo
+
     motivo = models.TextField(
         max_length=500, 
         blank=True,
@@ -513,15 +508,34 @@ class Cita(models.Model):
     @property
     def costo_estimado(self):
         return sum(servicio.precio for servicio in self.servicios_planeados.all())
-    
+
+    @property
+    def servicios_realizados(self):
+        """
+        Servicios realizados calculados desde los tratamientos de la cita.
+        Retorna un QuerySet-like de servicios únicos de todos los tratamientos.
+        """
+        from django.db.models import Q
+        servicio_ids = set()
+        for tratamiento in self.tratamientos_realizados.all():
+            servicio_ids.update(tratamiento.servicios.values_list('id', flat=True))
+
+        if servicio_ids:
+            from core.models import Servicio
+            return Servicio.objects.filter(id__in=servicio_ids)
+        else:
+            # Retornar queryset vacío del tipo correcto
+            from core.models import Servicio
+            return Servicio.objects.none()
+
     @property
     def costo_real(self):
         """
         Calcula el costo real de la cita.
-        Si tiene servicios realizados, usa esos.
-        Si no, usa servicios planeados (para permitir pagos antes de asignar servicios realizados).
+        Si tiene servicios realizados (desde tratamientos), usa esos.
+        Si no, usa servicios planeados (para permitir pagos antes de realizar tratamientos).
         """
-        servicios_realizados = self.servicios_realizados.all()
+        servicios_realizados = self.servicios_realizados
         if servicios_realizados.exists():
             return sum(servicio.precio for servicio in servicios_realizados)
         else:
