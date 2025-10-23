@@ -5444,6 +5444,8 @@ def configuracion_clinica(request):
     """Vista para configurar datos de la clínica (logo, nombre, documentos)"""
     from tenants.models import Clinica
     from django.contrib import messages
+    from django.http import HttpResponseRedirect
+    from core.url_helpers import tenant_reverse
 
     # Obtener la clínica actual (tenant)
     clinica = request.tenant
@@ -5462,7 +5464,9 @@ def configuracion_clinica(request):
                 request,
                 f'✅ Configuración de {clinica_actualizada.nombre} actualizada exitosamente'
             )
-            return redirect('core:configuracion_clinica')
+            # Usar tenant_reverse para mantener el contexto del tenant
+            redirect_url = tenant_reverse(request, 'core:configuracion_clinica')
+            return HttpResponseRedirect(redirect_url)
         else:
             messages.error(request, '❌ Por favor corrija los errores del formulario')
     else:
