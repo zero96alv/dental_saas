@@ -731,13 +731,14 @@
                                                                 <th>Cantidad</th>
                                                                 <th>Caducidad</th>
                                                                 <th>Ubicación</th>
+                                                                <th width="100px">Acciones</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
                                                             {% for lote in insumo.lotes.all %}
                                                             <tr>
                                                                 <td>{{ lote.numero_lote|default:'Sin número' }}</td>
-                                                                <td>{{ lote.cantidad }}</td>
+                                                                <td><strong>{{ lote.cantidad }}</strong></td>
                                                                 <td>
                                                                     {% if lote.fecha_caducidad %}
                                                                         <span class="{% if lote.fecha_caducidad < fecha_actual %}text-danger{% else %}text-success{% endif %}">
@@ -753,6 +754,16 @@
                                                                     {% else %}
                                                                         <span class="text-muted">-</span>
                                                                     {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    <button class="btn btn-warning btn-sm btn-ajustar-stock"
+                                                                            data-lote-id="{{ lote.id }}"
+                                                                            data-insumo-nombre="{{ insumo.nombre }}"
+                                                                            data-cantidad-actual="{{ lote.cantidad }}"
+                                                                            data-unidad-dental="{{ lote.unidad_dental.nombre|default:'N/A' }}"
+                                                                            data-numero-lote="{{ lote.numero_lote|default:'S/N' }}">
+                                                                        <i class="bi bi-pencil-square"></i> Ajustar
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                             {% endfor %}
@@ -829,6 +840,85 @@
         </nav>
     </div>
     {% endif %}
+
+<!-- Modal de Ajuste de Stock -->
+<div class="modal fade" id="modalAjustarStock" tabindex="-1" aria-labelledby="modalAjustarStockLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalAjustarStockLabel">
+                    <i class="bi bi-pencil-square"></i> Ajustar Stock
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong id="ajuste-insumo-nombre"></strong>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label"><strong>Unidad Dental:</strong></label>
+                        <p id="ajuste-unidad-dental" class="mb-0"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><strong>Lote:</strong></label>
+                        <p id="ajuste-numero-lote" class="mb-0"></p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Stock Actual:</strong></label>
+                    <p class="h4 text-primary mb-0" id="ajuste-cantidad-actual"></p>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ajuste-nueva-cantidad" class="form-label"><strong>Nueva Cantidad: *</strong></label>
+                    <input type="number"
+                           class="form-control form-control-lg"
+                           id="ajuste-nueva-cantidad"
+                           min="0"
+                           required
+                           placeholder="Ingrese la nueva cantidad">
+                    <small class="form-text text-muted">Escriba la cantidad final después del conteo</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ajuste-motivo" class="form-label"><strong>Motivo: *</strong></label>
+                    <select class="form-select" id="ajuste-motivo" required>
+                        <option value="">Seleccione un motivo...</option>
+                        <option value="CONTEO_FISICO">Conteo Físico</option>
+                        <option value="VENCIMIENTO">Producto Vencido</option>
+                        <option value="MERMA">Merma/Desperdicio</option>
+                        <option value="ERROR_REGISTRO">Error en Registro Anterior</option>
+                        <option value="OTRO">Otro Motivo</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="ajuste-notas" class="form-label">Observaciones:</label>
+                    <textarea class="form-control"
+                              id="ajuste-notas"
+                              rows="3"
+                              placeholder="Notas adicionales (opcional)"></textarea>
+                </div>
+
+                <div id="ajuste-diferencia-preview" class="alert alert-secondary d-none">
+                    <strong>Diferencia: <span id="ajuste-diferencia-valor"></span></strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-warning" id="btn-confirmar-ajuste">
+                    <i class="bi bi-check-circle"></i> Guardar Ajuste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </div>
 {% endblock %}
 
@@ -1053,5 +1143,113 @@ const additionalStyles = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = additionalStyles;
 document.head.appendChild(styleSheet);
+
+// === AJUSTE RÁPIDO DE STOCK ===
+const modalAjustarStock = new bootstrap.Modal(document.getElementById('modalAjustarStock'));
+let loteIdActual = null;
+
+// Manejar click en botones de ajustar
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('btn-ajustar-stock') || e.target.closest('.btn-ajustar-stock')) {
+        const btn = e.target.classList.contains('btn-ajustar-stock') ? e.target : e.target.closest('.btn-ajustar-stock');
+
+        loteIdActual = btn.dataset.loteId;
+        const insumoNombre = btn.dataset.insumoNombre;
+        const cantidadActual = parseInt(btn.dataset.cantidadActual);
+        const unidadDental = btn.dataset.unidadDental;
+        const numeroLote = btn.dataset.numeroLote;
+
+        // Llenar modal
+        document.getElementById('ajuste-insumo-nombre').textContent = insumoNombre;
+        document.getElementById('ajuste-cantidad-actual').textContent = cantidadActual;
+        document.getElementById('ajuste-unidad-dental').textContent = unidadDental;
+        document.getElementById('ajuste-numero-lote').textContent = numeroLote;
+        document.getElementById('ajuste-nueva-cantidad').value = cantidadActual;
+        document.getElementById('ajuste-motivo').value = '';
+        document.getElementById('ajuste-notas').value = '';
+        document.getElementById('ajuste-diferencia-preview').classList.add('d-none');
+
+        modalAjustarStock.show();
+    }
+});
+
+// Calcular diferencia en tiempo real
+document.getElementById('ajuste-nueva-cantidad').addEventListener('input', function() {
+    const cantidadActual = parseInt(document.getElementById('ajuste-cantidad-actual').textContent);
+    const nuevaCantidad = parseInt(this.value) || 0;
+    const diferencia = nuevaCantidad - cantidadActual;
+
+    if (diferencia !== 0) {
+        const previewDiv = document.getElementById('ajuste-diferencia-preview');
+        const diferenciaSpan = document.getElementById('ajuste-diferencia-valor');
+
+        previewDiv.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-secondary');
+
+        if (diferencia > 0) {
+            previewDiv.classList.add('alert-success');
+            diferenciaSpan.textContent = `+${diferencia} (Entrada)`;
+        } else {
+            previewDiv.classList.add('alert-danger');
+            diferenciaSpan.textContent = `${diferencia} (Salida)`;
+        }
+    } else {
+        document.getElementById('ajuste-diferencia-preview').classList.add('d-none');
+    }
+});
+
+// Confirmar ajuste
+document.getElementById('btn-confirmar-ajuste').addEventListener('click', async function() {
+    const nuevaCantidad = document.getElementById('ajuste-nueva-cantidad').value;
+    const motivo = document.getElementById('ajuste-motivo').value;
+    const notas = document.getElementById('ajuste-notas').value;
+
+    // Validaciones
+    if (!nuevaCantidad || nuevaCantidad === '') {
+        alert('Por favor ingrese la nueva cantidad');
+        return;
+    }
+
+    if (!motivo) {
+        alert('Por favor seleccione un motivo');
+        return;
+    }
+
+    const btnConfirmar = this;
+    btnConfirmar.disabled = true;
+    btnConfirmar.innerHTML = '<i class="spinner-border spinner-border-sm"></i> Guardando...';
+
+    try {
+        const response = await fetch(`/demo/insumos/lote/${loteIdActual}/ajustar/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                nueva_cantidad: parseInt(nuevaCantidad),
+                motivo: motivo,
+                notas: notas
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            modalAjustarStock.hide();
+            // Mostrar mensaje de éxito
+            alert(`✅ ${data.message}\n\nStock total del insumo: ${data.stock_total}`);
+            // Recargar página para ver cambios
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Ajuste';
+        }
+    } catch (error) {
+        alert('❌ Error al guardar: ' + error.message);
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Ajuste';
+    }
+});
 </script>
 {% endblock %}

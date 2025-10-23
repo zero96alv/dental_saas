@@ -3439,6 +3439,86 @@ class InsumoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteVi
         return super().form_valid(form)
 
 @login_required
+def ajustar_stock_lote(request, lote_id):
+    """Vista AJAX para ajustar stock de un lote específico"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+    try:
+        import json
+        data = json.loads(request.body)
+
+        # Validar datos recibidos
+        nueva_cantidad = data.get('nueva_cantidad')
+        motivo = data.get('motivo')
+        notas = data.get('notas', '')
+
+        if nueva_cantidad is None:
+            return JsonResponse({'success': False, 'error': 'Debe especificar la nueva cantidad'}, status=400)
+
+        try:
+            nueva_cantidad = int(nueva_cantidad)
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'La cantidad debe ser un número entero'}, status=400)
+
+        if nueva_cantidad < 0:
+            return JsonResponse({'success': False, 'error': 'La cantidad no puede ser negativa'}, status=400)
+
+        if not motivo:
+            return JsonResponse({'success': False, 'error': 'Debe especificar un motivo'}, status=400)
+
+        # Obtener el lote
+        lote = models.LoteInsumo.objects.select_related('insumo', 'unidad_dental').get(id=lote_id)
+        cantidad_anterior = lote.cantidad
+        diferencia = nueva_cantidad - cantidad_anterior
+
+        # Si no hay cambio, no hacer nada
+        if diferencia == 0:
+            return JsonResponse({
+                'success': True,
+                'message': 'No hay cambios en la cantidad',
+                'cantidad_anterior': cantidad_anterior,
+                'cantidad_nueva': nueva_cantidad,
+                'diferencia': 0
+            })
+
+        # Actualizar cantidad del lote
+        lote.cantidad = nueva_cantidad
+        lote.save()
+
+        # Registrar movimiento en auditoría
+        models.MovimientoInventario.objects.create(
+            lote=lote,
+            tipo='AJUSTE_MANUAL',
+            motivo=motivo,
+            cantidad_anterior=cantidad_anterior,
+            cantidad_nueva=nueva_cantidad,
+            diferencia=diferencia,
+            notas=notas,
+            usuario=request.user
+        )
+
+        # Actualizar stock total del insumo
+        lote.insumo.actualizar_stock_total()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Stock actualizado exitosamente de {cantidad_anterior} a {nueva_cantidad}',
+            'cantidad_anterior': cantidad_anterior,
+            'cantidad_nueva': nueva_cantidad,
+            'diferencia': diferencia,
+            'stock_total': lote.insumo.stock,
+            'insumo_nombre': lote.insumo.nombre
+        })
+
+    except models.LoteInsumo.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Lote no encontrado'}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
 def inventario_exportar_excel(request):
     """Exportar inventario completo a Excel con formato para re-importación"""
     from openpyxl import Workbook

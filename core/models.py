@@ -409,6 +409,45 @@ class ServicioInsumo(models.Model):
     def __str__(self):
         return f"{self.servicio.nombre} consume {self.cantidad} de {self.insumo.nombre}"
 
+class MovimientoInventario(models.Model):
+    """Auditoría de todos los movimientos de inventario"""
+    TIPO_CHOICES = [
+        ('AJUSTE_MANUAL', 'Ajuste Manual'),
+        ('ENTRADA_COMPRA', 'Entrada por Compra'),
+        ('SALIDA_CONSUMO', 'Salida por Consumo'),
+        ('TRANSFERENCIA', 'Transferencia entre Unidades'),
+        ('MERMA', 'Merma/Vencimiento'),
+        ('CORRECCION', 'Corrección de Error'),
+    ]
+
+    MOTIVO_CHOICES = [
+        ('CONTEO_FISICO', 'Conteo Físico'),
+        ('VENCIMIENTO', 'Producto Vencido'),
+        ('MERMA', 'Merma/Desperdicio'),
+        ('ERROR_REGISTRO', 'Error en Registro Anterior'),
+        ('TRANSFERENCIA', 'Transferencia entre Unidades'),
+        ('CONSUMO_TRATAMIENTO', 'Consumo en Tratamiento'),
+        ('OTRO', 'Otro Motivo'),
+    ]
+
+    lote = models.ForeignKey(LoteInsumo, on_delete=models.CASCADE, related_name='movimientos')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    motivo = models.CharField(max_length=30, choices=MOTIVO_CHOICES)
+    cantidad_anterior = models.IntegerField(help_text="Cantidad antes del movimiento")
+    cantidad_nueva = models.IntegerField(help_text="Cantidad después del movimiento")
+    diferencia = models.IntegerField(help_text="Diferencia (+/-)")
+    notas = models.TextField(blank=True, help_text="Observaciones adicionales")
+    usuario = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Movimiento de Inventario'
+        verbose_name_plural = 'Movimientos de Inventario'
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.lote.insumo.nombre} ({self.diferencia:+d})"
+
 class Compra(models.Model):
     ESTADOS_COMPRA = [
         ('PENDIENTE', 'Pendiente'),

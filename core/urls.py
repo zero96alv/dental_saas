@@ -14,7 +14,7 @@ from .views import (
     PagoListView, PagoCreateView, PagoUpdateView, PagoDeleteView,
     ProveedorListView, ProveedorCreateView, ProveedorUpdateView, ProveedorDeleteView,
     InsumoListView, InsumoCreateView, InsumoUpdateView, InsumoDeleteView,
-    inventario_exportar_excel, inventario_importar_excel,
+    inventario_exportar_excel, inventario_importar_excel, ajustar_stock_lote,
     CompraListView, CompraCreateView, CompraUpdateView, CompraDeleteView, RecibirCompraView,
     AgendaView, AgendaLegacyView, CitaListView, CitasPendientesPagoListView,  # FinalizarCitaView deprecated
     CitaDetailView, CitaCreateView, CitaUpdateView, CitaDeleteView, CitaManageView,
@@ -189,6 +189,7 @@ urlpatterns = [
     path('insumos/<int:pk>/delete/', InsumoDeleteView.as_view(), name='insumo_delete'),
     path('insumos/exportar/', inventario_exportar_excel, name='inventario_exportar'),
     path('insumos/importar/', inventario_importar_excel, name='inventario_importar'),
+    path('insumos/lote/<int:lote_id>/ajustar/', ajustar_stock_lote, name='ajustar_stock_lote'),
 
     path('compras/', CompraListView.as_view(), name='compra_list'),
     path('compras/new/', CompraCreateView.as_view(), name='compra_create'),
