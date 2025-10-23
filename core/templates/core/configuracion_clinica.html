@@ -1,0 +1,192 @@
+{% extends "core/base.html" %}
+{% load tenant_urls %}
+
+{% block title %}Configuración de la Clínica{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-gear-fill"></i> Configuración de {{ clinica.nombre }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="bi bi-info-circle"></i> Información</h5>
+                        <p class="mb-0">
+                            Configure el nombre y logo de su clínica. El logo aparecerá en:
+                        </p>
+                        <ul class="mb-0 mt-2">
+                            <li>Barra de navegación del sistema</li>
+                            <li>Recibos de pago (formato carta y ticket)</li>
+                            <li>Documentos PDF generados</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Nombre de la clínica -->
+                        <div class="mb-4">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-building"></i> {{ form.nombre.label }}
+                            </label>
+                            {{ form.nombre }}
+                            {% if form.nombre.help_text %}
+                                <small class="form-text text-muted">{{ form.nombre.help_text }}</small>
+                            {% endif %}
+                            {% if form.nombre.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.nombre.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Logo actual -->
+                        {% if clinica.logo %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-image"></i> Logo Actual
+                            </label>
+                            <div class="border rounded p-3 bg-light">
+                                <img src="{{ clinica.logo.url }}"
+                                     alt="Logo de {{ clinica.nombre }}"
+                                     style="max-height: 120px; max-width: 300px; object-fit: contain;"
+                                     class="img-thumbnail">
+                                <p class="text-muted mb-0 mt-2">
+                                    <small>
+                                        <i class="bi bi-file-earmark-image"></i>
+                                        {{ clinica.logo.name|default:"logo.png" }}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Subir nuevo logo -->
+                        <div class="mb-4">
+                            <label for="{{ form.logo.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-upload"></i> {{ form.logo.label }}
+                                {% if clinica.logo %}(Cambiar logo){% endif %}
+                            </label>
+                            {{ form.logo }}
+                            {% if form.logo.help_text %}
+                                <small class="form-text text-muted d-block">
+                                    {{ form.logo.help_text }}
+                                </small>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-exclamation-circle"></i>
+                                Tamaño máximo: 2 MB. Formatos: JPG, PNG, GIF
+                            </small>
+                            {% if form.logo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.logo.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Documento de consentimiento actual -->
+                        {% if clinica.documento_consentimiento %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-file-pdf"></i> Documento de Consentimiento Actual
+                            </label>
+                            <div class="border rounded p-3 bg-light">
+                                <a href="{{ clinica.documento_consentimiento.url }}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-file-pdf"></i> Ver PDF
+                                </a>
+                                <p class="text-muted mb-0 mt-2">
+                                    <small>
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                        {{ clinica.documento_consentimiento.name|default:"consentimiento.pdf" }}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Subir documento de consentimiento -->
+                        <div class="mb-4">
+                            <label for="{{ form.documento_consentimiento.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-shield-check"></i> {{ form.documento_consentimiento.label }}
+                                {% if clinica.documento_consentimiento %}(Cambiar documento){% endif %}
+                            </label>
+                            {{ form.documento_consentimiento }}
+                            {% if form.documento_consentimiento.help_text %}
+                                <small class="form-text text-muted d-block">
+                                    {{ form.documento_consentimiento.help_text }}
+                                </small>
+                            {% endif %}
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="bi bi-exclamation-circle"></i>
+                                Tamaño máximo: 5 MB. Solo formato PDF
+                            </small>
+                            {% if form.documento_consentimiento.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.documento_consentimiento.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% tenant_url 'core:dashboard' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de ayuda -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Recomendaciones para el logo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="bi bi-check-circle"></i> Buenas prácticas</h6>
+                            <ul>
+                                <li>Usar fondo transparente (PNG)</li>
+                                <li>Dimensiones recomendadas: 500x500 px</li>
+                                <li>Logo simple y legible</li>
+                                <li>Colores corporativos de la clínica</li>
+                                <li>Formato cuadrado o horizontal</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="bi bi-x-circle"></i> Evitar</h6>
+                            <ul>
+                                <li>Imágenes muy pesadas (>2 MB)</li>
+                                <li>Logos demasiado detallados</li>
+                                <li>Fondos de color sólido</li>
+                                <li>Texto muy pequeño</li>
+                                <li>Formatos verticales muy altos</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Nota:</strong> Los cambios se aplicarán inmediatamente en todo el sistema.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

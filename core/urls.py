@@ -326,4 +326,7 @@ urlpatterns = [
     # Integración con cuestionario
     path('cuestionarios/<int:cuestionario_id>/presentar-consentimiento/', views.presentar_consentimiento_desde_cuestionario, name='presentar_consentimiento_desde_cuestionario'),
     path('pacientes/<int:paciente_id>/cuestionario-consentimiento/', views.cuestionario_con_consentimiento, name='cuestionario_con_consentimiento'),
+
+    # Configuración de clínica
+    path('configuracion/', views.configuracion_clinica, name='configuracion_clinica'),
 ]

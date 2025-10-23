@@ -1196,5 +1196,63 @@ class CuestionarioHistorialForm(forms.Form):
             alertas_generadas='\n'.join(alertas_generadas),
             tiene_alertas=len(alertas_generadas) > 0
         )
-        
+
         return cuestionario_completado, respuestas_guardadas
+
+
+class ClinicaConfigForm(forms.ModelForm):
+    """Formulario para configurar datos de la clínica (logo, nombre, etc.)"""
+
+    class Meta:
+        model = None  # Se asignará dinámicamente desde la vista
+        fields = ['nombre', 'logo', 'documento_consentimiento']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de la clínica'
+            }),
+            'logo': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'documento_consentimiento': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'application/pdf'
+            }),
+        }
+        labels = {
+            'nombre': 'Nombre de la Clínica',
+            'logo': 'Logo de la Clínica',
+            'documento_consentimiento': 'Documento de Consentimiento Informado (PDF)',
+        }
+        help_texts = {
+            'nombre': 'Nombre que aparecerá en el sistema y en los recibos',
+            'logo': 'Imagen que aparecerá en el navbar y en los recibos PDF (formatos: JPG, PNG, GIF)',
+            'documento_consentimiento': 'PDF con el aviso de privacidad y consentimiento de COFEPRIS',
+        }
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            # Validar tamaño máximo (2MB)
+            if logo.size > 2 * 1024 * 1024:
+                raise ValidationError('El logo no puede pesar más de 2 MB')
+
+            # Validar que sea imagen
+            if not logo.content_type.startswith('image/'):
+                raise ValidationError('El archivo debe ser una imagen (JPG, PNG, GIF)')
+
+        return logo
+
+    def clean_documento_consentimiento(self):
+        documento = self.cleaned_data.get('documento_consentimiento')
+        if documento:
+            # Validar tamaño máximo (5MB)
+            if documento.size > 5 * 1024 * 1024:
+                raise ValidationError('El documento no puede pesar más de 5 MB')
+
+            # Validar que sea PDF
+            if documento.content_type != 'application/pdf':
+                raise ValidationError('El archivo debe ser un PDF')
+
+        return documento

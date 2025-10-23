@@ -8,7 +8,7 @@ from django.db.models.functions import ExtractWeek, ExtractYear, TruncMonth
 from django.http import JsonResponse, HttpResponse, Http404, FileResponse
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -5432,3 +5432,43 @@ def prueba_boca_abierta(request):
 def prueba_fdi_universal(request):
     """Vista de prueba para el odontograma con Sistema de Numeración FDI Universal"""
     return render(request, 'prueba_fdi_universal.html')
+
+
+# ========================================
+# CONFIGURACIÓN DE CLÍNICA
+# ========================================
+
+@tenant_login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def configuracion_clinica(request):
+    """Vista para configurar datos de la clínica (logo, nombre, documentos)"""
+    from tenants.models import Clinica
+    from django.contrib import messages
+
+    # Obtener la clínica actual (tenant)
+    clinica = request.tenant
+
+    if request.method == 'POST':
+        # Crear formulario dinámicamente con el modelo Clinica
+        form = forms.ClinicaConfigForm(request.POST, request.FILES, instance=clinica)
+        form.Meta.model = Clinica
+
+        if form.is_valid():
+            clinica_actualizada = form.save()
+            messages.success(
+                request,
+                f'✅ Configuración de {clinica_actualizada.nombre} actualizada exitosamente'
+            )
+            return redirect('core:configuracion_clinica')
+        else:
+            messages.error(request, '❌ Por favor corrija los errores del formulario')
+    else:
+        form = forms.ClinicaConfigForm(instance=clinica)
+        form.Meta.model = Clinica
+
+    context = {
+        'form': form,
+        'clinica': clinica,
+    }
+
+    return render(request, 'core/configuracion_clinica.html', context)
