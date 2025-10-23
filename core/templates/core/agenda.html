@@ -695,6 +695,7 @@ function ocultarLoading() {
                 },
                 
                 dateClick: function(info) {
+                    console.log('Date clicked:', info.dateStr);
                     openNewAppointmentModal(info.dateStr);
                 },
                 
@@ -797,23 +798,43 @@ function ocultarLoading() {
             
             // Funciones auxiliares - MUST BE DEFINED BEFORE CALENDAR INIT
             function openNewAppointmentModal(dateStr) {
-                console.log('Opening new appointment modal for date:', dateStr);
+                console.log('=== OPENING NEW APPOINTMENT MODAL ===');
+                console.log('dateStr received:', dateStr);
+
                 citaForm.reset();
                 currentCitaId = null;
                 modalTitle.textContent = 'Nueva Cita';
-                
+
                 const fechaPickerContainer = $('#fecha-picker-container');
                 const fechaPickerInput = $('#id_fecha_cita');
-                
+
                 if (dateStr) {
-                    // Fecha proporcionada desde calendario
-                    const selectedDate = new Date(dateStr + 'T00:00:00');
-                    modalDate.textContent = '📅 ' + selectedDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    // Fecha proporcionada desde calendario - usar directamente el string YYYY-MM-DD
+                    console.log('Processing date from calendar:', dateStr);
+
+                    // Parsear la fecha manualmente para evitar problemas de zona horaria
+                    const [year, month, day] = dateStr.split('-').map(Number);
+                    const selectedDate = new Date(year, month - 1, day);
+
+                    console.log('Parsed date object:', selectedDate);
+
+                    // Guardar la fecha en formato ISO (YYYY-MM-DD) en el dataset del form
                     citaForm.dataset.selectedDate = dateStr;
+
+                    // Mostrar la fecha formateada en el modal
+                    const dateDisplay = selectedDate.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    modalDate.textContent = '📅 ' + dateDisplay;
+
                     fechaPickerContainer.hide();
-                    console.log('Date saved in form dataset:', dateStr);
+                    console.log('Date successfully saved in form dataset:', citaForm.dataset.selectedDate);
                 } else {
                     // Sin fecha - mostrar selector
+                    console.log('No date provided - showing date picker');
                     modalDate.textContent = 'Seleccione la fecha de la cita';
                     citaForm.dataset.selectedDate = '';
                     fechaPickerContainer.show();

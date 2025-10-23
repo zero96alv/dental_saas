@@ -1,0 +1,663 @@
+{% extends 'core/base.html' %}
+{% load tenant_urls %}
+{% load static %}
+
+{% block title %}Lista de Pacientes{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Búsqueda destacada */
+.search-box {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.search-box input {
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+}
+
+.search-box .input-group-text {
+    background: white;
+    border: none;
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+
+/* Estadísticas */
+.stats-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.stats-card .stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Vista de tarjetas para móviles */
+.patient-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+}
+
+.patient-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.patient-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.patient-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+.patient-age {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.patient-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-item i {
+    color: #007bff;
+    width: 20px;
+    text-align: center;
+}
+
+.patient-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.patient-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Badges mejorados */
+.status-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.badge-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-complete {
+    background-color: #198754;
+    color: white;
+}
+
+.badge-update {
+    background-color: #0dcaf0;
+    color: #000;
+}
+
+.badge-debt {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-portal {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Tabla desktop */
+.table-compact {
+    font-size: 0.9rem;
+}
+
+.table-compact td {
+    vertical-align: middle;
+    padding: 0.75rem 0.5rem;
+}
+
+.quick-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.quick-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Filtros colapsables */
+.filters-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.filters-header {
+    padding: 1rem;
+    cursor: pointer;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.filters-body {
+    padding: 1rem;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .patient-card {
+        display: none;
+    }
+}
+
+@media (max-width: 767px) {
+    .table-responsive {
+        display: none !important;
+    }
+
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+
+    .patient-actions .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Loading spinner */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #adb5bd;
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="text-primary mb-1">
+                <i class="fas fa-users me-2"></i>Pacientes
+            </h1>
+            <p class="text-muted mb-0">{{ page_obj.paginator.count }} pacientes registrados</p>
+        </div>
+        <a href="{% tenant_url 'core:paciente_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Nuevo Paciente
+        </a>
+    </div>
+
+    <!-- Búsqueda destacada -->
+    <div class="search-box">
+        <form method="get" id="searchForm">
+            <div class="input-group input-group-lg">
+                <input type="text"
+                       name="busqueda"
+                       class="form-control"
+                       placeholder="Buscar por nombre, apellido, email o teléfono..."
+                       value="{{ request.GET.busqueda|default:'' }}"
+                       id="searchInput">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+            </div>
+        </form>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number">{{ estadisticas.total }}</div>
+                <div class="stat-label">Total</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number text-success">{{ estadisticas.con_historial }}</div>
+                <div class="stat-label">Con Historial</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number text-warning">{{ estadisticas.sin_historial }}</div>
+                <div class="stat-label">Sin Historial</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number text-info">{{ estadisticas.con_portal }}</div>
+                <div class="stat-label">Con Portal</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number text-danger">{{ estadisticas.con_saldo }}</div>
+                <div class="stat-label">Con Saldo</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="stats-card">
+                <div class="stat-number text-secondary">{{ page_obj.paginator.count }}</div>
+                <div class="stat-label">Mostrados</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros avanzados -->
+    <div class="filters-card mb-4">
+        <div class="filters-header" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+            <div>
+                <i class="fas fa-filter me-2"></i>
+                <strong>Filtros Avanzados</strong>
+            </div>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="collapse {% if request.GET %}show{% endif %}" id="filtersCollapse">
+            <div class="filters-body">
+                <form method="get" id="filterForm">
+                    <input type="hidden" name="busqueda" value="{{ request.GET.busqueda|default:'' }}">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            {{ form.estado_historial.label_tag }}
+                            {{ form.estado_historial }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.ordenar_por.label_tag }}
+                            {{ form.ordenar_por }}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="form-check">
+                                {{ form.con_saldo_pendiente }}
+                                {{ form.con_saldo_pendiente.label_tag }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="form-check">
+                                {{ form.con_acceso_portal }}
+                                {{ form.con_acceso_portal.label_tag }}
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Aplicar Filtros
+                            </button>
+                            <a href="{% tenant_url 'core:paciente_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Limpiar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vista de tarjetas (móvil) -->
+    <div class="d-md-none">
+        {% for paciente in pacientes %}
+        <div class="patient-card">
+            <div class="patient-header">
+                <div>
+                    <h3 class="patient-name">{{ paciente.nombre }} {{ paciente.apellido }}</h3>
+                    <p class="patient-age mb-0">
+                        <i class="fas fa-birthday-cake me-1"></i>
+                        {% if paciente.fecha_nacimiento %}
+                            {{ paciente.edad }} años
+                        {% else %}
+                            Edad no registrada
+                        {% endif %}
+                    </p>
+                </div>
+                {% if paciente.saldo_global > 0 %}
+                <div class="text-end">
+                    <div class="text-danger fw-bold" style="font-size: 1.25rem;">${{ paciente.saldo_global|floatformat:2 }}</div>
+                    <small class="text-muted">Saldo</small>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="patient-info-grid">
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <a href="mailto:{{ paciente.email }}" class="text-truncate">{{ paciente.email }}</a>
+                </div>
+                {% if paciente.telefono %}
+                <div class="info-item">
+                    <i class="fas fa-phone"></i>
+                    <a href="tel:{{ paciente.telefono }}">{{ paciente.telefono }}</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="patient-badges">
+                {% if paciente.estado_historial == 'pendiente' %}
+                    <span class="status-badge badge-pending">
+                        <i class="fas fa-clock"></i>Historial Pendiente
+                    </span>
+                {% elif paciente.estado_historial == 'completo' %}
+                    <span class="status-badge badge-complete">
+                        <i class="fas fa-check-circle"></i>Historial Completo
+                    </span>
+                {% elif paciente.estado_historial == 'actualizar' %}
+                    <span class="status-badge badge-update">
+                        <i class="fas fa-sync-alt"></i>Actualizar Historial
+                    </span>
+                {% endif %}
+
+                {% if paciente.tiene_acceso_portal %}
+                    <span class="status-badge badge-portal">
+                        <i class="fas fa-user-shield"></i>Portal Activo
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="patient-actions">
+                <a href="{% tenant_url 'core:paciente_detail' paciente.pk %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye me-1"></i>Ver
+                </a>
+                <a href="{% tenant_url 'core:paciente_historial_mejorado' paciente.pk %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-clipboard-list me-1"></i>Historial
+                </a>
+                <a href="{% tenant_url 'core:odontograma_48' paciente.pk %}" class="btn btn-sm btn-info">
+                    <i class="fas fa-tooth me-1"></i>Odontograma
+                </a>
+                <a href="{% tenant_url 'core:paciente_edit' paciente.pk %}" class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit me-1"></i>Editar
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>No se encontraron pacientes</h3>
+            <p>{% if request.GET %}Intenta ajustar los filtros de búsqueda{% else %}Comienza registrando tu primer paciente{% endif %}</p>
+            <a href="{% tenant_url 'core:paciente_create' %}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Añadir Paciente
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Vista de tabla (desktop) -->
+    <div class="card d-none d-md-block">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-compact mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Contacto</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-end">Saldo</th>
+                            <th class="text-center" style="min-width: 300px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {% if paciente.fecha_nacimiento %}{{ paciente.edad }} años{% else %}Edad no registrada{% endif %}
+                                    </small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div><i class="fas fa-envelope me-1 text-muted"></i>{{ paciente.email }}</div>
+                                    {% if paciente.telefono %}<div class="mt-1"><i class="fas fa-phone me-1 text-muted"></i>{{ paciente.telefono }}</div>{% endif %}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex flex-column gap-1 align-items-center">
+                                    {% if paciente.estado_historial == 'completo' %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> Historial</span>
+                                    {% else %}
+                                        <span class="badge bg-warning"><i class="fas fa-clock"></i> Pendiente</span>
+                                    {% endif %}
+                                    {% if paciente.tiene_acceso_portal %}
+                                        <span class="badge bg-info"><i class="fas fa-user-shield"></i> Portal</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-end">
+                                {% if paciente.saldo_global > 0 %}
+                                    <span class="text-danger fw-bold">${{ paciente.saldo_global|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="text-muted">$0.00</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="quick-actions justify-content-center">
+                                    <a href="{% tenant_url 'core:paciente_detail' paciente.pk %}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% tenant_url 'core:paciente_historial_mejorado' paciente.pk %}" class="btn btn-sm btn-success" title="Historial clínico">
+                                        <i class="fas fa-clipboard-list"></i>
+                                    </a>
+                                    <a href="{% tenant_url 'core:odontograma_48' paciente.pk %}" class="btn btn-sm btn-info" title="Odontograma">
+                                        <i class="fas fa-tooth"></i>
+                                    </a>
+                                    <a href="{% tenant_url 'core:paciente_edit' paciente.pk %}" class="btn btn-sm btn-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            {% if paciente.saldo_global > 0 %}
+                                            <li><a class="dropdown-item" href="{% tenant_url 'core:registrar_pago_paciente' paciente.pk %}"><i class="fas fa-dollar-sign me-2"></i>Registrar Pago</a></li>
+                                            {% endif %}
+                                            {% if not paciente.tiene_acceso_portal %}
+                                            <li><a class="dropdown-item" href="{% tenant_url 'core:paciente_invitar' paciente.pk %}"><i class="fas fa-envelope me-2"></i>Invitar a Portal</a></li>
+                                            {% endif %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="{% tenant_url 'core:paciente_delete' paciente.pk %}"><i class="fas fa-trash me-2"></i>Eliminar</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <i class="fas fa-users"></i>
+                                    <h3>No se encontraron pacientes</h3>
+                                    <p>{% if request.GET %}Intenta ajustar los filtros de búsqueda{% else %}Comienza registrando tu primer paciente{% endif %}</p>
+                                    <a href="{% tenant_url 'core:paciente_create' %}" class="btn btn-primary">
+                                        <i class="fas fa-user-plus me-2"></i>Añadir Paciente
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <nav aria-label="Paginación" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+
+        <div class="text-center text-muted mt-2">
+            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }} pacientes
+        </div>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchForm = document.getElementById('searchForm');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    // Búsqueda con delay
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            loadingOverlay.style.display = 'flex';
+            searchForm.submit();
+        }, 500);
+    });
+
+    // Auto-submit en filtros
+    const filterSelects = document.querySelectorAll('#filterForm select, #filterForm input[type="checkbox"]');
+    filterSelects.forEach(element => {
+        element.addEventListener('change', function() {
+            loadingOverlay.style.display = 'flex';
+            document.getElementById('filterForm').submit();
+        });
+    });
+});
+</script>
+{% endblock %}
