@@ -45,27 +45,41 @@
                             const saldoBox = document.getElementById('saldoPacienteBox');
                             const saldoSpan = document.getElementById('saldoPaciente');
                             const montoInput = document.getElementById('id_monto');
+                            const pagosBox = document.getElementById('historialPagosBox');
+
+                            // Obtener el tenant prefix desde la URL actual
+                            const pathParts = window.location.pathname.split('/').filter(p => p);
+                            const tenantPrefix = pathParts.length > 0 ? '/' + pathParts[0] : '';
+
                             function cargarSaldo(pacienteId){
-                                if(!pacienteId){ saldoBox.style.display='none'; pagosBox.style.display='none'; return; }
-                                fetch(`/api/pacientes/${pacienteId}/saldo/`, {credentials:'same-origin'})
+                                if(!pacienteId){
+                                    saldoBox.style.display='none';
+                                    pagosBox.style.display='none';
+                                    return;
+                                }
+
+                                // Cargar saldo del paciente
+                                fetch(`${tenantPrefix}/api/pacientes/${pacienteId}/saldo/`, {credentials:'same-origin'})
                                   .then(r=>r.json()).then(data=>{
                                     saldoSpan.textContent = data.saldo;
                                     saldoBox.style.display = '';
                                     if(montoInput){ montoInput.setAttribute('max', data.saldo); }
                                   }).catch(()=>{ saldoBox.style.display='none'; });
-                                fetch(`/api/pacientes/${pacienteId}/pagos/?limit=5`, {credentials:'same-origin'})
+
+                                // Cargar historial de pagos
+                                fetch(`${tenantPrefix}/api/pacientes/${pacienteId}/pagos/?limit=5`, {credentials:'same-origin'})
                                   .then(r=>r.json()).then(data=>{
                                     const body = document.getElementById('historialPagosBody');
                                     body.innerHTML='';
                                     data.pagos.forEach(p=>{
                                         const tr = document.createElement('tr');
-                                        tr.innerHTML = `<td>${p.fecha}</td><td>${p.metodo}</td><td class="text-end">$${p.monto}</td><td><a href="/pagos/${p.id}/recibo/" target="_blank" class="btn btn-sm btn-outline-secondary">Recibo</a></td>`;
+                                        tr.innerHTML = `<td>${p.fecha}</td><td>${p.metodo}</td><td class="text-end">$${p.monto}</td><td><a href="${tenantPrefix}/pagos/${p.id}/recibo/" target="_blank" class="btn btn-sm btn-outline-secondary">Recibo</a></td>`;
                                         body.appendChild(tr);
                                     });
                                     pagosBox.style.display = data.pagos.length ? '' : 'none';
                                   }).catch(()=>{ pagosBox.style.display='none'; });
                             }
-                            const pagosBox = document.getElementById('historialPagosBox');
+
                             if(pacienteSelect){
                                 pacienteSelect.addEventListener('change', e=>cargarSaldo(e.target.value));
                                 if(pacienteSelect.value){ cargarSaldo(pacienteSelect.value); }

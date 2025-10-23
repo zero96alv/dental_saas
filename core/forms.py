@@ -90,29 +90,42 @@ class PacienteForm(forms.ModelForm):
         ]
         widgets = {
             'fecha_nacimiento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
-            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
-            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'required': 'required'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '55 1234 5678'}),
-            'calle': forms.TextInput(attrs={'class': 'form-control'}),
-            'numero_exterior': forms.TextInput(attrs={'class': 'form-control'}),
-            'codigo_postal': forms.TextInput(attrs={'class': 'form-control', 'pattern': '\\d{5}', 'title': '5 dígitos'}),
-            'colonia': forms.TextInput(attrs={'class': 'form-control'}),
-            'municipio': forms.TextInput(attrs={'class': 'form-control'}),
-            'estado': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre(s) del paciente'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellidos del paciente'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'correo@ejemplo.com (opcional)'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '55 1234 5678 (opcional)'}),
+            'calle': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Calle (opcional)'}),
+            'numero_exterior': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número exterior (opcional)'}),
+            'codigo_postal': forms.TextInput(attrs={'class': 'form-control', 'pattern': '\\d{5}', 'title': '5 dígitos', 'placeholder': 'CP (opcional)'}),
+            'colonia': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Colonia (opcional)'}),
+            'municipio': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Municipio (opcional)'}),
+            'estado': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Estado (opcional)'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Forzar email requerido a nivel de formulario
-        self.fields['email'].required = True
+        # Solo nombre, apellido y fecha_nacimiento son obligatorios
+        self.fields['email'].required = False
+        self.fields['telefono'].required = False
+        self.fields['calle'].required = False
+        self.fields['numero_exterior'].required = False
+        self.fields['codigo_postal'].required = False
+        self.fields['colonia'].required = False
+        self.fields['municipio'].required = False
+        self.fields['estado'].required = False
+
         # Asegurar formato de fecha compatible con input type=date
         self.fields['fecha_nacimiento'].input_formats = ['%Y-%m-%d']
 
     def clean_email(self):
+        """Validar email solo si se proporciona"""
         email = self.cleaned_data.get('email')
+
+        # Si no hay email, permitir (ahora es opcional)
         if not email:
-            raise ValidationError('El email es obligatorio.')
+            return email
+
+        # Si hay email, verificar que no esté duplicado
         qs = models.Paciente.objects.filter(email__iexact=email)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
