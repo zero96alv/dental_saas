@@ -3618,11 +3618,14 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['historial_form'] = forms.HistorialClinicoForm()
         context['puede_facturar'] = self.request.user.groups.filter(name__in=['Administrador','Recepcionista']).exists()
-        
+
         # Asegurar diagnósticos base y luego cargar todos
         self._ensure_default_diagnosticos()
         context['diagnosticos'] = models.Diagnostico.objects.all().order_by('nombre')
-        
+
+        # Agregar servicios disponibles para el selector
+        context['servicios_disponibles'] = models.Servicio.objects.filter(activo=True).order_by('nombre')
+
         return context
         
     def post(self, request, *args, **kwargs):
@@ -3703,10 +3706,17 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
             trabajo_pendiente = request.POST.get('trabajo_pendiente', '').strip()
             requiere_seguimiento = request.POST.get('requiere_seguimiento') == 'on'
             fecha_seguimiento = request.POST.get('fecha_seguimiento', '').strip()
-            
+
+            # Obtener servicios seleccionados (puede ser múltiple)
+            servicios_ids_raw = request.POST.getlist('servicios')  # getlist para select multiple
+            servicios_ids = [int(sid) for sid in servicios_ids_raw if sid.strip()]
+
             # Validaciones
             if not all([dientes_tratados, descripcion, estado_inicial, estado_final, diagnostico_final_id]):
                 return JsonResponse({'success': False, 'error': 'Faltan campos obligatorios'}, status=400)
+
+            if not servicios_ids:
+                return JsonResponse({'success': False, 'error': 'Debe seleccionar al menos un servicio'}, status=400)
             
             # Validar dientes (importar la función de validación)
             from .models import validar_numero_diente_fdi
@@ -3742,7 +3752,7 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
                     estado_inicial_desc=estado_inicial,
                     estado_final_desc=estado_final,
                     diagnostico_final=diagnostico_final,
-                    servicios_ids=None,  # Se puede agregar más tarde si es necesario
+                    servicios_ids=servicios_ids,  # Pasar los servicios seleccionados
                     trabajo_pendiente=trabajo_pendiente,
                     requiere_seguimiento=requiere_seguimiento,
                     fecha_seguimiento=fecha_seguimiento_obj
