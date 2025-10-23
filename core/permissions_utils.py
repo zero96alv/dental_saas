@@ -4,7 +4,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import PermissionDenied
 from django.contrib import messages
-from .models import SubmenuItem, PermisoRol, LogAcceso
+from .models_permissions import SubmenuItem, PermisoRol, LogAcceso
 
 class PermisoDinamicoMixin(AccessMixin):
     """
@@ -138,7 +138,7 @@ def get_menu_for_user(user):
     
     # Si es superusuario, mostrar todo
     if user.is_superuser:
-        from .models import ModuloSistema
+        from .models_permissions import ModuloSistema
         modulos = ModuloSistema.objects.filter(activo=True).prefetch_related('submenus')
         for modulo in modulos:
             submenus_activos = modulo.submenus.filter(activo=True)
@@ -183,7 +183,7 @@ def inicializar_permisos_por_defecto():
     Debe ser llamada después de las migraciones.
     """
     from django.contrib.auth.models import Group
-    from .models import ModuloSistema, SubmenuItem, PermisoRol
+    from .models_permissions import ModuloSistema, SubmenuItem, PermisoRol
     
     # Crear grupos básicos si no existen
     admin_group, _ = Group.objects.get_or_create(name='Administrador')
@@ -312,7 +312,7 @@ def asignar_permisos_por_defecto(admin_group, dentista_group, recepcionista_grou
     """
     Asigna permisos por defecto a los grupos.
     """
-    from .models import SubmenuItem, PermisoRol
+    from .models_permissions import SubmenuItem, PermisoRol
     
     # Administrador: Acceso completo a todo
     for submenu in SubmenuItem.objects.filter(activo=True):
