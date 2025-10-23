@@ -240,29 +240,40 @@
 
                         <!-- Acciones -->
                         <div class="col-md-2 text-end">
-                            <div class="btn-group-vertical" role="group">
+                            <div class="btn-group-vertical w-100" role="group">
                                 <a href="{% tenant_url 'core:cita_manage' cita.pk %}" class="btn btn-sm btn-outline-dark">
                                     <i class="bi bi-tools me-1"></i>Gestionar
                                 </a>
-                                {% if user|has_group:'Recepcionista' and cita.estado == 'PRO' %}
-                                    <a href="{% tenant_url 'core:cita_cambiar_estado' cita.pk %}" 
-                                       class="btn btn-sm btn-outline-info">
-                                        <i class="bi bi-check-circle me-1"></i>Confirmar
-                                    </a>
-                                {% endif %}
-                                {% if user|has_group:'Dentista' and cita.estado == 'CON' %}
-                                    <a href="{% tenant_url 'core:cita_finalizar' cita.pk %}" 
-                                       class="btn btn-sm btn-outline-success">
-                                        <i class="bi bi-clipboard-check me-1"></i>Atender/Finalizar
-                                    </a>
-                                {% endif %}
+
+                                {% comment %} Botón Completar - para citas ATN (Atendidas) {% endcomment %}
                                 {% if cita.estado == 'ATN' %}
-                                    {% if user|has_group:'Recepcionista,Administrador' %}
-                                        <a href="{% tenant_url 'core:cita_finalizar' cita.pk %}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-cash me-1"></i>Finalizar y cobrar
-                                        </a>
-                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-success cambiar-estado-btn"
+                                            data-cita-id="{{ cita.pk }}" data-nuevo-estado="COM">
+                                        <i class="fas fa-check-circle me-1"></i>Completar
+                                    </button>
+                                {% endif %}
+
+                                {% comment %} Botón Cobrar - para citas ATN o COM con saldo pendiente {% endcomment %}
+                                {% if cita.estado == 'ATN' or cita.estado == 'COM' %}
+                                    <a href="{% tenant_url 'core:procesar_pago' cita.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-dollar-sign me-1"></i>Cobrar
+                                    </a>
+                                {% endif %}
+
+                                {% comment %} Botón Confirmar - para Recepcionista/Admin en citas PRO {% endcomment %}
+                                {% if user|has_group:'Recepcionista,Administrador' and cita.estado == 'PRO' %}
+                                    <button type="button" class="btn btn-sm btn-info cambiar-estado-btn"
+                                            data-cita-id="{{ cita.pk }}" data-nuevo-estado="CON">
+                                        <i class="bi bi-check-circle me-1"></i>Confirmar
+                                    </button>
+                                {% endif %}
+
+                                {% comment %} Botón Atender - para Dentista en citas CON {% endcomment %}
+                                {% if user|has_group:'Dentista' and cita.estado == 'CON' %}
+                                    <button type="button" class="btn btn-sm btn-warning cambiar-estado-btn"
+                                            data-cita-id="{{ cita.pk }}" data-nuevo-estado="ATN">
+                                        <i class="bi bi-clipboard-check me-1"></i>Atender
+                                    </button>
                                 {% endif %}
                             </div>
                         </div>
@@ -326,4 +337,63 @@
     </nav>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener CSRF token
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    // Manejar botones de cambiar estado
+    document.querySelectorAll('.cambiar-estado-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const citaId = this.dataset.citaId;
+            const nuevoEstado = this.dataset.nuevoEstado;
+            const tenantPrefix = '{{ request.tenant_prefix|default:"" }}';
+            const url = tenantPrefix ? `${tenantPrefix}/citas/${citaId}/estado/` : `/citas/${citaId}/estado/`;
+
+            // Deshabilitar botón mientras procesa
+            button.disabled = true;
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+
+            // Hacer petición
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `estado=${nuevoEstado}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    alert(data.message || 'Estado actualizado correctamente');
+                    // Recargar la página para reflejar cambios
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo actualizar el estado'));
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión al cambiar estado');
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
