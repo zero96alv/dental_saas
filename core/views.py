@@ -3533,6 +3533,11 @@ class ProcesarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateVi
         cita_id = self.kwargs.get('pk') or self.request.GET.get('cita')
         context['cita'] = models.Cita.objects.get(id=cita_id)  # Ya validado en dispatch
         context['paciente'] = context['cita'].paciente
+
+        # IMPORTANTE: Actualizar el saldo antes de mostrarlo
+        context['paciente'].actualizar_saldo_global()
+        context['paciente'].refresh_from_db()
+
         context['datos_fiscales_form'] = forms.DatosFiscalesForm()
         context['has_datos_fiscales'] = models.DatosFiscales.objects.filter(paciente=context['paciente']).exists()
         return context
