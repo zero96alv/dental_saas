@@ -47,12 +47,12 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 
-                {% if not has_datos_fiscales and form.desea_factura.value %}
+                <div id="datos-fiscales-section" style="display: none;">
                     <h5 class="mt-4">Datos Fiscales</h5>
                     <p>Por favor, complete los datos fiscales para generar la factura:</p>
                     {{ datos_fiscales_form.as_p }}
-                {% endif %}
-                
+                </div>
+
                 <div class="d-flex justify-content-end mt-3">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle-fill me-1"></i> Registrar Pago
@@ -62,4 +62,41 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deseaFacturaCheckbox = document.querySelector('input[name="desea_factura"]');
+    const datosFiscalesSection = document.getElementById('datos-fiscales-section');
+    const hasDatosFiscales = {{ has_datos_fiscales|yesno:"true,false" }};
+
+    // Función para toggle de sección de datos fiscales
+    function toggleDatosFiscales() {
+        if (deseaFacturaCheckbox && deseaFacturaCheckbox.checked && !hasDatosFiscales) {
+            datosFiscalesSection.style.display = 'block';
+            // Hacer campos requeridos
+            datosFiscalesSection.querySelectorAll('input, select').forEach(field => {
+                if (field.hasAttribute('data-originally-required') || field.required) {
+                    field.required = true;
+                    field.setAttribute('data-originally-required', 'true');
+                }
+            });
+        } else {
+            datosFiscalesSection.style.display = 'none';
+            // Quitar required de campos ocultos para evitar error de validación
+            datosFiscalesSection.querySelectorAll('input, select').forEach(field => {
+                field.required = false;
+            });
+        }
+    }
+
+    // Ejecutar al cargar
+    toggleDatosFiscales();
+
+    // Ejecutar cuando cambie el checkbox
+    if (deseaFacturaCheckbox) {
+        deseaFacturaCheckbox.addEventListener('change', toggleDatosFiscales);
+    }
+});
+</script>
+
 {% endblock %}
