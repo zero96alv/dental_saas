@@ -1542,12 +1542,12 @@ class CitasPendientesPagoListView(TenantLoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Filtrar citas atendidas (ATN) o completadas (COM) con servicios realizados
+        # Filtrar citas atendidas (ATN) o completadas (COM) con tratamientos realizados
         queryset = models.Cita.objects.filter(
             estado__in=['ATN', 'COM'],
-            servicios_realizados__isnull=False
+            tratamientos_realizados__isnull=False
         ).select_related('paciente', 'dentista', 'unidad_dental').prefetch_related(
-            'servicios_realizados', 'pagos'
+            'tratamientos_realizados__servicios', 'pagos'
         ).distinct().order_by('-fecha_hora')
         
         # Calcular saldo pendiente y filtrar solo las que tienen saldo > 0
@@ -2155,7 +2155,7 @@ def _generar_recibo_carta(response, pago, request):  # ← Agregar request
     
     if pago.cita:
         # Pago por cita - mostrar servicios realizados
-        for servicio in pago.cita.servicios_realizados:
+        for servicio in pago.cita.servicios_realizados.all():
             data.append([servicio.nombre, f"${servicio.precio:,.2f}"])
             total_servicios += servicio.precio
     else:
@@ -2236,8 +2236,8 @@ def _generar_recibo_ticket(response, pago, width, height, request):  # ← Agreg
         c.drawString(x_pos, y_pos, "Servicios:")
         y_pos -= line_height
         c.setFont("Helvetica", 8)
-        
-        for servicio in pago.cita.servicios_realizados:
+
+        for servicio in pago.cita.servicios_realizados.all():
             c.drawString(x_pos + 2*mm, y_pos, f"- {servicio.nombre}")
             c.drawRightString(width - x_pos, y_pos, f"${servicio.precio:,.2f}")
             total_servicios += servicio.precio
@@ -2458,7 +2458,7 @@ def exportar_facturacion_excel(request):
     worksheet.append(headers)
     citas = models.Cita.objects.filter(requiere_factura=True).select_related('paciente').prefetch_related('tratamientos_realizados__servicios', 'pagos')
     for cita in citas:
-        servicios = ", ".join([s.nombre for s in cita.servicios_realizados])
+        servicios = ", ".join([s.nombre for s in cita.servicios_realizados.all()])
         monto_pagado = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
         pago = cita.pagos.order_by('-fecha_pago').first()
         df = getattr(cita.paciente, 'datos_fiscales', None)
@@ -3097,48 +3097,60 @@ class ReporteServiciosVendidosPeriodoView(TenantLoginRequiredMixin, TemplateView
                 # últimas 8 semanas
                 fecha_inicio = today - timedelta(weeks=8)
 
-        qs = models.Cita.objects.filter(
+        # Filtrar citas con tratamientos realizados
+        citas_qs = models.Cita.objects.filter(
             fecha_hora__date__gte=fecha_inicio,
             fecha_hora__date__lte=fecha_fin,
             estado__in=['ATN', 'COM'],
-            servicios_realizados__isnull=False
-        )
+            tratamientos_realizados__isnull=False
+        ).distinct()
         if dentista:
-            qs = qs.filter(dentista=dentista)
+            citas_qs = citas_qs.filter(dentista=dentista)
+
+        # Obtener tratamientos con servicios
+        tratamientos_qs = models.TratamientoCita.objects.filter(
+            cita__in=citas_qs,
+            servicios__isnull=False
+        ).select_related('cita').prefetch_related('servicios')
 
         resultados = []
+        from collections import defaultdict, Counter
+
         if periodo == 'mes':
-            agg = qs.annotate(
-                periodo_mes=TruncMonth('fecha_hora'),
-                servicio_id=F('servicios_realizados__id'),
-                servicio_nombre=F('servicios_realizados__nombre'),
-            ).values('periodo_mes', 'servicio_id', 'servicio_nombre').annotate(
-                cantidad=Count('id')
-            ).order_by('periodo_mes', '-cantidad')
+            # Agrupar por mes
+            grouped = defaultdict(Counter)
+            for tratamiento in tratamientos_qs:
+                mes_key = tratamiento.cita.fecha_hora.strftime('%Y-%m')
+                for servicio in tratamiento.servicios.all():
+                    grouped[mes_key][servicio.nombre] += 1
 
-            # Agrupar por mes y tomar top 10
-            from collections import defaultdict
-            grouped = defaultdict(list)
-            for row in agg:
-                key = row['periodo_mes'].strftime('%Y-%m') if row['periodo_mes'] else 'N/A'
-                grouped[key].append({'servicio': row['servicio_nombre'], 'cantidad': row['cantidad']})
-            resultados = [{'periodo': k, 'items': v[:10]} for k, v in sorted(grouped.items())]
+            # Convertir a formato esperado y tomar top 10 por mes
+            resultados = [
+                {
+                    'periodo': mes,
+                    'items': [{'servicio': nombre, 'cantidad': cant} for nombre, cant in counter.most_common(10)]
+                }
+                for mes, counter in sorted(grouped.items())
+            ]
         else:
-            agg = qs.annotate(
-                anio=ExtractYear('fecha_hora'),
-                semana=ExtractWeek('fecha_hora'),
-                servicio_id=F('servicios_realizados__id'),
-                servicio_nombre=F('servicios_realizados__nombre'),
-            ).values('anio', 'semana', 'servicio_id', 'servicio_nombre').annotate(
-                cantidad=Count('id')
-            ).order_by('anio', 'semana', '-cantidad')
+            # Agrupar por semana
+            grouped = defaultdict(Counter)
+            for tratamiento in tratamientos_qs:
+                fecha = tratamiento.cita.fecha_hora
+                anio = fecha.year
+                semana = fecha.isocalendar()[1]
+                semana_key = f"{anio}-W{semana:02d}"
+                for servicio in tratamiento.servicios.all():
+                    grouped[semana_key][servicio.nombre] += 1
 
-            from collections import defaultdict
-            grouped = defaultdict(list)
-            for row in agg:
-                key = f"{row['anio']}-W{int(row['semana']):02d}"
-                grouped[key].append({'servicio': row['servicio_nombre'], 'cantidad': row['cantidad']})
-            resultados = [{'periodo': k, 'items': v[:10]} for k, v in sorted(grouped.items())]
+            # Convertir a formato esperado y tomar top 10 por semana
+            resultados = [
+                {
+                    'periodo': semana,
+                    'items': [{'servicio': nombre, 'cantidad': cant} for nombre, cant in counter.most_common(10)]
+                }
+                for semana, counter in sorted(grouped.items())
+            ]
 
         context.update({
             'form': form,
@@ -3530,7 +3542,7 @@ class ReporteFacturacionView(TenantLoginRequiredMixin, ListView):
         queryset = base.filter(
             Q(requiere_factura=True) | Q(pagos__forma_pago_sat__isnull=False)
         ).distinct().prefetch_related(
-            'servicios_realizados',
+            'tratamientos_realizados__servicios',
             'pagos__forma_pago_sat',
             'pagos__metodo_sat'
         )
