@@ -63,14 +63,33 @@ class Paciente(PersonaBase):
 
     def actualizar_saldo_global(self):
         from decimal import Decimal
-        total_cargos = self.cita_set.filter(estado__in=['ATN', 'COM']).aggregate(
-            total=Sum('servicios_realizados__precio')
-        )['total'] or Decimal('0.00')
-        
+
+        # Calcular total de cargos: primero intentar con servicios realizados, si no hay usar servicios planeados
+        total_cargos = Decimal('0.00')
+
+        # Citas atendidas o completadas
+        citas_facturables = self.cita_set.filter(estado__in=['ATN', 'COM'])
+
+        for cita in citas_facturables:
+            # Primero intentar con servicios realizados
+            servicios_realizados = cita.servicios_realizados.all()
+
+            if servicios_realizados.exists():
+                # Si tiene servicios realizados, usar esos
+                subtotal = servicios_realizados.aggregate(total=Sum('precio'))['total'] or Decimal('0.00')
+            else:
+                # Si no tiene servicios realizados, usar los servicios planeados
+                servicios_planeados = cita.servicios_planeados.all()
+                subtotal = servicios_planeados.aggregate(total=Sum('precio'))['total'] or Decimal('0.00')
+
+            total_cargos += subtotal
+
+        # Total de pagos realizados
         total_pagos = self.pagos.all().aggregate(
             total=Sum('monto')
         )['total'] or Decimal('0.00')
-        
+
+        # Calcular saldo pendiente
         self.saldo_global = total_cargos - total_pagos
         self.save()
 class SatFormaPago(models.Model):
