@@ -69,20 +69,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const datosFiscalesSection = document.getElementById('datos-fiscales-section');
     const hasDatosFiscales = {{ has_datos_fiscales|yesno:"true,false" }};
 
+    // Campos críticos que deben ser requeridos cuando se solicita factura
+    const camposRequeridos = ['rfc', 'razon_social', 'codigo_postal', 'regimen_fiscal', 'uso_cfdi'];
+
     // Función para toggle de sección de datos fiscales
     function toggleDatosFiscales() {
         if (deseaFacturaCheckbox && deseaFacturaCheckbox.checked && !hasDatosFiscales) {
+            // Mostrar sección
             datosFiscalesSection.style.display = 'block';
-            // Hacer campos requeridos
+
+            // Hacer campos críticos requeridos
             datosFiscalesSection.querySelectorAll('input, select').forEach(field => {
-                if (field.hasAttribute('data-originally-required') || field.required) {
+                const fieldName = field.name;
+                if (camposRequeridos.includes(fieldName)) {
                     field.required = true;
-                    field.setAttribute('data-originally-required', 'true');
                 }
             });
         } else {
+            // Ocultar sección
             datosFiscalesSection.style.display = 'none';
-            // Quitar required de campos ocultos para evitar error de validación
+
+            // Quitar required de TODOS los campos para evitar error de validación
             datosFiscalesSection.querySelectorAll('input, select').forEach(field => {
                 field.required = false;
             });
@@ -90,11 +97,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Ejecutar al cargar
-    toggleDatosFiscales();
-
-    // Ejecutar cuando cambie el checkbox
     if (deseaFacturaCheckbox) {
+        toggleDatosFiscales();
+
+        // Ejecutar cuando cambie el checkbox
         deseaFacturaCheckbox.addEventListener('change', toggleDatosFiscales);
+    } else {
+        // Si no existe el checkbox, asegurar que campos estén NO requeridos
+        if (datosFiscalesSection) {
+            datosFiscalesSection.querySelectorAll('input, select').forEach(field => {
+                field.required = false;
+            });
+        }
     }
 });
 </script>

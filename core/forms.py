@@ -748,6 +748,12 @@ class DatosFiscalesForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Hacer todos los campos opcionales por defecto
+        # Solo serán requeridos cuando el usuario marque "desea factura"
+        for field_name in self.fields:
+            self.fields[field_name].required = False
+
         # Poblar selects desde catálogos SAT
         self.fields['regimen_fiscal'].queryset = models.SatRegimenFiscal.objects.filter(activo=True).order_by('codigo')
         self.fields['regimen_fiscal'].widget.attrs.update({'class': 'form-select'})
