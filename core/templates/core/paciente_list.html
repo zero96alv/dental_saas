@@ -658,21 +658,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('filterForm').submit();
         });
     });
-
-    // Asegurar que los dropdowns de Bootstrap funcionen correctamente
-    console.log('Inicializando dropdowns...');
-    const dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
-    dropdownElements.forEach(el => {
-        console.log('Dropdown encontrado:', el);
-    });
-
-    // Debug: verificar clics en botones
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('a, button');
-        if (target) {
-            console.log('Click detectado en:', target.tagName, target.className, target.href || target.onclick);
-        }
-    });
 });
 </script>
 {% endblock %}
