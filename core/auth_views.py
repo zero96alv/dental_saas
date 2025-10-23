@@ -14,31 +14,28 @@ class CustomLogoutView(DjangoLogoutView):
     Vista de logout personalizada que maneja tanto GET como POST
     y limpia la sesión de forma segura.
     """
-    
-    def get(self, request, *args, **kwargs):
-        """Manejar solicitudes GET de logout"""
-        return self.post(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        """Manejar solicitudes POST de logout"""
+    http_method_names = ['get', 'post', 'options']
+
+    def dispatch(self, request, *args, **kwargs):
+        """Despachar la solicitud - manejar tanto GET como POST"""
         logger.info("Procesando logout para el usuario: %s", request.user)
-        
+
         # Obtener el prefijo del tenant antes del logout
         tenant_prefix = getattr(request, 'tenant_prefix', '')
         logger.info(f"Tenant prefix detectado: '{tenant_prefix}'")
-        
+
         # Llamar al método de logout de Django
         logout(request)
         logger.info("Llamada a django.contrib.auth.logout() completada.")
 
         # Añadir mensaje de éxito
         messages.success(request, "Has cerrado sesión correctamente.")
-        
+
         # Crear respuesta de redirección con el prefijo del tenant
         redirect_url = f'{tenant_prefix}/accounts/login/' if tenant_prefix else '/accounts/login/'
         logger.info(f"Redirigiendo logout a: {redirect_url}")
         response = HttpResponseRedirect(redirect_url)
-        
+
         # Eliminar cookies de sesión y CSRF
         logger.info("Eliminando cookies de sesión y CSRF.")
         response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
