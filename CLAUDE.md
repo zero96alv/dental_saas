@@ -300,8 +300,112 @@ python manage.py collectstatic --no-input --settings=dental_saas.settings_produc
 - Management commands: `core/management/commands/`
 
 ## Recent Changes (from git log)
-- CitaManageView: Ensure base diagnoses (SANO, CARIES, etc.) for quick diagnosis
-- Quick diagnosis: Use aliases (Obturada→Obturación), normalize accents, batch application with logs
-- Mobile odontogram: More visible selection highlighting (blue stroke, scaling), load and click logs
-- Odontogram API: Batch support (list of tooth numbers), color and notes, single history entry per operation
-- UX improvements: Centered odontogram, floating diagnosis palette, multiple selection, form below
+
+### October 2025 - Refactorización arquitectural servicios_realizados
+**CRÍTICO**: Campo `Cita.servicios_realizados` eliminado y convertido a `@property`
+
+#### Motivación
+Eliminamos redundancia de datos: antes servicios estaban en dos lugares:
+- `Cita.servicios_realizados` (M2M) ← ELIMINADO
+- `TratamientoCita.servicios` (M2M) ← Ahora es fuente única de verdad
+
+#### Cambios en modelos (core/models.py)
+```python
+# ANTES (OBSOLETO)
+class Cita(models.Model):
+    servicios_realizados = models.ManyToManyField('Servicio', ...)  # ❌ Eliminado
+
+# DESPUÉS (ACTUAL)
+class Cita(models.Model):
+    @property
+    def servicios_realizados(self):
+        """Calcula desde TratamientoCita.servicios"""
+        servicio_ids = set()
+        for tratamiento in self.tratamientos_realizados.all():
+            servicio_ids.update(tratamiento.servicios.values_list('id', flat=True))
+        return Servicio.objects.filter(id__in=servicio_ids)
+```
+
+#### Migración aplicada
+- `core/migrations/0033_eliminar_servicios_realizados.py`
+- Aplicada a schema demo: ✅
+
+#### Cambios críticos en código
+1. **Vistas**: Cambiar `prefetch_related('servicios_realizados')` → `prefetch_related('tratamientos_realizados__servicios')`
+2. **Templates**: Remover `.all()` → `{% for s in cita.servicios_realizados %}` (sin .all())
+3. **Saldo calculation**: Usar `cita.costo_real` property en lugar de aggregate
+
+#### Scripts de datos
+- `generar_datos_completos.py`: Genera 5 escenarios completos de pacientes con historiales
+- Ejecutar: `python generar_datos_completos.py` (ya poblado en demo)
+
+### Integración Odontograma + Servicios (Octubre 2025)
+Página de gestión de citas (`/citas/X/gestionar/`) ahora permite flujo completo:
+
+#### Funcionalidad agregada
+1. **Selector multi-servicio**: Campo `<select multiple>` con servicios planeados pre-seleccionados
+2. **Botón "Copiar dientes seleccionados"**: Copia números de dientes desde odontograma a campo de texto
+3. **Vinculación automática**: Al registrar tratamiento, servicios se vinculan a `TratamientoCita.servicios`
+4. **Visualización**: Lista de tratamientos muestra badges verdes con servicios + precios
+
+#### Template modificado (cita_manage.html)
+```html
+<!-- Nuevo campo de servicios -->
+<select class="form-select" id="servicios" name="servicios" multiple size="5" required>
+  {% for servicio in cita.servicios_planeados.all %}
+    <option value="{{ servicio.id }}" selected>{{ servicio.nombre }} - ${{ servicio.precio }}</option>
+  {% endfor %}
+</select>
+
+<!-- Botón de integración -->
+<button type="button" id="btn-copiar-seleccion">
+  <i class="bi bi-clipboard-check"></i> Copiar dientes seleccionados
+</button>
+
+<!-- JavaScript -->
+<script>
+  window.odontogramaSelected = selected;  // Variable global para comunicación
+  document.getElementById('btn-copiar-seleccion').addEventListener('click', ...);
+</script>
+```
+
+#### Vista actualizada (core/views.py)
+```python
+class CitaManageView:
+    def get_context_data(self, **kwargs):
+        context['servicios_disponibles'] = models.Servicio.objects.filter(activo=True)
+
+    def _handle_tratamiento(self, request, cita):
+        servicios_ids = [int(sid) for sid in request.POST.getlist('servicios')]
+        # Validar al menos un servicio
+        # Pasar a procesar_tratamiento_cita(servicios_ids=servicios_ids)
+```
+
+#### Flujo de usuario
+1. Abrir `/demo/citas/1/gestionar/` → Pestaña "Tratamientos"
+2. Click en dientes del odontograma (multi-selección)
+3. Click "Copiar dientes seleccionados" → campo se llena
+4. Seleccionar servicios del multi-select (Ctrl+Click)
+5. Completar descripción, estado inicial/final, diagnóstico
+6. Registrar tratamiento → odontograma actualiza + servicios vinculados
+
+### Servidor de producción
+- **Servicio**: `dental-saas.service` (systemd)
+- **Reiniciar**: `sudo systemctl restart dental-saas.service`
+- **Ver logs**: `sudo journalctl -u dental-saas.service -f`
+- **URL**: http://142.93.87.37/demo/
+
+### Comandos útiles después de cambios
+```bash
+# Activar entorno
+source venv/bin/activate
+
+# Migrar schemas
+python manage.py migrate_schemas --schema=demo
+
+# Reiniciar servidor
+sudo systemctl restart dental-saas.service
+
+# Ver estado
+sudo systemctl status dental-saas.service
+```
