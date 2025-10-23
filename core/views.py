@@ -1283,7 +1283,9 @@ class CompraDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteVi
     context_object_name = 'compra'
 
     def form_valid(self, form):
-        messages.success(self.request, f"Compra a '{self.object.proveedor.nombre}' eliminada con éxito.")
+        # Manejar caso donde proveedor puede ser None (compras internas/ajustes)
+        proveedor_nombre = self.object.proveedor.nombre if self.object.proveedor else "sin proveedor"
+        messages.success(self.request, f"Compra a '{proveedor_nombre}' eliminada con éxito.")
         return super().form_valid(form)
 
 class RecibirCompraView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
