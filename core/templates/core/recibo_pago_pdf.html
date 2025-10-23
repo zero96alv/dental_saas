@@ -29,7 +29,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for servicio in pago.cita.servicios_realizados.all %}
+                {% for servicio in pago.cita.servicios_realizados %}
                 <tr>
                     <td>{{ servicio.nombre }}</td>
                     <td class="text-end">${{ servicio.precio|floatformat:2 }}</td>
@@ -39,7 +39,7 @@
             <tfoot>
                 <tr>
                     <td class="text-end"><strong>Total Servicios:</strong></td>
-                    <td class="text-end">${{ pago.cita.servicios_realizados.all.total_precio|floatformat:2 }}</td>
+                    <td class="text-end">${{ pago.cita.servicios_realizados.total_precio|floatformat:2 }}</td>
                 </tr>
                 <tr>
                     <td class="text-end"><strong>Monto Pagado:</strong></td>

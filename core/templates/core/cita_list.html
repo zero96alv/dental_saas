@@ -195,10 +195,10 @@
                                 </ul>
                             {% endif %}
 
-                            {% if cita.servicios_realizados.all %}
+                            {% if cita.servicios_realizados %}
                                 <small class="text-success">Servicios Realizados:</small>
                                 <ul class="list-unstyled mb-0">
-                                    {% for servicio in cita.servicios_realizados.all %}
+                                    {% for servicio in cita.servicios_realizados %}
                                         <li><small>✓ {{ servicio.nombre }}</small></li>
                                     {% endfor %}
                                 </ul>

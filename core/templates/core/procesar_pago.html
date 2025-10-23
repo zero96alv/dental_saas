@@ -25,7 +25,7 @@
                 <li class="list-group-item">
                     <strong>Servicios:</strong>
                     <ul>
-                        {% for servicio in cita.servicios_realizados.all %}
+                        {% for servicio in cita.servicios_realizados %}
                             <li>{{ servicio.nombre }} - ${{ servicio.precio|floatformat:2 }}</li>
                         {% empty %}
                             <li>No hay servicios registrados.</li>

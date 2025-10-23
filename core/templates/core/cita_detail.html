@@ -45,7 +45,7 @@
 
             <h5>Servicios Realizados</h5>
             <ul class="list-group mb-3">
-                {% for servicio in cita.servicios_realizados.all %}
+                {% for servicio in cita.servicios_realizados %}
                     <li class="list-group-item">{{ servicio.nombre }} - ${{ servicio.precio|floatformat:2 }}</li>
                 {% empty %}
                     <li class="list-group-item">No hay servicios realizados.</li>

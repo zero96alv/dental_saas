@@ -60,7 +60,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for servicio in pago.cita.servicios_realizados.all %}
+                    {% for servicio in pago.cita.servicios_realizados %}
                     <tr>
                         <td>{{ servicio.nombre }}</td>
                         <td class="text-end">${{ servicio.precio|floatformat:2 }}</td>

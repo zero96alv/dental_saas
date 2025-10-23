@@ -78,7 +78,7 @@
                 <div class="col-md-6">
                   <h6>Realizados</h6>
                   <ul>
-                    {% for s in cita.servicios_realizados.all %}
+                    {% for s in cita.servicios_realizados %}
                       <li>{{ s.nombre }} - ${{ s.precio }}</li>
                     {% empty %}<li>Sin servicios realizados</li>{% endfor %}
                   </ul>

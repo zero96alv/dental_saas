@@ -19,7 +19,7 @@
         <div class="col-md-6 text-md-end">
           <h5 class="mb-2">Cita</h5>
           <p class="mb-1">#{{ cita.id }} • {{ cita.fecha_hora|date:"d/m/Y H:i" }}</p>
-          <p class="mb-0">Servicios realizados: {{ cita.servicios_realizados.all|length }}</p>
+          <p class="mb-0">Servicios realizados: {{ cita.servicios_realizados|length }}</p>
         </div>
       </div>
       <hr>

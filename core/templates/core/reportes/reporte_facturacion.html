@@ -89,7 +89,7 @@
                             <td>{% if cita.ultimo_pago %}{{ cita.ultimo_pago.metodo_sat.codigo|default:"N/A" }}{% else %}N/A{% endif %}</td>
                             <td>
                                 <ul class="list-unstyled mb-0">
-                                    {% for servicio in cita.servicios_realizados.all %}
+                                    {% for servicio in cita.servicios_realizados %}
                                         <li>{{ servicio.nombre }}</li>
                                     {% endfor %}
                                 </ul>

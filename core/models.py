@@ -71,16 +71,8 @@ class Paciente(PersonaBase):
         citas_facturables = self.cita_set.filter(estado__in=['ATN', 'COM'])
 
         for cita in citas_facturables:
-            # Primero intentar con servicios realizados
-            servicios_realizados = cita.servicios_realizados.all()
-
-            if servicios_realizados.exists():
-                # Si tiene servicios realizados, usar esos
-                subtotal = servicios_realizados.aggregate(total=Sum('precio'))['total'] or Decimal('0.00')
-            else:
-                # Si no tiene servicios realizados, usar los servicios planeados
-                servicios_planeados = cita.servicios_planeados.all()
-                subtotal = servicios_planeados.aggregate(total=Sum('precio'))['total'] or Decimal('0.00')
+            # Usar costo_real que ya tiene la lógica de fallback
+            subtotal = Decimal(str(cita.costo_real))
 
             total_cargos += subtotal
 

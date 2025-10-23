@@ -51,7 +51,7 @@
                             <td>{{ pago.paciente }}</td>
                             <td>{{ pago.cita.dentista|default:"N/A" }}</td>
                             <td>
-                                {% for servicio in pago.cita.servicios_realizados.all %}
+                                {% for servicio in pago.cita.servicios_realizados %}
                                     - {{ servicio.nombre }} <br>
                                 {% empty %}
                                     Abono general

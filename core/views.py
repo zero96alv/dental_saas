@@ -1423,7 +1423,7 @@ class CitaListView(TenantLoginRequiredMixin, ListView):
         queryset = models.Cita.objects.select_related(
             'paciente', 'dentista', 'unidad_dental'
         ).prefetch_related(
-            'servicios_planeados', 'servicios_realizados', 'pagos'
+            'servicios_planeados', 'tratamientos_realizados__servicios', 'pagos'
         ).order_by('-fecha_hora')
         
         user = self.request.user
@@ -1494,14 +1494,12 @@ class CitaListView(TenantLoginRequiredMixin, ListView):
         
         # Añadir datos calculados a cada cita
         for cita in context['citas']:
-            # Calcular costos
-            cita.costo_estimado_calc = sum(s.precio for s in cita.servicios_planeados.all())
-            cita.costo_real_calc = sum(s.precio for s in cita.servicios_realizados.all()) 
-            cita.total_pagado_calc = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
-            cita.saldo_pendiente_calc = cita.costo_real_calc - cita.total_pagado_calc
-            
-            # Calcular duración estimada  
-            cita.duracion_estimada_calc = sum(s.duracion_minutos for s in cita.servicios_planeados.all())
+            # Usar properties existentes en lugar de recalcular
+            cita.costo_estimado_calc = cita.costo_estimado
+            cita.costo_real_calc = cita.costo_real
+            cita.total_pagado_calc = cita.total_pagado
+            cita.saldo_pendiente_calc = cita.saldo_pendiente
+            cita.duracion_estimada_calc = cita.duracion_estimada
         
         # Filtros aplicados (para mantener en los links de paginación)
         context['filtros_actuales'] = {
@@ -1555,14 +1553,13 @@ class CitasPendientesPagoListView(TenantLoginRequiredMixin, ListView):
         # Calcular saldo pendiente y filtrar solo las que tienen saldo > 0
         citas_con_saldo = []
         for cita in queryset:
-            costo_real = sum(s.precio for s in cita.servicios_realizados.all())
-            total_pagado = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
-            saldo_pendiente = costo_real - total_pagado
-            
+            # Usar properties del modelo
+            saldo_pendiente = cita.saldo_pendiente
+
             if saldo_pendiente > 0:
                 # Añadir propiedades calculadas para usar en el template
-                cita.costo_real_calc = costo_real
-                cita.total_pagado_calc = total_pagado
+                cita.costo_real_calc = cita.costo_real
+                cita.total_pagado_calc = cita.total_pagado
                 cita.saldo_pendiente_calc = saldo_pendiente
                 citas_con_saldo.append(cita)
         
@@ -2158,7 +2155,7 @@ def _generar_recibo_carta(response, pago, request):  # ← Agregar request
     
     if pago.cita:
         # Pago por cita - mostrar servicios realizados
-        for servicio in pago.cita.servicios_realizados.all():
+        for servicio in pago.cita.servicios_realizados:
             data.append([servicio.nombre, f"${servicio.precio:,.2f}"])
             total_servicios += servicio.precio
     else:
@@ -2240,7 +2237,7 @@ def _generar_recibo_ticket(response, pago, width, height, request):  # ← Agreg
         y_pos -= line_height
         c.setFont("Helvetica", 8)
         
-        for servicio in pago.cita.servicios_realizados.all():
+        for servicio in pago.cita.servicios_realizados:
             c.drawString(x_pos + 2*mm, y_pos, f"- {servicio.nombre}")
             c.drawRightString(width - x_pos, y_pos, f"${servicio.precio:,.2f}")
             total_servicios += servicio.precio
@@ -2459,9 +2456,9 @@ def exportar_facturacion_excel(request):
     worksheet.title = 'Facturación'
     headers = ['Fecha Cita', 'Paciente', 'RFC Receptor', 'Nombre Receptor', 'CP Receptor', 'Régimen Fiscal', 'Uso CFDI', 'Forma Pago (SAT)', 'Método Pago (SAT)', 'Servicios', 'Monto Pagado']
     worksheet.append(headers)
-    citas = models.Cita.objects.filter(requiere_factura=True).select_related('paciente').prefetch_related('servicios_realizados', 'pagos')
+    citas = models.Cita.objects.filter(requiere_factura=True).select_related('paciente').prefetch_related('tratamientos_realizados__servicios', 'pagos')
     for cita in citas:
-        servicios = ", ".join([s.nombre for s in cita.servicios_realizados.all()])
+        servicios = ", ".join([s.nombre for s in cita.servicios_realizados])
         monto_pagado = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
         pago = cita.pagos.order_by('-fecha_pago').first()
         df = getattr(cita.paciente, 'datos_fiscales', None)
