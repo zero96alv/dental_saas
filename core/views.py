@@ -3774,6 +3774,10 @@ class ProcesarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateVi
     form_class = forms.PagoForm
     success_url = reverse_lazy('core:citas_pendientes_pago')
 
+    def get_success_url(self):
+        # Redirigir directamente al PDF del recibo para impresión
+        return reverse('core:generar_recibo_pdf', kwargs={'pk': self.object.pk})
+
     def dispatch(self, request, *args, **kwargs):
         cita_id = self.kwargs.get('pk') or self.request.GET.get('cita')
         if not cita_id:
@@ -4315,6 +4319,10 @@ class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin,
     form_class = forms.PagoForm
     template_name = 'core/registrar_pago_paciente.html'
     success_url = reverse_lazy('core:saldos_pendientes')
+
+    def get_success_url(self):
+        # Redirigir directamente al PDF del recibo para impresión
+        return reverse('core:generar_recibo_pdf', kwargs={'pk': self.object.pk})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
