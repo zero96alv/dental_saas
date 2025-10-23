@@ -5448,10 +5448,13 @@ def configuracion_clinica(request):
     # Obtener la clínica actual (tenant)
     clinica = request.tenant
 
+    # Crear clase de formulario dinámicamente con el modelo Clinica
+    class ClinicaConfigFormDynamic(forms.ClinicaConfigFormBase):
+        class Meta(forms.ClinicaConfigFormBase.Meta):
+            model = Clinica
+
     if request.method == 'POST':
-        # Crear formulario dinámicamente con el modelo Clinica
-        form = forms.ClinicaConfigForm(request.POST, request.FILES, instance=clinica)
-        form.Meta.model = Clinica
+        form = ClinicaConfigFormDynamic(request.POST, request.FILES, instance=clinica)
 
         if form.is_valid():
             clinica_actualizada = form.save()
@@ -5463,8 +5466,7 @@ def configuracion_clinica(request):
         else:
             messages.error(request, '❌ Por favor corrija los errores del formulario')
     else:
-        form = forms.ClinicaConfigForm(instance=clinica)
-        form.Meta.model = Clinica
+        form = ClinicaConfigFormDynamic(instance=clinica)
 
     context = {
         'form': form,

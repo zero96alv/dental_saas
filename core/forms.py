@@ -1200,11 +1200,15 @@ class CuestionarioHistorialForm(forms.Form):
         return cuestionario_completado, respuestas_guardadas
 
 
-class ClinicaConfigForm(forms.ModelForm):
-    """Formulario para configurar datos de la clínica (logo, nombre, etc.)"""
+class ClinicaConfigFormBase(forms.ModelForm):
+    """Formulario base para configurar datos de la clínica (logo, nombre, etc.)
+
+    NOTA: Este formulario es abstracto. La vista debe heredar de él y especificar el modelo.
+    """
 
     class Meta:
-        model = None  # Se asignará dinámicamente desde la vista
+        # Esta clase es abstracta - el modelo se define en la clase heredada
+        abstract = True
         fields = ['nombre', 'logo', 'documento_consentimiento']
         widgets = {
             'nombre': forms.TextInput(attrs={
