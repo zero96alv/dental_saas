@@ -516,16 +516,26 @@ class Cita(models.Model):
     
     @property
     def costo_real(self):
-        return sum(servicio.precio for servicio in self.servicios_realizados.all())
-    
+        """
+        Calcula el costo real de la cita.
+        Si tiene servicios realizados, usa esos.
+        Si no, usa servicios planeados (para permitir pagos antes de asignar servicios realizados).
+        """
+        servicios_realizados = self.servicios_realizados.all()
+        if servicios_realizados.exists():
+            return sum(servicio.precio for servicio in servicios_realizados)
+        else:
+            # Fallback: usar servicios planeados
+            return sum(servicio.precio for servicio in self.servicios_planeados.all())
+
     @property
     def duracion_estimada(self):
         return sum(servicio.duracion_minutos for servicio in self.servicios_planeados.all())
-    
+
     @property
     def total_pagado(self):
         return self.pagos.aggregate(total=models.Sum('monto'))['total'] or 0
-    
+
     @property
     def saldo_pendiente(self):
         return self.costo_real - self.total_pagado
