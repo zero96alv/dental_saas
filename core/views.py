@@ -1363,20 +1363,55 @@ class AgendaLegacyView(TenantLoginRequiredMixin, TemplateView):
 
 @tenant_login_required
 def pacientes_api(request):
-    """API para obtener lista de pacientes para el calendario legacy"""
+    """API para obtener lista de pacientes con búsqueda inteligente"""
     try:
-        pacientes = models.Cliente.objects.all().order_by('nombre', 'apellido')[:100]  # Limitar a 100 para rendimiento
-        pacientes_data = [{
-            'id': p.id,
-            'nombre': p.nombre,
-            'apellido': p.apellido,
-            'nombre_completo': f"{p.nombre} {p.apellido}"
-        } for p in pacientes]
-        
-        return JsonResponse(pacientes_data, safe=False)
+        # Obtener query de búsqueda
+        query = request.GET.get('q', '').strip()
+        limit = int(request.GET.get('limit', 20))
+
+        # Base queryset con optimización
+        pacientes_qs = models.Paciente.objects.select_related('usuario').all()
+
+        # Aplicar filtro de búsqueda si existe
+        if query:
+            pacientes_qs = pacientes_qs.filter(
+                Q(nombre__icontains=query) |
+                Q(apellido__icontains=query) |
+                Q(email__icontains=query) |
+                Q(telefono__icontains=query)
+            )
+
+        # Ordenar y limitar
+        pacientes_qs = pacientes_qs.order_by('nombre', 'apellido')[:limit]
+
+        # Construir respuesta con información completa
+        pacientes_data = []
+        for p in pacientes_qs:
+            # Calcular estado del historial
+            tiene_historial = p.historial_clinico.exists() or p.respuestas_historial.exists()
+
+            pacientes_data.append({
+                'id': p.id,
+                'nombre': p.nombre,
+                'apellido': p.apellido,
+                'nombre_completo': f"{p.nombre} {p.apellido}",
+                'email': p.email,
+                'telefono': p.telefono or '',
+                'edad': p.edad if hasattr(p, 'edad') else None,
+                'saldo_global': float(p.saldo_global) if p.saldo_global else 0.0,
+                'tiene_historial': tiene_historial,
+                'estado_historial': p.estado_historial if hasattr(p, 'estado_historial') else 'pendiente',
+                'tiene_acceso_portal': p.tiene_acceso_portal if hasattr(p, 'tiene_acceso_portal') else False,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'pacientes': pacientes_data,
+            'count': len(pacientes_data)
+        })
     except Exception as e:
         logger.exception("Error en pacientes_api")
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 class CitaListView(TenantLoginRequiredMixin, ListView):
     model = models.Cita

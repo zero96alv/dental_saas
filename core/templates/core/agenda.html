@@ -239,6 +239,108 @@
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+/* Selector de pacientes inteligente */
+.search-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1060;
+    margin-top: 0.25rem;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.search-results-container {
+    padding: 0.5rem 0;
+}
+
+.patient-search-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.15s ease;
+}
+
+.patient-search-item:last-child {
+    border-bottom: none;
+}
+
+.patient-search-item:hover {
+    background-color: #f8f9fa;
+}
+
+.patient-search-item.active {
+    background-color: #e7f3ff;
+}
+
+.patient-search-name {
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.25rem;
+}
+
+.patient-search-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.patient-search-badges {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.selected-patient-card {
+    background: linear-gradient(135deg, #e7f3ff, #f0f8ff);
+    border: 2px solid #0d6efd;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.search-empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #6c757d;
+}
+
+.search-empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.search-loading {
+    padding: 1rem;
+    text-align: center;
+}
+
+.search-loading .spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .search-results-dropdown {
+        max-height: 300px;
+    }
+
+    .patient-search-info {
+        font-size: 0.8rem;
+        gap: 0.5rem;
+    }
+}
 </style>
 {% endblock %}
 
@@ -410,11 +512,57 @@
                             
                             <div class="row">
                                 <div class="col-md-6">
+                                    <!-- Nuevo Selector de Pacientes Inteligente -->
                                     <div class="mb-3">
-                                        <label for="id_paciente" class="form-label requiredField">Paciente</label>
-                                        <div class="input-group">
-                                            {{ cita_form.paciente }}
-                                            <button class="btn btn-outline-secondary" type="button" id="addPacienteBtn" title="Nuevo Paciente"><i class="fas fa-plus"></i> Nuevo</button>
+                                        <label for="searchPaciente" class="form-label requiredField">
+                                            <i class="fas fa-user-injured"></i> Buscar Paciente
+                                        </label>
+                                        <div class="position-relative">
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                                <input type="text"
+                                                       id="searchPaciente"
+                                                       class="form-control form-control-lg"
+                                                       placeholder="Escribe nombre, email o teléfono..."
+                                                       autocomplete="off">
+                                                <button class="btn btn-outline-primary" type="button" id="addPacienteBtn" title="Nuevo Paciente">
+                                                    <i class="fas fa-plus"></i> Nuevo
+                                                </button>
+                                            </div>
+
+                                            <!-- Dropdown de resultados -->
+                                            <div id="pacienteSearchResults" class="search-results-dropdown" style="display: none;">
+                                                <div class="search-results-container">
+                                                    <div id="searchResultsContent">
+                                                        <!-- Los resultados se cargarán aquí dinámicamente -->
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Paciente seleccionado -->
+                                            <div id="pacienteSelected" class="selected-patient-card mt-2" style="display: none;">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <i class="fas fa-user-check text-success"></i>
+                                                            <span id="selectedPacienteNombre"></span>
+                                                        </h6>
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-envelope"></i> <span id="selectedPacienteEmail"></span> •
+                                                            <i class="fas fa-phone"></i> <span id="selectedPacienteTelefono"></span>
+                                                        </small>
+                                                        <div class="mt-1">
+                                                            <span id="selectedPacienteBadges"></span>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" id="clearPacienteBtn">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Hidden input con el ID del paciente seleccionado -->
+                                            <input type="hidden" id="id_paciente" name="paciente" required>
                                         </div>
                                     </div>
                                     {{ cita_form.dentista|as_crispy_field }}
@@ -609,6 +757,195 @@ function ocultarLoading() {
                 updateServiciosList();
             });
 
+            // ========================================
+            // NUEVO SELECTOR INTELIGENTE DE PACIENTES
+            // ========================================
+            var searchPacienteInput = $('#searchPaciente');
+            var searchResultsDiv = $('#pacienteSearchResults');
+            var searchResultsContent = $('#searchResultsContent');
+            var pacienteSelectedDiv = $('#pacienteSelected');
+            var hiddenPacienteInput = $('#id_paciente');
+            var clearPacienteBtn = $('#clearPacienteBtn');
+            var searchTimeout;
+            var selectedPaciente = null;
+
+            // Función para buscar pacientes
+            function searchPacientes(query) {
+                console.log('Buscando pacientes:', query);
+
+                if (!query || query.length < 2) {
+                    searchResultsDiv.hide();
+                    if (query.length === 0) {
+                        searchResultsContent.html(
+                            '<div class="search-empty-state">' +
+                            '<i class="fas fa-search"></i>' +
+                            '<p class="mb-0">Escribe al menos 2 caracteres para buscar</p>' +
+                            '</div>'
+                        );
+                        searchResultsDiv.show();
+                    }
+                    return;
+                }
+
+                // Mostrar loading
+                searchResultsContent.html(
+                    '<div class="search-loading">' +
+                    '<div class="spinner-border text-primary" role="status">' +
+                    '<span class="visually-hidden">Buscando...</span>' +
+                    '</div>' +
+                    '<p class="mt-2 mb-0 text-muted">Buscando pacientes...</p>' +
+                    '</div>'
+                );
+                searchResultsDiv.show();
+
+                // Hacer petición AJAX
+                const tenantPrefix = '{{ request.tenant_prefix|default:"" }}';
+                const apiUrl = tenantPrefix ? `${tenantPrefix}/api/pacientes/` : '/api/pacientes/';
+
+                $.ajax({
+                    url: apiUrl,
+                    data: { q: query, limit: 20 },
+                    success: function(response) {
+                        console.log('Resultados:', response);
+
+                        if (!response.success || response.pacientes.length === 0) {
+                            searchResultsContent.html(
+                                '<div class="search-empty-state">' +
+                                '<i class="fas fa-user-slash"></i>' +
+                                '<p class="mb-0">No se encontraron pacientes</p>' +
+                                '<small class="text-muted">Intenta con otro término o crea un nuevo paciente</small>' +
+                                '</div>'
+                            );
+                            return;
+                        }
+
+                        // Renderizar resultados
+                        var html = '';
+                        response.pacientes.forEach(function(paciente) {
+                            var badges = '';
+
+                            // Badge de saldo
+                            if (paciente.saldo_global > 0) {
+                                badges += `<span class="badge bg-danger">💰 $${paciente.saldo_global.toFixed(2)}</span>`;
+                            }
+
+                            // Badge de historial
+                            if (paciente.tiene_historial) {
+                                badges += '<span class="badge bg-success">✅ Historial</span>';
+                            } else {
+                                badges += '<span class="badge bg-warning text-dark">⏳ Sin Historial</span>';
+                            }
+
+                            // Badge de portal
+                            if (paciente.tiene_acceso_portal) {
+                                badges += '<span class="badge bg-info">🔐 Portal</span>';
+                            }
+
+                            var edadText = paciente.edad ? `${paciente.edad} años` : 'Edad no registrada';
+
+                            html += `
+                                <div class="patient-search-item" data-paciente-id="${paciente.id}" data-paciente='${JSON.stringify(paciente)}'>
+                                    <div class="patient-search-name">
+                                        <i class="fas fa-user-circle text-primary"></i> ${paciente.nombre_completo}
+                                    </div>
+                                    <div class="patient-search-info">
+                                        <span><i class="fas fa-envelope"></i> ${paciente.email}</span>
+                                        ${paciente.telefono ? `<span><i class="fas fa-phone"></i> ${paciente.telefono}</span>` : ''}
+                                        <span><i class="fas fa-birthday-cake"></i> ${edadText}</span>
+                                    </div>
+                                    <div class="patient-search-badges">
+                                        ${badges}
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        searchResultsContent.html(html);
+
+                        // Agregar evento de clic a cada resultado
+                        $('.patient-search-item').on('click', function() {
+                            var pacienteData = $(this).data('paciente');
+                            selectPaciente(pacienteData);
+                        });
+                    },
+                    error: function(xhr) {
+                        console.error('Error en búsqueda:', xhr);
+                        searchResultsContent.html(
+                            '<div class="search-empty-state text-danger">' +
+                            '<i class="fas fa-exclamation-triangle"></i>' +
+                            '<p class="mb-0">Error al buscar pacientes</p>' +
+                            '<small>Por favor, intenta de nuevo</small>' +
+                            '</div>'
+                        );
+                    }
+                });
+            }
+
+            // Función para seleccionar un paciente
+            function selectPaciente(paciente) {
+                console.log('Paciente seleccionado:', paciente);
+
+                selectedPaciente = paciente;
+                hiddenPacienteInput.val(paciente.id);
+
+                // Mostrar tarjeta de paciente seleccionado
+                $('#selectedPacienteNombre').text(paciente.nombre_completo);
+                $('#selectedPacienteEmail').text(paciente.email);
+                $('#selectedPacienteTelefono').text(paciente.telefono || 'No registrado');
+
+                // Badges
+                var badges = '';
+                if (paciente.saldo_global > 0) {
+                    badges += `<span class="badge bg-danger">Saldo: $${paciente.saldo_global.toFixed(2)}</span> `;
+                }
+                if (paciente.tiene_historial) {
+                    badges += '<span class="badge bg-success">✅ Historial Completo</span> ';
+                } else {
+                    badges += '<span class="badge bg-warning text-dark">⚠️ Historial Pendiente</span> ';
+                }
+
+                $('#selectedPacienteBadges').html(badges);
+
+                // Mostrar/ocultar elementos
+                pacienteSelectedDiv.show();
+                searchResultsDiv.hide();
+                searchPacienteInput.val('').prop('disabled', true);
+            }
+
+            // Función para limpiar selección
+            function clearPacienteSelection() {
+                selectedPaciente = null;
+                hiddenPacienteInput.val('');
+                pacienteSelectedDiv.hide();
+                searchPacienteInput.val('').prop('disabled', false).focus();
+            }
+
+            // Event listeners para el buscador
+            searchPacienteInput.on('input', function() {
+                clearTimeout(searchTimeout);
+                var query = $(this).val().trim();
+
+                searchTimeout = setTimeout(function() {
+                    searchPacientes(query);
+                }, 300); // Delay de 300ms para evitar muchas peticiones
+            });
+
+            searchPacienteInput.on('focus', function() {
+                if ($(this).val().length >= 2) {
+                    searchResultsDiv.show();
+                }
+            });
+
+            // Cerrar resultados al hacer clic fuera
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#searchPaciente, #pacienteSearchResults').length) {
+                    searchResultsDiv.hide();
+                }
+            });
+
+            // Botón para limpiar selección
+            clearPacienteBtn.on('click', clearPacienteSelection);
+
             // Lógica de pacientes
             $('#addPacienteBtn').on('click', function(){
                 $('#pacienteFormInline')[0].reset();
@@ -632,8 +969,19 @@ function ocultarLoading() {
                     body: JSON.stringify(payload)
                 }).then(r => r.json()).then(data => {
                     if (data.success) {
-                        const option = new Option(data.paciente_nombre, data.paciente_id, true, true);
-                        pacienteSelect.append(option).trigger('change');
+                        // Usar el nuevo selector inteligente
+                        var nuevoPaciente = {
+                            id: data.paciente_id,
+                            nombre_completo: data.paciente_nombre,
+                            email: payload.email,
+                            telefono: payload.telefono || '',
+                            edad: null,
+                            saldo_global: 0,
+                            tiene_historial: false,
+                            tiene_acceso_portal: false
+                        };
+
+                        selectPaciente(nuevoPaciente);
                         pacienteModal.hide();
                         Toastify({ text: data.message, duration: 3000, className: 'info' }).showToast();
                     } else {
@@ -843,15 +1191,17 @@ function ocultarLoading() {
                     fechaPickerInput.attr('min', today);
                 }
 
-                pacienteSelect.val('');
+                // Limpiar selector de pacientes
+                clearPacienteSelection();
+
                 dentistaSelect.val('');
                 unidadDentalSelect.val('');
                 horaSelect.empty().append('<option value="">Primero seleccione fecha y dentista</option>').prop('disabled', true);
-                
+
                 // Limpiar servicios (deseleccionar todas las opciones)
                 serviciosSelect.val([]);
                 listaServiciosSeleccionados.empty();
-                
+
                 statusIndicator.hide();
                 $('#editarCitaBtn').hide();
                 $('#cancelarCitaBtn').hide();
