@@ -3357,38 +3357,61 @@ class InsumoListView(TenantLoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Imports necesarios
         from django.db.models import F, Sum
-        from datetime import date
-        
+        from datetime import date, timedelta
+
         # Actualizar stock de todos los insumos
         for insumo in context['insumos']:
             insumo.actualizar_stock_total()
-        
+
         # Estadísticas
         total_insumos = models.Insumo.objects.count()
         stock_critico_count = models.Insumo.objects.filter(stock=0).count()
         stock_bajo_count = models.Insumo.objects.filter(
             stock__lte=F('stock_minimo'), stock__gt=0
         ).count()
-        
+
         # Valor total del inventario
         valor_total = models.Insumo.objects.aggregate(
             valor_total=Sum(F('stock') * F('precio_unitario'))
         )['valor_total'] or 0
-        
+
         # Lista de proveedores para filtros
         proveedores = models.Proveedor.objects.all().order_by('nombre')
-        
+
+        # Alertas de caducidad
+        hoy = date.today()
+        lotes_vencidos = models.LoteInsumo.objects.filter(
+            fecha_caducidad__lte=hoy,
+            fecha_caducidad__isnull=False,
+            cantidad__gt=0
+        ).select_related('insumo', 'unidad_dental').order_by('fecha_caducidad')
+
+        lotes_proximos_vencer = models.LoteInsumo.objects.filter(
+            fecha_caducidad__gt=hoy,
+            fecha_caducidad__lte=hoy + timedelta(days=60),
+            fecha_caducidad__isnull=False,
+            cantidad__gt=0
+        ).select_related('insumo', 'unidad_dental').order_by('fecha_caducidad')
+
+        # Unidades dentales para filtros
+        unidades = models.UnidadDental.objects.all().order_by('nombre')
+
         context.update({
             'stock_critico_count': stock_critico_count,
             'stock_bajo_count': stock_bajo_count,
             'valor_total_inventario': valor_total,
             'proveedores': proveedores,
-            'fecha_actual': date.today(),
+            'unidades': unidades,
+            'fecha_actual': hoy,
+            'lotes_vencidos': lotes_vencidos,
+            'lotes_proximos_vencer': lotes_proximos_vencer,
+            'lotes_vencidos_count': lotes_vencidos.count(),
+            'lotes_proximos_vencer_count': lotes_proximos_vencer.count(),
         })
-        
+
         return context
 
 class InsumoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
@@ -3410,10 +3433,322 @@ class InsumoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, DeleteVi
     template_name = 'core/insumo_confirm_delete.html'
     success_url = reverse_lazy('core:insumo_list')
     context_object_name = 'insumo'
-    
+
     def form_valid(self, form):
         messages.success(self.request, f"Insumo '{self.object.nombre}' eliminado con éxito.")
         return super().form_valid(form)
+
+@login_required
+def inventario_exportar_excel(request):
+    """Exportar inventario completo a Excel con formato para re-importación"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    from datetime import datetime
+
+    # Crear workbook
+    wb = Workbook()
+
+    # HOJA 1: Insumos con lotes
+    ws = wb.active
+    ws.title = 'Inventario'
+
+    # Headers con estilo
+    headers = [
+        'ID Insumo', 'Nombre', 'Descripción', 'Unidad Medida', 'Proveedor',
+        'Stock Mínimo', 'Precio Unitario', 'ID Lote', 'Unidad Dental',
+        'Cantidad en Lote', 'Número de Lote', 'Fecha Caducidad', 'Registro Sanitario'
+    ]
+
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Obtener datos
+    insumos = models.Insumo.objects.select_related('proveedor').prefetch_related(
+        'lotes', 'lotes__unidad_dental'
+    ).order_by('nombre')
+
+    row = 2
+    for insumo in insumos:
+        lotes = insumo.lotes.all()
+        if lotes.exists():
+            for lote in lotes:
+                ws.cell(row=row, column=1).value = insumo.id
+                ws.cell(row=row, column=2).value = insumo.nombre
+                ws.cell(row=row, column=3).value = insumo.descripcion
+                ws.cell(row=row, column=4).value = insumo.unidad_medida
+                ws.cell(row=row, column=5).value = insumo.proveedor.nombre if insumo.proveedor else ''
+                ws.cell(row=row, column=6).value = insumo.stock_minimo
+                ws.cell(row=row, column=7).value = float(insumo.precio_unitario)
+                ws.cell(row=row, column=8).value = lote.id
+                ws.cell(row=row, column=9).value = lote.unidad_dental.nombre
+                ws.cell(row=row, column=10).value = lote.cantidad
+                ws.cell(row=row, column=11).value = lote.numero_lote or ''
+                ws.cell(row=row, column=12).value = lote.fecha_caducidad.strftime('%Y-%m-%d') if lote.fecha_caducidad else ''
+                ws.cell(row=row, column=13).value = insumo.registro_sanitario or ''
+                row += 1
+        else:
+            # Insumo sin lotes
+            ws.cell(row=row, column=1).value = insumo.id
+            ws.cell(row=row, column=2).value = insumo.nombre
+            ws.cell(row=row, column=3).value = insumo.descripcion
+            ws.cell(row=row, column=4).value = insumo.unidad_medida
+            ws.cell(row=row, column=5).value = insumo.proveedor.nombre if insumo.proveedor else ''
+            ws.cell(row=row, column=6).value = insumo.stock_minimo
+            ws.cell(row=row, column=7).value = float(insumo.precio_unitario)
+            ws.cell(row=row, column=8).value = ''
+            ws.cell(row=row, column=9).value = ''
+            ws.cell(row=row, column=10).value = 0
+            ws.cell(row=row, column=11).value = ''
+            ws.cell(row=row, column=12).value = ''
+            ws.cell(row=row, column=13).value = insumo.registro_sanitario or ''
+            row += 1
+
+    # Ajustar anchos de columna
+    ws.column_dimensions['A'].width = 10
+    ws.column_dimensions['B'].width = 30
+    ws.column_dimensions['C'].width = 40
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 25
+    ws.column_dimensions['F'].width = 12
+    ws.column_dimensions['G'].width = 15
+    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['I'].width = 20
+    ws.column_dimensions['J'].width = 15
+    ws.column_dimensions['K'].width = 20
+    ws.column_dimensions['L'].width = 15
+    ws.column_dimensions['M'].width = 20
+
+    # HOJA 2: Instrucciones
+    ws_inst = wb.create_sheet('Instrucciones')
+    instrucciones = [
+        "INSTRUCCIONES PARA IMPORTACIÓN DE INVENTARIO",
+        "",
+        "1. IMPORTANTE: No modifique los nombres de las columnas",
+        "2. Para ACTUALIZAR cantidades de lotes existentes: Deje el 'ID Lote' y modifique 'Cantidad en Lote'",
+        "3. Para CREAR nuevos insumos: Deje 'ID Insumo' vacío, complete Nombre (obligatorio)",
+        "4. Para AGREGAR nuevos lotes: Deje 'ID Lote' vacío, especifique 'ID Insumo' existente",
+        "5. La 'Unidad Dental' debe coincidir exactamente con el nombre en el sistema",
+        "6. Fecha Caducidad: Formato YYYY-MM-DD (ej: 2025-12-31)",
+        "7. Campos obligatorios: Nombre, Unidad Dental (si hay lote), Cantidad en Lote",
+        "",
+        "VALIDACIONES AL IMPORTAR:",
+        "- Stock Mínimo debe ser >= 0",
+        "- Precio Unitario debe ser >= 0",
+        "- Cantidad en Lote debe ser >= 0",
+        "- Unidad Dental debe existir en el sistema",
+        "- Fecha Caducidad debe ser futura (si se especifica)",
+        "",
+        "CONSEJOS:",
+        "- Exporte primero el inventario actual para ver el formato correcto",
+        "- Haga una copia de seguridad antes de importar cambios masivos",
+        "- Si hay errores, el sistema le mostrará qué filas tienen problemas",
+    ]
+
+    for idx, linea in enumerate(instrucciones, 1):
+        cell = ws_inst.cell(row=idx, column=1)
+        cell.value = linea
+        if idx == 1:
+            cell.font = Font(bold=True, size=14)
+        elif linea.startswith("VALIDACIONES") or linea.startswith("CONSEJOS"):
+            cell.font = Font(bold=True, size=12)
+
+    ws_inst.column_dimensions['A'].width = 100
+
+    # Preparar respuesta HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f'inventario_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+
+    wb.save(response)
+    return response
+
+@login_required
+def inventario_importar_excel(request):
+    """Importar inventario desde Excel con validaciones"""
+    if request.method == 'POST':
+        from openpyxl import load_workbook
+        from django.db import transaction
+        from datetime import datetime
+
+        archivo = request.FILES.get('archivo_excel')
+        if not archivo:
+            messages.error(request, "Por favor seleccione un archivo Excel.")
+            return redirect('core:insumo_list')
+
+        # Validar extensión
+        if not archivo.name.endswith(('.xlsx', '.xls')):
+            messages.error(request, "El archivo debe ser un Excel (.xlsx o .xls)")
+            return redirect('core:insumo_list')
+
+        try:
+            wb = load_workbook(archivo, data_only=True)
+            ws = wb['Inventario']
+
+            errores = []
+            filas_procesadas = 0
+            insumos_creados = 0
+            insumos_actualizados = 0
+            lotes_creados = 0
+            lotes_actualizados = 0
+
+            # Obtener todas las unidades dentales disponibles
+            unidades_dict = {u.nombre: u for u in models.UnidadDental.objects.all()}
+            proveedores_dict = {p.nombre: p for p in models.Proveedor.objects.all()}
+
+            with transaction.atomic():
+                for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                    try:
+                        # Extraer valores
+                        id_insumo = row[0]
+                        nombre = row[1]
+                        descripcion = row[2] or ''
+                        unidad_medida = row[3] or ''
+                        proveedor_nombre = row[4]
+                        stock_minimo = row[5] or 0
+                        precio_unitario = row[6] or 0.0
+                        id_lote = row[7]
+                        unidad_dental_nombre = row[8]
+                        cantidad_lote = row[9] or 0
+                        numero_lote = row[10] or ''
+                        fecha_cad_str = row[11]
+                        registro_sanitario = row[12] or ''
+
+                        # Validación: nombre es obligatorio
+                        if not nombre:
+                            continue  # Fila vacía, skip
+
+                        # Validar valores numéricos
+                        try:
+                            stock_minimo = int(stock_minimo)
+                            precio_unitario = float(precio_unitario)
+                            cantidad_lote = int(cantidad_lote)
+                        except (ValueError, TypeError):
+                            errores.append(f"Fila {row_num}: Valores numéricos inválidos")
+                            continue
+
+                        if stock_minimo < 0 or precio_unitario < 0 or cantidad_lote < 0:
+                            errores.append(f"Fila {row_num}: Los valores numéricos no pueden ser negativos")
+                            continue
+
+                        # Procesar fecha de caducidad
+                        fecha_caducidad = None
+                        if fecha_cad_str:
+                            try:
+                                if isinstance(fecha_cad_str, datetime):
+                                    fecha_caducidad = fecha_cad_str.date()
+                                else:
+                                    fecha_caducidad = datetime.strptime(str(fecha_cad_str), '%Y-%m-%d').date()
+                            except ValueError:
+                                errores.append(f"Fila {row_num}: Fecha de caducidad inválida (use YYYY-MM-DD)")
+                                continue
+
+                        # Buscar o crear insumo
+                        proveedor = proveedores_dict.get(proveedor_nombre) if proveedor_nombre else None
+
+                        if id_insumo:
+                            # Actualizar insumo existente
+                            try:
+                                insumo = models.Insumo.objects.get(id=id_insumo)
+                                insumo.descripcion = descripcion
+                                insumo.unidad_medida = unidad_medida
+                                insumo.proveedor = proveedor
+                                insumo.stock_minimo = stock_minimo
+                                insumo.precio_unitario = precio_unitario
+                                insumo.registro_sanitario = registro_sanitario
+                                insumo.save()
+                                insumos_actualizados += 1
+                            except models.Insumo.DoesNotExist:
+                                errores.append(f"Fila {row_num}: Insumo ID {id_insumo} no existe")
+                                continue
+                        else:
+                            # Crear nuevo insumo
+                            insumo = models.Insumo.objects.create(
+                                nombre=nombre,
+                                descripcion=descripcion,
+                                unidad_medida=unidad_medida,
+                                proveedor=proveedor,
+                                stock_minimo=stock_minimo,
+                                precio_unitario=precio_unitario,
+                                registro_sanitario=registro_sanitario
+                            )
+                            insumos_creados += 1
+
+                        # Procesar lote si hay unidad dental especificada
+                        if unidad_dental_nombre and cantidad_lote > 0:
+                            unidad_dental = unidades_dict.get(unidad_dental_nombre)
+                            if not unidad_dental:
+                                errores.append(f"Fila {row_num}: Unidad Dental '{unidad_dental_nombre}' no existe")
+                                continue
+
+                            if id_lote:
+                                # Actualizar lote existente
+                                try:
+                                    lote = models.LoteInsumo.objects.get(id=id_lote, insumo=insumo)
+                                    lote.cantidad = cantidad_lote
+                                    lote.numero_lote = numero_lote
+                                    lote.fecha_caducidad = fecha_caducidad
+                                    lote.unidad_dental = unidad_dental
+                                    lote.save()
+                                    lotes_actualizados += 1
+                                except models.LoteInsumo.DoesNotExist:
+                                    errores.append(f"Fila {row_num}: Lote ID {id_lote} no existe")
+                                    continue
+                            else:
+                                # Crear nuevo lote
+                                models.LoteInsumo.objects.create(
+                                    insumo=insumo,
+                                    unidad_dental=unidad_dental,
+                                    cantidad=cantidad_lote,
+                                    numero_lote=numero_lote,
+                                    fecha_caducidad=fecha_caducidad
+                                )
+                                lotes_creados += 1
+
+                        filas_procesadas += 1
+
+                    except Exception as e:
+                        errores.append(f"Fila {row_num}: Error inesperado - {str(e)}")
+                        continue
+
+                # Actualizar stock de todos los insumos
+                for insumo in models.Insumo.objects.all():
+                    insumo.actualizar_stock_total()
+
+            # Mensajes de resultado
+            if errores:
+                messages.warning(
+                    request,
+                    f"Importación completada con {len(errores)} errores. "
+                    f"Procesadas: {filas_procesadas} filas. "
+                    f"Errores: {', '.join(errores[:5])}{'...' if len(errores) > 5 else ''}"
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Importación exitosa! "
+                    f"Insumos creados: {insumos_creados}, actualizados: {insumos_actualizados}. "
+                    f"Lotes creados: {lotes_creados}, actualizados: {lotes_actualizados}."
+                )
+
+        except KeyError:
+            messages.error(request, "El archivo no contiene la hoja 'Inventario'. Use el formato correcto.")
+        except Exception as e:
+            messages.error(request, f"Error al procesar el archivo: {str(e)}")
+
+        return redirect('core:insumo_list')
+
+    # GET request - mostrar formulario
+    return render(request, 'core/inventario_importar.html')
 
 # --- PAGOS ---
 class RegistrarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):

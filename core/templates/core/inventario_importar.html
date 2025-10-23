@@ -1,0 +1,105 @@
+{% extends "core/base.html" %}
+{% load tenant_urls %}
+
+{% block title %}Importar Inventario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-upload"></i> Importar Inventario desde Excel
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="bi bi-info-circle"></i> Instrucciones</h5>
+                        <ol>
+                            <li><strong>Descargue</strong> primero el inventario actual usando el botón "Exportar" en la lista de insumos</li>
+                            <li><strong>Edite</strong> el archivo Excel descargado siguiendo las instrucciones en la hoja "Instrucciones"</li>
+                            <li><strong>Suba</strong> el archivo modificado usando el formulario debajo</li>
+                        </ol>
+                        <hr>
+                        <p class="mb-0"><strong>Nota:</strong> El sistema validará todos los datos antes de importar. Si hay errores, se le mostrará un reporte detallado.</p>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" class="mt-4">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="archivo_excel" class="form-label fw-bold">
+                                <i class="bi bi-file-earmark-excel"></i> Seleccione el archivo Excel
+                            </label>
+                            <input
+                                type="file"
+                                class="form-control form-control-lg"
+                                id="archivo_excel"
+                                name="archivo_excel"
+                                accept=".xlsx,.xls"
+                                required
+                            >
+                            <small class="form-text text-muted">
+                                Solo archivos .xlsx o .xls. Tamaño máximo: 10 MB
+                            </small>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <h6><i class="bi bi-exclamation-triangle"></i> Advertencia</h6>
+                            <ul class="mb-0">
+                                <li>Esta acción puede crear, actualizar o modificar múltiples registros</li>
+                                <li>Se recomienda hacer una copia de seguridad antes de importaciones masivas</li>
+                                <li>La importación se ejecuta dentro de una transacción (todo o nada)</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% tenant_url 'core:insumo_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-upload"></i> Importar Inventario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sección de ayuda -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> ¿Qué puedo hacer con esta herramienta?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="bi bi-check-circle"></i> Casos de uso</h6>
+                            <ul>
+                                <li>Conteo físico de inventario</li>
+                                <li>Ajustes masivos de stock</li>
+                                <li>Actualización de precios</li>
+                                <li>Cambios de stock mínimo</li>
+                                <li>Migración desde otro sistema</li>
+                                <li>Agregar múltiples insumos nuevos</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="bi bi-x-circle"></i> Validaciones aplicadas</h6>
+                            <ul>
+                                <li>Unidades dentales deben existir</li>
+                                <li>Cantidades no pueden ser negativas</li>
+                                <li>Fechas de caducidad válidas</li>
+                                <li>IDs deben coincidir con registros existentes</li>
+                                <li>Campos obligatorios completos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

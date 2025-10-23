@@ -261,6 +261,12 @@
             <p class="text-muted mb-0">Control integral de insumos, stock y caducidades</p>
         </div>
         <div class="d-flex gap-2">
+            <a href="{% tenant_url 'core:inventario_exportar' %}" class="btn btn-outline-success">
+                <i class="bi bi-download me-2"></i>Exportar Excel
+            </a>
+            <a href="{% tenant_url 'core:inventario_importar' %}" class="btn btn-outline-primary">
+                <i class="bi bi-upload me-2"></i>Importar Excel
+            </a>
             <a href="{% tenant_url 'core:insumo_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Nuevo Insumo
             </a>
@@ -273,28 +279,91 @@
         </div>
     </div>
 
+    <!-- Alertas de Caducidad -->
+    {% if lotes_vencidos_count > 0 or lotes_proximos_vencer_count > 0 %}
+    <div class="row mb-4">
+        {% if lotes_vencidos_count > 0 %}
+        <div class="col-md-6">
+            <div class="alert alert-danger fade-in">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Lotes Vencidos ({{ lotes_vencidos_count }})
+                </h5>
+                <ul class="mb-0">
+                    {% for lote in lotes_vencidos|slice:":5" %}
+                    <li>
+                        <strong>{{ lote.insumo.nombre }}</strong> - {{ lote.unidad_dental.nombre }}
+                        - Lote: {{ lote.numero_lote|default:"S/N" }}
+                        - Caducó: {{ lote.fecha_caducidad|date:"d/m/Y" }}
+                        - Cantidad: {{ lote.cantidad }}
+                    </li>
+                    {% endfor %}
+                    {% if lotes_vencidos_count > 5 %}
+                    <li class="text-muted">... y {{ lotes_vencidos_count|add:"-5" }} más</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if lotes_proximos_vencer_count > 0 %}
+        <div class="col-md-6">
+            <div class="alert alert-warning fade-in">
+                <h5 class="alert-heading">
+                    <i class="bi bi-clock-fill"></i> Próximos a Vencer (60 días) - {{ lotes_proximos_vencer_count }}
+                </h5>
+                <ul class="mb-0">
+                    {% for lote in lotes_proximos_vencer|slice:":5" %}
+                    <li>
+                        <strong>{{ lote.insumo.nombre }}</strong> - {{ lote.unidad_dental.nombre }}
+                        - Lote: {{ lote.numero_lote|default:"S/N" }}
+                        - Caduca: {{ lote.fecha_caducidad|date:"d/m/Y" }}
+                        - Cantidad: {{ lote.cantidad }}
+                    </li>
+                    {% endfor %}
+                    {% if lotes_proximos_vencer_count > 5 %}
+                    <li class="text-muted">... y {{ lotes_proximos_vencer_count|add:"-5" }} más</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Estadísticas -->
     <div class="estadisticas-card p-4 mb-4">
         <div class="row text-center">
-            <div class="col-md-3">
+            <div class="col-6 col-md-2">
                 <div class="metric-card">
                     <div class="metric-number text-primary">{{ insumos.count }}</div>
                     <div class="text-muted mt-2">Total Insumos</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-2">
                 <div class="metric-card">
                     <div class="metric-number text-danger">{{ stock_critico_count }}</div>
                     <div class="text-muted mt-2">Stock Crítico</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-2">
                 <div class="metric-card">
                     <div class="metric-number text-warning">{{ stock_bajo_count }}</div>
                     <div class="text-muted mt-2">Stock Bajo</div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-2">
+                <div class="metric-card">
+                    <div class="metric-number text-danger">{{ lotes_vencidos_count }}</div>
+                    <div class="text-muted mt-2">Lotes Vencidos</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="metric-card">
+                    <div class="metric-number text-warning">{{ lotes_proximos_vencer_count }}</div>
+                    <div class="text-muted mt-2">Por Vencer</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
                 <div class="metric-card">
                     <div class="metric-number text-success">${{ valor_total_inventario|floatformat:2 }}</div>
                     <div class="text-muted mt-2">Valor Total</div>
