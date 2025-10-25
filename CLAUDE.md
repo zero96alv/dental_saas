@@ -409,3 +409,231 @@ sudo systemctl restart dental-saas.service
 # Ver estado
 sudo systemctl status dental-saas.service
 ```
+
+### October 2025 - Corrección Crítica de Tenant Context Loss
+**CRÍTICO**: Se corrigieron 26 redirects que perdían el prefijo del tenant, enviando a usuarios no autenticados al login sin contexto.
+
+#### Problema Identificado
+Múltiples vistas usaban `redirect('core:view_name')` que genera URLs sin el prefijo del tenant:
+```python
+# ANTES (PROBLEMÁTICO)
+return redirect('core:paciente_detail', pk=paciente.pk)
+# Resultado: /pacientes/1/ (sin /dev/)
+# Django redirige a: /accounts/login/?next=/pacientes/1/
+```
+
+#### Solución Implementada: `tenant_reverse()`
+Nueva función helper en `core/mixins.py` que siempre incluye el prefijo del tenant:
+
+```python
+from core.mixins import tenant_reverse
+
+# DESPUÉS (CORRECTO)
+return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': paciente.pk}))
+# Resultado: /dev/pacientes/1/
+# Django redirige a: /dev/accounts/login/?next=/dev/pacientes/1/
+```
+
+**Uso de `tenant_reverse()`:**
+```python
+# Sin parámetros
+url = tenant_reverse('core:dashboard', request=request)
+# → /dev/
+
+# Con kwargs
+url = tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': 1})
+# → /dev/pacientes/1/
+
+# Con args
+url = tenant_reverse('core:cita_detail', request=request, args=[5])
+# → /dev/citas/5/
+
+# En success_url de vistas
+def get_success_url(self):
+    return tenant_reverse('core:paciente_list', request=self.request)
+```
+
+#### Archivos Modificados (2025-10-25)
+1. **core/mixins.py**
+   - Agregada función `tenant_reverse(viewname, request=None, tenant=None, ...)`
+   - Mejorado `TenantLoginRequiredMixin.get_login_url()` para construir tenant_prefix desde `request.tenant.schema_name`
+   - Mejorado `@tenant_login_required` decorator con misma lógica
+
+2. **core/views.py**
+   - 25 redirects corregidos en views como:
+     - `UsuarioDeleteView`, `DatosFiscalesView`, `OdontogramaView`
+     - Múltiples redirects a `paciente_detail`
+     - `ProcesarPagoView.get_success_url()`
+     - `RegistrarPagoPacienteView` y más
+
+3. **core/views_laboratorio.py**
+   - 1 redirect corregido en `TrabajoLaboratorioDeleteView.delete()`
+
+4. **Templates** (Auditoría completada)
+   - ✅ 522 usos de `{% tenant_url %}` encontrados
+   - ✅ 0 usos problemáticos de `{% url 'core:...' %}`
+   - Todos los templates correctamente configurados
+
+#### Regla de Oro para Redirects
+**NUNCA usar:**
+```python
+redirect('core:view_name')  # ❌ Pierde tenant
+redirect('core:view_name', pk=1)  # ❌ Pierde tenant
+```
+
+**SIEMPRE usar:**
+```python
+redirect(tenant_reverse('core:view_name', request=request))  # ✅
+redirect(tenant_reverse('core:view_name', request=request, kwargs={'pk': 1}))  # ✅
+```
+
+**Excepciones:**
+- Views con `TenantSuccessUrlMixin` que usan `reverse_lazy()` en `success_url` class attribute → El mixin se encarga
+- Templates → Usar `{% tenant_url 'core:view_name' %}` (ya implementado en todo el sistema)
+
+---
+
+## Security and Credentials
+
+**📄 Documentación completa:** Ver `SEGURIDAD_Y_CREDENCIALES.md` para:
+- Auditoría de seguridad de base de datos PostgreSQL
+- Credenciales del sistema (DB, usuarios por tenant)
+- Configuración de autenticación y permisos
+- Recomendaciones de seguridad
+- Comandos de administración
+
+**Resumen de seguridad:**
+- ✅ PostgreSQL solo escucha en localhost (127.0.0.1:5432)
+- ✅ Autenticación SCRAM-SHA-256 (segura)
+- ✅ Aislamiento completo por schemas (cgdental, demo, dev, sgdental)
+- ✅ Sistema de permisos granulares por rol
+- ✅ Todos los redirects mantienen tenant context
+- ✅ Templates usando `{% tenant_url %}`
+
+**Acceso rápido a credentials:**
+```bash
+# Ver .env (credenciales DB)
+cat /root/dental_saas/.env
+
+# Listar usuarios de un tenant
+python manage.py shell
+>>> from django.db import connection
+>>> from tenants.models import Clinica
+>>> tenant = Clinica.objects.get(schema_name='dev')
+>>> connection.set_tenant(tenant)
+>>> from django.contrib.auth.models import User
+>>> User.objects.values_list('username', 'email', 'is_superuser')
+```
+
+---
+
+## Best Practices for Multi-Tenant Development
+
+### 1. Always Maintain Tenant Context
+```python
+# En vistas basadas en clase
+class MiVista(TenantLoginRequiredMixin, ListView):
+    # TenantLoginRequiredMixin ya maneja tenant context en login
+    pass
+
+# En redirects
+return redirect(tenant_reverse('core:mi_vista', request=request))
+
+# En templates
+<a href="{% tenant_url 'core:mi_vista' %}">Link</a>
+```
+
+### 2. Testing con Múltiples Tenants
+```python
+# En Django shell
+from django.db import connection
+from tenants.models import Clinica
+
+# Cambiar tenant para testing
+for schema in ['demo', 'dev', 'sgdental']:
+    tenant = Clinica.objects.get(schema_name=schema)
+    connection.set_tenant(tenant)
+    # Ejecutar queries o operaciones
+    print(f"Tenant {schema}: {User.objects.count()} usuarios")
+```
+
+### 3. Migraciones Multi-Tenant
+```bash
+# Siempre usar migrate_schemas
+python manage.py migrate_schemas
+
+# Para tenant específico
+python manage.py migrate_schemas --schema=dev
+
+# Para schema público solamente
+python manage.py migrate_schemas --schema=public
+```
+
+### 4. Debugging Tenant Issues
+```python
+# En cualquier vista o código, inspeccionar tenant actual
+print(f"Tenant actual: {request.tenant.schema_name}")
+print(f"Tenant prefix: {getattr(request, 'tenant_prefix', 'NO DEFINIDO')}")
+
+# Verificar si usuario está en tenant correcto
+from django.db import connection
+print(f"Schema actual en DB: {connection.schema_name}")
+```
+
+---
+
+## Troubleshooting Common Issues
+
+### Issue: Usuario redirigido a /accounts/login/ sin tenant
+**Causa:** Redirect sin `tenant_reverse()`
+**Solución:** Usar `tenant_reverse()` como se documenta arriba
+
+### Issue: Templates generan URLs sin prefijo de tenant
+**Causa:** Uso de `{% url %}` en lugar de `{% tenant_url %}`
+**Solución:**
+```django
+{# ANTES #}
+<a href="{% url 'core:paciente_list' %}">Pacientes</a>
+
+{# DESPUÉS #}
+{% load tenant_urls %}
+<a href="{% tenant_url 'core:paciente_list' %}">Pacientes</a>
+```
+
+### Issue: Migraciones no se aplican a todos los tenants
+**Causa:** Uso de `manage.py migrate` en lugar de `migrate_schemas`
+**Solución:** Siempre usar `python manage.py migrate_schemas`
+
+### Issue: Datos aparecen mezclados entre tenants
+**Causa:** No establecer tenant context en scripts o comandos
+**Solución:**
+```python
+from django.db import connection
+from tenants.models import Clinica
+
+tenant = Clinica.objects.get(schema_name='demo')
+connection.set_tenant(tenant)
+# Ahora todas las queries usan schema 'demo'
+```
+
+---
+
+## Changelog Principal
+
+### 2025-10-25
+- ✅ **[CRÍTICO]** Corregidos 26 redirects que perdían tenant context
+- ✅ Agregada función `tenant_reverse()` en `core/mixins.py`
+- ✅ Mejorados `TenantLoginRequiredMixin` y `@tenant_login_required`
+- ✅ Auditoría completa de templates (522 tenant_url correctos)
+- ✅ Documentación de seguridad y credenciales (`SEGURIDAD_Y_CREDENCIALES.md`)
+- ✅ Dashboard financiero: corregidos cálculos y imports
+- ✅ Corregidas gráficas excesivamente grandes en reportes
+- ✅ Mejorado template de registro de pagos con info de citas pendientes
+- ✅ Agregado módulo de Laboratorio Dental
+
+### 2025-10 (anterior)
+- Refactorización de `Cita.servicios_realizados` a `@property`
+- Integración odontograma + servicios en gestión de citas
+- Sistema de permisos granulares por módulo y rol
+
+---
