@@ -4,7 +4,46 @@ Mixins personalizados para manejar autenticación con tenants path-based
 from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
+from django.urls import reverse
 from functools import wraps
+
+
+def tenant_reverse(viewname, request=None, tenant=None, urlconf=None, args=None, kwargs=None, current_app=None):
+    """
+    Wrapper de reverse() que incluye automáticamente el prefijo del tenant.
+
+    Args:
+        viewname: El nombre de la vista (ej: 'core:paciente_list')
+        request: El objeto request (para obtener el tenant)
+        tenant: El objeto tenant (alternativo a request)
+        kwargs, args, etc: Los mismos parámetros que reverse()
+
+    Returns:
+        URL con prefijo del tenant incluido
+
+    Ejemplo:
+        tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': 1})
+        # Retorna: /dev/pacientes/1/
+    """
+    # Obtener la URL base usando reverse()
+    url = reverse(viewname, urlconf=urlconf, args=args, kwargs=kwargs, current_app=current_app)
+
+    # Obtener el tenant
+    tenant_obj = None
+    if request and hasattr(request, 'tenant'):
+        tenant_obj = request.tenant
+    elif tenant:
+        tenant_obj = tenant
+
+    # Agregar prefijo del tenant
+    if tenant_obj and hasattr(tenant_obj, 'schema_name'):
+        tenant_prefix = f"/{tenant_obj.schema_name}"
+        if not url.startswith(tenant_prefix):
+            if url.startswith('/'):
+                url = url[1:]
+            url = f"{tenant_prefix}/{url}"
+
+    return url
 
 
 class TenantLoginRequiredMixin(LoginRequiredMixin):
@@ -19,18 +58,22 @@ class TenantLoginRequiredMixin(LoginRequiredMixin):
         """
         import logging
         logger = logging.getLogger(__name__)
-        
+
         login_url = super().get_login_url()
-        
+
         # Obtener el prefijo del tenant del request
         tenant_prefix = getattr(self.request, 'tenant_prefix', '')
-        
+
+        # Si no hay tenant_prefix pero hay tenant, construirlo desde tenant.schema_name
+        if not tenant_prefix and hasattr(self.request, 'tenant'):
+            tenant = getattr(self.request, 'tenant', None)
+            if tenant and hasattr(tenant, 'schema_name'):
+                tenant_prefix = f"/{tenant.schema_name}"
+
         logger.info(f"[TenantLoginRequiredMixin] Original login_url: {login_url}")
         logger.info(f"[TenantLoginRequiredMixin] tenant_prefix: '{tenant_prefix}'")
         logger.info(f"[TenantLoginRequiredMixin] request.path: {self.request.path}")
-        logger.info(f"[TenantLoginRequiredMixin] request.path_info: {self.request.path_info}")
-        logger.info(f"[TenantLoginRequiredMixin] has tenant attr: {hasattr(self.request, 'tenant')}")
-        
+
         # Si existe prefijo y la URL no lo incluye ya, agregarlo
         if tenant_prefix and not login_url.startswith(tenant_prefix):
             # Asegurar que login_url no tenga slash al inicio si tenant_prefix ya lo tiene
@@ -40,7 +83,7 @@ class TenantLoginRequiredMixin(LoginRequiredMixin):
             logger.info(f"[TenantLoginRequiredMixin] Modified login_url: {login_url}")
         else:
             logger.warning(f"[TenantLoginRequiredMixin] No tenant_prefix or already in URL")
-        
+
         return login_url
 
 
@@ -73,20 +116,26 @@ def tenant_login_required(function=None, redirect_field_name='next', login_url=N
             
             # Para peticiones normales, redirigir al login
             tenant_prefix = getattr(request, 'tenant_prefix', '')
-            
+
+            # Si no hay tenant_prefix pero hay tenant, construirlo desde tenant.schema_name
+            if not tenant_prefix and hasattr(request, 'tenant'):
+                tenant = getattr(request, 'tenant', None)
+                if tenant and hasattr(tenant, 'schema_name'):
+                    tenant_prefix = f"/{tenant.schema_name}"
+
             # Construir URL de login con prefijo
             if login_url:
                 resolved_login_url = login_url
             else:
                 from django.conf import settings
                 resolved_login_url = settings.LOGIN_URL
-            
+
             # Agregar prefijo del tenant si existe
             if tenant_prefix and not resolved_login_url.startswith(tenant_prefix):
                 if resolved_login_url.startswith('/'):
                     resolved_login_url = resolved_login_url[1:]
                 resolved_login_url = f'{tenant_prefix}/{resolved_login_url}'
-            
+
             # Agregar parámetro next si se especifica
             path = request.get_full_path()
             from django.contrib.auth.views import redirect_to_login

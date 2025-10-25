@@ -1368,6 +1368,159 @@ class PacienteConsentimiento(models.Model):
             return True
         return False
 
+# --- MODELOS DE GESTIÓN DE LABORATORIO DENTAL ---
+
+class TipoTrabajoLaboratorio(models.Model):
+    """Catálogo de trabajos que realizan los técnicos dentales"""
+    nombre = models.CharField(max_length=150, unique=True)
+    descripcion = models.TextField(blank=True)
+    costo_referencia = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text="Costo de referencia por unidad"
+    )
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Tipo de Trabajo de Laboratorio'
+        verbose_name_plural = 'Tipos de Trabajos de Laboratorio'
+
+    def __str__(self):
+        return self.nombre
+
+
+class TrabajoLaboratorio(models.Model):
+    """Solicitud y seguimiento de trabajos enviados al técnico dental"""
+
+    ESTADOS = [
+        ('SOLICITADO', 'Solicitado'),
+        ('EN_PROCESO', 'En Proceso'),
+        ('ENTREGADO', 'Entregado'),
+        ('COLOCADO', 'Colocado en Paciente'),
+        ('PAGADO', 'Pagado a Laboratorio'),
+        ('CANCELADO', 'Cancelado'),
+    ]
+
+    # Vinculación
+    paciente = models.ForeignKey(
+        Paciente,
+        on_delete=models.PROTECT,
+        related_name='trabajos_laboratorio'
+    )
+    cita_origen = models.ForeignKey(
+        Cita,
+        on_delete=models.PROTECT,
+        related_name='trabajos_laboratorio',
+        null=True,
+        blank=True,
+        help_text="Cita donde se solicitó el trabajo (opcional)"
+    )
+
+    # Datos del trabajo
+    tipo_trabajo = models.ForeignKey(
+        TipoTrabajoLaboratorio,
+        on_delete=models.PROTECT,
+        related_name='trabajos'
+    )
+    laboratorio = models.ForeignKey(
+        Proveedor,
+        on_delete=models.PROTECT,
+        related_name='trabajos_laboratorio',
+        help_text="Técnico dental o laboratorio"
+    )
+
+    # Detalles mínimos
+    dientes = models.CharField(
+        max_length=100,
+        help_text="Números de dientes (ej: 11,12,13)"
+    )
+    material = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Material (Zirconia, Porcelana, etc.)"
+    )
+    color = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Color/tono (ej: A2)"
+    )
+    observaciones = models.TextField(
+        blank=True,
+        help_text="Indicaciones especiales"
+    )
+
+    # Fechas
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    fecha_entrega_estimada = models.DateField(
+        help_text="Fecha estimada de entrega"
+    )
+    fecha_entrega_real = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha real de entrega del laboratorio"
+    )
+
+    # Estado
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default='SOLICITADO'
+    )
+
+    # Costos
+    costo_laboratorio = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text="Costo cobrado por el laboratorio"
+    )
+    precio_paciente = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        help_text="Precio cobrado al paciente"
+    )
+
+    # Control
+    dentista_solicitante = models.ForeignKey(
+        PerfilDentista,
+        on_delete=models.PROTECT,
+        related_name='trabajos_solicitados'
+    )
+
+    notas = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha_solicitud']
+        verbose_name = 'Trabajo de Laboratorio'
+        verbose_name_plural = 'Trabajos de Laboratorio'
+
+    def __str__(self):
+        return f"{self.tipo_trabajo.nombre} - {self.paciente.nombre} {self.paciente.apellido}"
+
+    @property
+    def dias_transcurridos(self):
+        """Días desde la solicitud"""
+        from datetime import date
+        return (date.today() - self.fecha_solicitud.date()).days
+
+    @property
+    def esta_retrasado(self):
+        """Verifica si está retrasado"""
+        from datetime import date
+        if self.estado not in ['ENTREGADO', 'COLOCADO', 'PAGADO', 'CANCELADO']:
+            return date.today() > self.fecha_entrega_estimada
+        return False
+
+    @property
+    def margen(self):
+        """Margen de utilidad"""
+        return self.precio_paciente - self.costo_laboratorio
+
+    @property
+    def estatus_pago(self):
+        """Indica si ya fue pagado al laboratorio"""
+        return self.estado == 'PAGADO'
+
 # Importar modelos de permisos dinámicos
 from .models_permissions import ModuloSistema, SubmenuItem, PermisoRol, LogAcceso
 

@@ -1273,3 +1273,301 @@ class ClinicaConfigFormBase(forms.ModelForm):
                 raise ValidationError('El archivo debe ser un PDF')
 
         return documento
+
+# --- FORMULARIOS DE TRABAJOS DE LABORATORIO ---
+
+class TrabajoLaboratorioForm(forms.ModelForm):
+    """Formulario para crear solicitud de trabajo de laboratorio"""
+
+    class Meta:
+        model = models.TrabajoLaboratorio
+        fields = [
+            'paciente',
+            'cita_origen',
+            'tipo_trabajo',
+            'laboratorio',
+            'dientes',
+            'material',
+            'color',
+            'observaciones',
+            'fecha_entrega_estimada',
+            'costo_laboratorio',
+            'precio_paciente',
+        ]
+        widgets = {
+            'paciente': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True,
+                'id': 'id_paciente'
+            }),
+            'cita_origen': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_cita_origen'
+            }),
+            'tipo_trabajo': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'laboratorio': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'dientes': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 11,12,13',
+                'required': True
+            }),
+            'material': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Zirconia, Porcelana, E-max'
+            }),
+            'color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: A2, B3'
+            }),
+            'observaciones': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Indicaciones especiales para el técnico'
+            }),
+            'fecha_entrega_estimada': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+                'required': True
+            }),
+            'costo_laboratorio': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'required': True
+            }),
+            'precio_paciente': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'required': True
+            }),
+        }
+        labels = {
+            'paciente': 'Paciente',
+            'cita_origen': 'Cita Relacionada (Opcional)',
+            'tipo_trabajo': 'Tipo de Trabajo',
+            'laboratorio': 'Laboratorio/Técnico Dental',
+            'dientes': 'Dientes Involucrados',
+            'material': 'Material',
+            'color': 'Color/Tono',
+            'observaciones': 'Observaciones',
+            'fecha_entrega_estimada': 'Fecha de Entrega Estimada',
+            'costo_laboratorio': 'Costo del Laboratorio',
+            'precio_paciente': 'Precio al Paciente',
+        }
+        help_texts = {
+            'paciente': 'Seleccione el paciente para el trabajo',
+            'cita_origen': 'Si el trabajo se originó en una cita específica, selecciónela aquí',
+            'dientes': 'Separados por comas (Ej: 11,12,13)',
+            'costo_laboratorio': 'Costo que cobra el laboratorio',
+            'precio_paciente': 'Precio que se cobrará al paciente',
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Extraer contexto de kwargs (cuando se llama desde URL con paciente/cita)
+        paciente_contexto = kwargs.pop('paciente', None)
+        cita_contexto = kwargs.pop('cita', None)
+        self.dentista = kwargs.pop('dentista', None)
+
+        super().__init__(*args, **kwargs)
+
+        # Si vienen paciente/cita desde contexto (URL), pre-seleccionarlos y hacerlos readonly
+        if paciente_contexto:
+            self.fields['paciente'].initial = paciente_contexto
+            self.fields['paciente'].widget.attrs['disabled'] = True
+            # Guardar para usar en save()
+            self.initial_paciente = paciente_contexto
+
+        if cita_contexto:
+            self.fields['cita_origen'].initial = cita_contexto
+            self.fields['cita_origen'].queryset = models.Cita.objects.filter(pk=cita_contexto.pk)
+            self.initial_cita = cita_contexto
+        else:
+            # Si no hay cita pre-seleccionada, empezar con queryset vacío
+            # Se llenará dinámicamente vía JavaScript al seleccionar paciente
+            self.fields['cita_origen'].queryset = models.Cita.objects.none()
+            self.fields['cita_origen'].required = False
+
+        # Si hay tipo de trabajo seleccionado, pre-cargar el costo de referencia
+        if self.instance.pk and self.instance.tipo_trabajo:
+            self.fields['costo_laboratorio'].initial = self.instance.tipo_trabajo.costo_referencia
+
+    def clean_dientes(self):
+        dientes = self.cleaned_data.get('dientes', '')
+        if not dientes:
+            raise ValidationError('Debe especificar al menos un diente')
+
+        # Validar formato
+        dientes_lista = [d.strip() for d in dientes.split(',') if d.strip()]
+        if not dientes_lista:
+            raise ValidationError('Formato inválido. Use números separados por comas (Ej: 11,12,13)')
+
+        # Validar que sean números
+        for d in dientes_lista:
+            if not d.isdigit():
+                raise ValidationError(f'"{d}" no es un número válido de diente')
+
+            # Opcional: validar sistema FDI (11-18, 21-28, 31-38, 41-48)
+            num_diente = int(d)
+            if num_diente < 11 or num_diente > 85:
+                raise ValidationError(f'Diente {num_diente} fuera de rango válido')
+
+        return dientes
+
+    def clean(self):
+        cleaned_data = super().clean()
+        costo_lab = cleaned_data.get('costo_laboratorio')
+        precio_pac = cleaned_data.get('precio_paciente')
+
+        if costo_lab and precio_pac:
+            if precio_pac < costo_lab:
+                raise ValidationError(
+                    'El precio al paciente no puede ser menor al costo del laboratorio'
+                )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        trabajo = super().save(commit=False)
+
+        # Si paciente vino del contexto (disabled en form), asignarlo manualmente
+        if hasattr(self, 'initial_paciente'):
+            trabajo.paciente = self.initial_paciente
+
+        # Si cita vino del contexto, asignarla
+        if hasattr(self, 'initial_cita'):
+            trabajo.cita_origen = self.initial_cita
+
+        # Asignar dentista solicitante
+        if self.dentista:
+            trabajo.dentista_solicitante = self.dentista
+
+        if commit:
+            trabajo.save()
+
+        return trabajo
+
+
+class TrabajoLaboratorioUpdateForm(forms.ModelForm):
+    """Formulario para actualizar estado y fechas de trabajo de laboratorio"""
+
+    class Meta:
+        model = models.TrabajoLaboratorio
+        fields = [
+            'estado',
+            'fecha_entrega_real',
+            'notas',
+        ]
+        widgets = {
+            'estado': forms.Select(attrs={
+                'class': 'form-select',
+            }),
+            'fecha_entrega_real': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
+            'notas': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Notas adicionales sobre el trabajo'
+            }),
+        }
+        labels = {
+            'estado': 'Estado',
+            'fecha_entrega_real': 'Fecha de Entrega Real',
+            'notas': 'Notas',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.usuario = kwargs.pop('usuario', None)
+        super().__init__(*args, **kwargs)
+
+        # Limitar opciones de estado según rol
+        if self.usuario:
+            es_dentista = self.usuario.groups.filter(name='Dentista').exists()
+            es_recepcion = self.usuario.groups.filter(name='Recepcionista').exists() or \
+                          self.usuario.groups.filter(name='Administrador').exists()
+
+            if es_dentista and not self.usuario.is_superuser:
+                # Dentista solo puede marcar como COLOCADO
+                self.fields['estado'].choices = [
+                    ('SOLICITADO', 'Solicitado'),
+                    ('COLOCADO', 'Colocado en Paciente'),
+                    ('CANCELADO', 'Cancelado'),
+                ]
+            elif es_recepcion:
+                # Recepcionista puede cambiar todos los estados administrativos
+                pass  # Usar todos los estados disponibles
+
+        # Fecha entrega real es opcional hasta que se marque como entregado
+        self.fields['fecha_entrega_real'].required = False
+
+
+class TrabajoLaboratorioFiltroForm(forms.Form):
+    """Formulario para filtrar trabajos de laboratorio"""
+
+    ESTADO_CHOICES = [('', 'Todos los estados')] + list(models.TrabajoLaboratorio.ESTADOS)
+
+    busqueda = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por paciente, dientes, material...',
+            'autocomplete': 'off'
+        }),
+        label='Búsqueda'
+    )
+
+    estado = forms.ChoiceField(
+        choices=ESTADO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Estado'
+    )
+
+    laboratorio = forms.ModelChoiceField(
+        queryset=models.Proveedor.objects.all(),
+        required=False,
+        empty_label='Todos los laboratorios',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Laboratorio'
+    )
+
+    tipo_trabajo = forms.ModelChoiceField(
+        queryset=models.TipoTrabajoLaboratorio.objects.filter(activo=True),
+        required=False,
+        empty_label='Todos los tipos',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Tipo de Trabajo'
+    )
+
+    fecha_desde = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Desde'
+    )
+
+    fecha_hasta = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Hasta'
+    )

@@ -1,0 +1,279 @@
+{% extends 'core/base.html' %}
+{% load tenant_urls %}
+{% load static %}
+
+{% block title %}Actualizar Trabajo de Laboratorio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge-estado {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    .estado-flow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .estado-item {
+        text-align: center;
+        flex: 1;
+    }
+    .estado-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #e9ecef;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-size: 1.5rem;
+    }
+    .estado-circle.active {
+        background: #0d6efd;
+        color: white;
+    }
+    .estado-circle.completed {
+        background: #198754;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="mb-2">
+            <i class="bi bi-pencil-square me-2"></i>Actualizar Trabajo de Laboratorio
+        </h1>
+        <p class="text-muted">
+            {{ object.tipo_trabajo.nombre }} - {{ object.paciente.nombre }} {{ object.paciente.apellido }}
+        </p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Flujo de Estados -->
+            <div class="estado-flow">
+                <div class="estado-item">
+                    <div class="estado-circle {% if object.estado == 'SOLICITADO' %}active{% elif object.estado in 'EN_PROCESO,ENTREGADO,COLOCADO,PAGADO' %}completed{% endif %}">
+                        <i class="bi bi-send"></i>
+                    </div>
+                    <small>Solicitado</small>
+                </div>
+                <div style="flex: 0.5; height: 2px; background: #dee2e6; margin: 30px 0 0;"></div>
+                <div class="estado-item">
+                    <div class="estado-circle {% if object.estado == 'EN_PROCESO' %}active{% elif object.estado in 'ENTREGADO,COLOCADO,PAGADO' %}completed{% endif %}">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <small>En Proceso</small>
+                </div>
+                <div style="flex: 0.5; height: 2px; background: #dee2e6; margin: 30px 0 0;"></div>
+                <div class="estado-item">
+                    <div class="estado-circle {% if object.estado == 'ENTREGADO' %}active{% elif object.estado in 'COLOCADO,PAGADO' %}completed{% endif %}">
+                        <i class="bi bi-box-arrow-in-down"></i>
+                    </div>
+                    <small>Entregado</small>
+                </div>
+                <div style="flex: 0.5; height: 2px; background: #dee2e6; margin: 30px 0 0;"></div>
+                <div class="estado-item">
+                    <div class="estado-circle {% if object.estado == 'COLOCADO' %}active{% elif object.estado == 'PAGADO' %}completed{% endif %}">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <small>Colocado</small>
+                </div>
+                <div style="flex: 0.5; height: 2px; background: #dee2e6; margin: 30px 0 0;"></div>
+                <div class="estado-item">
+                    <div class="estado-circle {% if object.estado == 'PAGADO' %}active completed{% endif %}">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <small>Pagado</small>
+                </div>
+            </div>
+
+            <!-- Formulario -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil me-2"></i>Actualizar Estado
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">
+                                <i class="bi bi-arrow-repeat me-1"></i>{{ form.estado.label }}
+                            </label>
+                            {{ form.estado }}
+                            {% if form.estado.help_text %}
+                            <small class="form-text text-muted">{{ form.estado.help_text }}</small>
+                            {% endif %}
+                            {% if form.estado.errors %}
+                            <div class="invalid-feedback d-block">{{ form.estado.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.fecha_entrega_real.id_for_label }}" class="form-label">
+                                <i class="bi bi-calendar-check me-1"></i>{{ form.fecha_entrega_real.label }}
+                            </label>
+                            {{ form.fecha_entrega_real }}
+                            {% if form.fecha_entrega_real.help_text %}
+                            <small class="form-text text-muted">{{ form.fecha_entrega_real.help_text }}</small>
+                            {% endif %}
+                            {% if form.fecha_entrega_real.errors %}
+                            <div class="invalid-feedback d-block">{{ form.fecha_entrega_real.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.notas.id_for_label }}" class="form-label">
+                                <i class="bi bi-sticky me-1"></i>{{ form.notas.label }}
+                            </label>
+                            {{ form.notas }}
+                            {% if form.notas.help_text %}
+                            <small class="form-text text-muted">{{ form.notas.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% tenant_url 'core:trabajo_laboratorio_detail' object.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Guía de Estados -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Guía de Estados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">SOLICITADO</dt>
+                        <dd class="col-sm-9">El dentista ha solicitado el trabajo</dd>
+
+                        <dt class="col-sm-3">EN_PROCESO</dt>
+                        <dd class="col-sm-9">El trabajo fue enviado al laboratorio y está en fabricación</dd>
+
+                        <dt class="col-sm-3">ENTREGADO</dt>
+                        <dd class="col-sm-9">El laboratorio entregó el trabajo a la clínica</dd>
+
+                        <dt class="col-sm-3">COLOCADO</dt>
+                        <dd class="col-sm-9">El dentista colocó el trabajo en el paciente</dd>
+
+                        <dt class="col-sm-3">PAGADO</dt>
+                        <dd class="col-sm-9 mb-0">Se realizó el pago al laboratorio</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Información del Trabajo -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Información del Trabajo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Tipo:</strong><br>
+                        {{ object.tipo_trabajo.nombre }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Paciente:</strong><br>
+                        {{ object.paciente.nombre }} {{ object.paciente.apellido }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Laboratorio:</strong><br>
+                        {{ object.laboratorio.nombre }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Dientes:</strong><br>
+                        <span class="badge bg-secondary">{{ object.dientes }}</span>
+                    </p>
+                    <hr>
+                    <p class="mb-2">
+                        <strong>Fecha Solicitud:</strong><br>
+                        {{ object.fecha_solicitud|date:"d/m/Y" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Entrega Estimada:</strong><br>
+                        {{ object.fecha_entrega_estimada|date:"d/m/Y" }}
+                    </p>
+                    {% if object.esta_retrasado %}
+                    <div class="alert alert-warning py-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <small><strong>Retrasado</strong></small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-dollar me-2"></i>Costos
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="mb-2">
+                        <small class="text-muted d-block">Costo Laboratorio</small>
+                        <strong class="text-danger">${{ object.costo_laboratorio|floatformat:2 }}</strong>
+                    </p>
+                    <p class="mb-2">
+                        <small class="text-muted d-block">Precio Paciente</small>
+                        <strong class="text-primary">${{ object.precio_paciente|floatformat:2 }}</strong>
+                    </p>
+                    <hr>
+                    <p class="mb-0">
+                        <small class="text-muted d-block">Margen</small>
+                        <strong class="text-success">${{ object.margen|floatformat:2 }}</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const estadoSelect = document.getElementById('{{ form.estado.id_for_label }}');
+    const fechaEntregaInput = document.getElementById('{{ form.fecha_entrega_real.id_for_label }}');
+
+    // Auto-completar fecha de entrega cuando se marca como ENTREGADO
+    estadoSelect.addEventListener('change', function() {
+        if (this.value === 'ENTREGADO' && !fechaEntregaInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            fechaEntregaInput.value = today;
+        }
+    });
+});
+</script>
+{% endblock %}

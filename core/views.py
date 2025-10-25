@@ -1,10 +1,10 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User, Group
-from core.mixins import TenantLoginRequiredMixin, tenant_login_required, TenantSuccessUrlMixin
+from core.mixins import TenantLoginRequiredMixin, tenant_login_required, TenantSuccessUrlMixin, tenant_reverse
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Sum, Avg, Min, Max, F, Q
-from django.db.models.functions import ExtractWeek, ExtractYear, TruncMonth
+from django.db.models.functions import ExtractWeek, ExtractYear, TruncMonth, Coalesce
 from django.http import JsonResponse, HttpResponse, Http404, FileResponse
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
@@ -238,26 +238,28 @@ class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
                 fecha_pago__date__gte=inicio_ano
             ).aggregate(total=Sum('monto'))['total'] or 0
             
-            # Saldos pendientes totales
-            saldos_pendientes = models.Cliente.objects.aggregate(
-                total=Sum('saldo_pendiente')
+            # Saldos pendientes totales (usar saldo_global)
+            saldos_pendientes = models.Paciente.objects.aggregate(
+                total=Sum('saldo_global')
             )['total'] or 0
-            
+
             # Pagos del día (cantidad)
             pagos_hoy_count = models.Pago.objects.filter(
                 fecha_pago__date=hoy
             ).count()
-            
+
             # Pacientes con saldo pendiente
-            pacientes_pendientes = models.Cliente.objects.filter(
-                saldo_pendiente__gt=0
+            pacientes_pendientes = models.Paciente.objects.filter(
+                saldo_global__gt=0
             ).count()
-            
-            # Citas pendientes de pago
-            citas_pendientes = models.Cita.objects.filter(
-                estado='completada',
-                pagada=False
-            ).count()
+
+            # Citas pendientes de pago (citas completadas con saldo > 0)
+            # Como costo_real es un property, calculamos en Python
+            citas_completadas = models.Cita.objects.filter(
+                estado__in=['COM', 'ATN']  # Completadas o Atendidas
+            ).prefetch_related('servicios_planeados', 'tratamientos_realizados__servicios', 'pagos')
+
+            citas_pendientes = sum(1 for cita in citas_completadas if cita.saldo_pendiente > 0)
             
             # Promedio de pago diario del mes
             dias_transcurridos = (hoy - inicio_mes).days + 1
@@ -319,13 +321,13 @@ class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
                 cantidad=Count('id')
             ).order_by('-total')[:5]
             
-            # Servicios más rentables
-            servicios_rentables = models.ServicioCita.objects.filter(
-                cita__fecha_hora__date__gte=inicio_mes,
-                cita__pagada=True
-            ).values('servicio__nombre').annotate(
-                total_ingresos=Sum('precio_final'),
-                cantidad=Count('id')
+            # Servicios más rentables (usando TratamientoCita)
+            # Obtener servicios desde tratamientos realizados en el mes
+            servicios_rentables = models.Servicio.objects.filter(
+                tratamientocita__cita__fecha_hora__date__gte=inicio_mes
+            ).annotate(
+                total_ingresos=Sum('precio'),
+                cantidad=Count('tratamientocita', distinct=True)
             ).order_by('-total_ingresos')[:5]
             
             # Ingresos por dentista (mes actual)
@@ -333,8 +335,8 @@ class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
                 fecha_pago__date__gte=inicio_mes,
                 cita__dentista__isnull=False
             ).values(
-                'cita__dentista__first_name',
-                'cita__dentista__last_name'
+                'cita__dentista__nombre',
+                'cita__dentista__apellido'
             ).annotate(
                 total=Sum('monto')
             ).order_by('-total')[:10]
@@ -354,17 +356,21 @@ class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
         """Obtiene alertas y pendientes críticos"""
         try:
             # Pacientes con saldo alto
-            pacientes_saldo_alto = models.Cliente.objects.filter(
-                saldo_pendiente__gt=5000  # Más de $5000
-            ).order_by('-saldo_pendiente')[:5]
+            pacientes_saldo_alto = models.Paciente.objects.filter(
+                saldo_global__gt=5000  # Más de $5000
+            ).order_by('-saldo_global')[:5]
             
-            # Citas sin pagar (más de 7 días)
+            # Citas sin pagar (más de 7 días) - Citas completadas con saldo pendiente
             hace_una_semana = timezone.now() - timedelta(days=7)
-            citas_vencidas = models.Cita.objects.filter(
-                estado='completada',
-                pagada=False,
+            # Como costo_real es un property, filtramos en Python
+            citas_completadas_antiguas = models.Cita.objects.filter(
+                estado__in=['COM', 'ATN'],  # Completada o Atendida
                 fecha_hora__lt=hace_una_semana
-            ).select_related('paciente', 'dentista').order_by('-fecha_hora')[:5]
+            ).select_related('paciente', 'dentista').prefetch_related(
+                'servicios_planeados', 'tratamientos_realizados__servicios', 'pagos'
+            ).order_by('-fecha_hora')
+
+            citas_vencidas = [cita for cita in citas_completadas_antiguas if cita.saldo_pendiente > 0][:5]
             
             # Pagos del día que requieren atención
             pagos_altos_hoy = models.Pago.objects.filter(
@@ -404,25 +410,25 @@ class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
                     'nombre': 'Reporte de Ingresos',
                     'descripcion': 'Análisis detallado de ingresos por período',
                     'url': 'core:reporte_ingresos',
-                    'icon': 'fas fa-chart-line'
+                    'icon': 'bi bi-graph-up'
                 },
                 {
                     'nombre': 'Saldos Pendientes',
                     'descripcion': 'Pacientes con pagos pendientes',
                     'url': 'core:reporte_saldos',
-                    'icon': 'fas fa-exclamation-triangle'
+                    'icon': 'bi bi-exclamation-triangle'
                 },
                 {
                     'nombre': 'Reporte de Facturación',
                     'descripcion': 'Facturación y comprobantes fiscales',
                     'url': 'core:reporte_facturacion',
-                    'icon': 'fas fa-file-invoice'
+                    'icon': 'bi bi-receipt'
                 },
                 {
                     'nombre': 'Servicios más Vendidos',
                     'descripcion': 'Análisis de servicios por demanda',
                     'url': 'core:reporte_servicios_vendidos',
-                    'icon': 'fas fa-trophy'
+                    'icon': 'bi bi-trophy'
                 }
             ]
         }
@@ -667,13 +673,13 @@ class UsuarioDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, Success
         # Solo administradores pueden eliminar usuarios
         if not (request.user.groups.filter(name='Administrador').exists() or request.user.is_superuser):
             messages.error(request, 'No tienes permisos para eliminar usuarios.')
-            return redirect('core:usuario_list')
-        
+            return redirect(tenant_reverse('core:usuario_list', request=request))
+
         # No permitir que el usuario se elimine a sí mismo
         usuario_a_eliminar = self.get_object()
         if usuario_a_eliminar == request.user:
             messages.error(request, 'No puedes eliminar tu propia cuenta.')
-            return redirect('core:usuario_list')
+            return redirect(tenant_reverse('core:usuario_list', request=request))
         
         return super().dispatch(request, *args, **kwargs)
 
@@ -757,11 +763,11 @@ class PacienteListView(TenantLoginRequiredMixin, ListView):
         pacientes_con_estado = []
         for paciente in context['pacientes']:
             # Verificar si tiene respuestas al cuestionario
-            tiene_respuestas = paciente.respuestas_historial.exists() if hasattr(paciente, 'respuestas_historial') else False
-            
-            # Verificar si tiene historial clínico
-            historial_entries = paciente.historial_clinico.all() if hasattr(paciente, 'historial_clinico') else []
-            tiene_historial = len(historial_entries) > 0
+            tiene_respuestas = paciente.respuestas_historial.exists()
+
+            # Verificar si tiene historial clínico (correctamente)
+            tiene_historial = paciente.historial_clinico.exists()
+            historial_entries = list(paciente.historial_clinico.all()) if tiene_historial else []
             
             # Determinar tipo de completado
             completado_portal = any('Auto-Completado por Paciente' in entry.descripcion_evento 
@@ -863,7 +869,7 @@ class PacienteDatosFiscalesView(TenantLoginRequiredMixin, TemplateView):
             obj.paciente = paciente
             obj.save()
             messages.success(request, 'Datos fiscales guardados correctamente.')
-            return redirect('core:paciente_detail', pk=paciente.pk)
+            return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': paciente.pk}))
         messages.error(request, 'Por favor corrige los errores.')
         return self.render_to_response({'form': form, 'paciente': paciente})
 
@@ -973,29 +979,20 @@ class ServicioListView(TenantLoginRequiredMixin, ListView):
             
             # Análisis de citas (servicios más utilizados en los últimos 30 días)
             hace_30_dias = timezone.now() - timedelta(days=30)
-            servicios_populares = models.ServicioCita.objects.filter(
-                cita__fecha_hora__gte=hace_30_dias
-            ).values(
-                'servicio__nombre', 
-                'servicio__precio',
-                'servicio__especialidad__nombre'
+            servicios_populares = models.Servicio.objects.filter(
+                tratamientocita__cita__fecha_hora__gte=hace_30_dias
             ).annotate(
-                veces_usado=Count('id'),
-                ingresos_generados=Sum('precio_final')
+                veces_usado=Count('tratamientocita', distinct=True),
+                ingresos_generados=Sum('precio')
             ).order_by('-veces_usado')[:5]
-            
+
             # Análisis de rentabilidad (últimos 3 meses)
             hace_3_meses = timezone.now() - timedelta(days=90)
-            servicios_rentables = models.ServicioCita.objects.filter(
-                cita__fecha_hora__gte=hace_3_meses,
-                cita__pagada=True
-            ).values(
-                'servicio__nombre',
-                'servicio__precio', 
-                'servicio__especialidad__nombre'
+            servicios_rentables = models.Servicio.objects.filter(
+                tratamientocita__cita__fecha_hora__gte=hace_3_meses
             ).annotate(
-                total_ingresos=Sum('precio_final'),
-                cantidad_realizados=Count('id')
+                total_ingresos=Sum('precio'),
+                cantidad_realizados=Count('tratamientocita', distinct=True)
             ).order_by('-total_ingresos')[:5]
             
             # Distribución de precios
@@ -1974,10 +1971,10 @@ def odontograma_48_view(request, cliente_id):
         
     except models.Paciente.DoesNotExist:
         messages.error(request, 'Paciente no encontrado')
-        return redirect('core:paciente_list')
+        return redirect(tenant_reverse('core:paciente_list', request=request))
     except Exception as e:
         messages.error(request, f'Error al cargar el odontograma: {str(e)}')
-        return redirect('core:paciente_list')
+        return redirect(tenant_reverse('core:paciente_list', request=request))
 
 @tenant_login_required
 @csrf_exempt
@@ -2004,35 +2001,73 @@ def odontograma_api_update(request, cliente_id):
             ultima_cita = models.Cita.objects.filter(paciente=paciente).order_by('-fecha_hora').first()
             dentista = ultima_cita.dentista if ultima_cita else None
 
-        # Actualizar/crear estados para todos los dientes
+        # Verificar si el diagnóstico es "SANO" (volver a estado predeterminado)
+        es_sano = diagnostico.nombre.upper() == 'SANO'
+
+        # Actualizar/crear/eliminar estados para todos los dientes
         actualizados = []
+        eliminados = []
+
         for num in lista_numeros:
             if num is None:
                 continue
-            obj, created = models.EstadoDiente.objects.update_or_create(
+
+            numero_int = int(num)
+
+            if es_sano:
+                # Si es SANO, eliminar el estado (volverá a predeterminado en GET)
+                deleted_count, _ = models.EstadoDiente.objects.filter(
+                    paciente=paciente,
+                    numero_diente=numero_int
+                ).delete()
+                if deleted_count > 0:
+                    eliminados.append(numero_int)
+            else:
+                # Actualizar o crear estado con diagnóstico específico
+                obj, created = models.EstadoDiente.objects.update_or_create(
+                    paciente=paciente,
+                    numero_diente=numero_int,
+                    defaults={
+                        'diagnostico': diagnostico,
+                        'color_seleccionado': color_seleccionado
+                    }
+                )
+                actualizados.append((numero_int, created))
+
+        # Registrar entrada en historial clínico
+        if actualizados or eliminados:
+            if actualizados:
+                numeros_txt = ', '.join(str(n) for n, _ in actualizados)
+                descripcion = f"Dientes [{numeros_txt}] actualizados con diagnóstico '{diagnostico.nombre}'."
+                if color_seleccionado:
+                    descripcion += f" Color: {color_seleccionado}."
+            else:
+                descripcion = ""
+
+            if eliminados:
+                eliminados_txt = ', '.join(str(n) for n in eliminados)
+                if descripcion:
+                    descripcion += f" Dientes [{eliminados_txt}] restaurados a estado SANO."
+                else:
+                    descripcion = f"Dientes [{eliminados_txt}] restaurados a estado SANO."
+
+            if nota:
+                descripcion += f" Nota: {nota}"
+
+            models.HistorialClinico.objects.create(
                 paciente=paciente,
-                numero_diente=int(num),
-                defaults={
-                    'diagnostico': diagnostico,
-                    'color_seleccionado': color_seleccionado
-                }
+                descripcion_evento=descripcion,
+                registrado_por=dentista
             )
-            actualizados.append((int(num), created))
 
-        # Registrar una sola entrada en historial (más legible)
-        numeros_txt = ', '.join(str(n) for n, _ in actualizados)
-        descripcion = f"Se actualizaron dientes [{numeros_txt}] con diagnóstico '{diagnostico.nombre}'."
-        if color_seleccionado:
-            descripcion += f" Color: {color_seleccionado}."
-        if nota:
-            descripcion += f" Nota: {nota}"
-        models.HistorialClinico.objects.create(
-            paciente=paciente,
-            descripcion_evento=descripcion,
-            registrado_por=dentista
-        )
-
-        return JsonResponse({'status': 'success', 'message': 'Odontograma actualizado.', 'dientes': [n for n, _ in actualizados]})
+        todos_procesados = [n for n, _ in actualizados] + eliminados
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Odontograma actualizado.',
+            'dientes': todos_procesados,
+            'actualizados': len(actualizados),
+            'eliminados': len(eliminados)
+        })
 
     except (models.Paciente.DoesNotExist, models.Diagnostico.DoesNotExist) as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=404)
@@ -2101,6 +2136,18 @@ class ReciboPagoView(TenantLoginRequiredMixin, DetailView):
     template_name = 'core/recibo_pago.html'
     context_object_name = 'pago'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pago = self.object
+
+        # Obtener paciente desde cita o directamente del pago
+        paciente = pago.cita.paciente if pago.cita else pago.paciente
+
+        # Agregar saldo pendiente del paciente
+        context['saldo_pendiente_paciente'] = paciente.saldo_global
+
+        return context
+
 @tenant_login_required
 def generar_recibo_pdf(request, pk):
     pago = get_object_or_404(models.Pago, pk=pk)
@@ -2157,7 +2204,7 @@ def _generar_recibo_carta(response, pago, request):  # ← Agregar request
     
     if pago.cita:
         # Pago por cita - mostrar servicios realizados
-        for servicio in pago.cita.servicios_realizados.all():
+        for servicio in pago.cita.servicios_realizados:
             data.append([servicio.nombre, f"${servicio.precio:,.2f}"])
             total_servicios += servicio.precio
     else:
@@ -2239,7 +2286,7 @@ def _generar_recibo_ticket(response, pago, width, height, request):  # ← Agreg
         y_pos -= line_height
         c.setFont("Helvetica", 8)
 
-        for servicio in pago.cita.servicios_realizados.all():
+        for servicio in pago.cita.servicios_realizados:
             c.drawString(x_pos + 2*mm, y_pos, f"- {servicio.nombre}")
             c.drawRightString(width - x_pos, y_pos, f"${servicio.precio:,.2f}")
             total_servicios += servicio.precio
@@ -2460,7 +2507,7 @@ def exportar_facturacion_excel(request):
     worksheet.append(headers)
     citas = models.Cita.objects.filter(requiere_factura=True).select_related('paciente').prefetch_related('tratamientos_realizados__servicios', 'pagos')
     for cita in citas:
-        servicios = ", ".join([s.nombre for s in cita.servicios_realizados.all()])
+        servicios = ", ".join([s.nombre for s in cita.servicios_realizados])
         monto_pagado = cita.pagos.aggregate(total=Sum('monto'))['total'] or 0
         pago = cita.pagos.order_by('-fecha_pago').first()
         df = getattr(cita.paciente, 'datos_fiscales', None)
@@ -2497,7 +2544,7 @@ class InvitarPacienteView(TenantLoginRequiredMixin, TemplateView):
         paciente = get_object_or_404(models.Paciente, pk=self.kwargs['pk'])
         if paciente.usuario:
             messages.error(request, 'Este paciente ya tiene una cuenta de usuario.')
-            return redirect('core:paciente_detail', pk=paciente.pk)
+            return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': paciente.pk}))
 
         username = paciente.email or f'{paciente.nombre.lower()}.{paciente.apellido.lower()}{paciente.pk}'
         if User.objects.filter(username=username).exists():
@@ -2517,7 +2564,7 @@ class InvitarPacienteView(TenantLoginRequiredMixin, TemplateView):
         paciente.save()
 
         messages.success(request, f'Se creó la cuenta para {paciente}. Usuario: {username}, Contraseña: {password}')
-        return redirect('core:paciente_detail', pk=paciente.pk)
+        return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': paciente.pk}))
 
 class PacientePagosListView(TenantLoginRequiredMixin, ListView):
     model = models.Pago
@@ -2707,7 +2754,7 @@ class PortalCompletarHistorialView(TenantLoginRequiredMixin, TemplateView):
                 formset.save()
             
             messages.success(request, '¡Tu historial clínico ha sido guardado exitosamente! Nuestro equipo médico lo revisará antes de tu próxima consulta.')
-            return redirect('core:portal_historial')
+            return redirect(tenant_reverse('core:portal_historial', request=request))
             
         except Exception as e:
             messages.error(request, f'Error al guardar el historial: {str(e)}')
@@ -2761,14 +2808,14 @@ class ResetPasswordView(TenantLoginRequiredMixin, TemplateView):
         
         if not request.user.groups.filter(name='Administrador').exists() and not request.user.is_superuser:
             messages.error(request, 'No tienes permiso para realizar esta acción.')
-            return redirect('core:usuario_list')
+            return redirect(tenant_reverse('core:usuario_list', request=request))
 
         new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
         usuario.set_password(new_password)
         usuario.save()
 
         messages.success(request, f'La contraseña para {usuario.username} ha sido restablecida a: {new_password}')
-        return redirect('core:usuario_edit', pk=usuario.pk)
+        return redirect(tenant_reverse('core:usuario_edit', request=request, kwargs={'pk': usuario.pk}))
 
 class CuestionarioHistorialView(TenantLoginRequiredMixin, TemplateView):
     template_name = 'core/cuestionario_historial.html'
@@ -2795,7 +2842,7 @@ class CuestionarioHistorialView(TenantLoginRequiredMixin, TemplateView):
         if formset.is_valid():
             formset.save()
             messages.success(request, 'Cuestionario de historial clínico guardado con éxito.')
-            return redirect('core:paciente_detail', pk=self.kwargs['pk'])
+            return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': self.kwargs['pk']}))
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
             return self.render_to_response(context)
@@ -2939,7 +2986,7 @@ class CuestionarioHistorialMejoradoView(TenantLoginRequiredMixin, TemplateView):
                 formset.save()
             
             messages.success(request, 'Historial clínico mejorado guardado con éxito.')
-            return redirect('core:paciente_detail', pk=paciente.pk)
+            return redirect(tenant_reverse('core:paciente_detail', request=request, kwargs={'pk': paciente.pk}))
             
         except Exception as e:
             messages.error(request, f'Error al guardar el historial: {str(e)}')
@@ -3012,11 +3059,232 @@ class ReporteServiciosMasVendidosView(TenantLoginRequiredMixin, ListView):
     context_object_name = 'servicios'
 
     def get_queryset(self):
-        # Corrigiendo la consulta para evitar errores en las relaciones
+        # Contar servicios realizados desde TratamientoCita
+        # Ahora los servicios están en TratamientoCita.servicios (M2M)
         return models.Servicio.objects.annotate(
-            cantidad_vendida=Count('citas_realizadas', distinct=True),
-            ingresos_generados=Sum('precio') * Count('citas_realizadas')
-        ).filter(cantidad_vendida__gt=0).order_by('-cantidad_vendida')
+            cantidad_vendida=Count('tratamientocita', distinct=True)
+        ).filter(
+            cantidad_vendida__gt=0
+        ).annotate(
+            ingresos_generados=F('precio') * F('cantidad_vendida')
+        ).order_by('-cantidad_vendida')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        servicios = list(context['servicios'])
+
+        # Calcular totales
+        total_cantidad = sum(s.cantidad_vendida for s in servicios)
+        total_ingresos = sum(s.ingresos_generados for s in servicios)
+        promedio_ingreso = total_ingresos / len(servicios) if servicios else 0
+
+        # Calcular porcentaje de participación para cada servicio
+        for servicio in servicios:
+            servicio.porcentaje = (servicio.ingresos_generados / total_ingresos * 100) if total_ingresos > 0 else 0
+
+        context['servicios'] = servicios
+        context['total_cantidad'] = total_cantidad
+        context['total_ingresos'] = total_ingresos
+        context['promedio_ingreso'] = promedio_ingreso
+
+        return context
+
+def generar_servicios_vendidos_pdf(request):
+    """Genera PDF del reporte de servicios más vendidos"""
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch, mm
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.lib import colors
+    from reportlab.platypus.flowables import Image as RLImage
+    from datetime import datetime
+
+    # Obtener datos usando la misma lógica que la vista
+    servicios_qs = models.Servicio.objects.annotate(
+        cantidad_vendida=Count('tratamientocita', distinct=True)
+    ).filter(
+        cantidad_vendida__gt=0
+    ).annotate(
+        ingresos_generados=F('precio') * F('cantidad_vendida')
+    ).order_by('-cantidad_vendida')
+
+    servicios = list(servicios_qs)
+
+    # Calcular estadísticas
+    total_cantidad = sum(s.cantidad_vendida for s in servicios)
+    total_ingresos = sum(s.ingresos_generados for s in servicios)
+    promedio_ingreso = total_ingresos / len(servicios) if servicios else 0
+
+    # Calcular porcentajes
+    for servicio in servicios:
+        servicio.porcentaje = (servicio.ingresos_generados / total_ingresos * 100) if total_ingresos > 0 else 0
+
+    # Configurar respuesta HTTP
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="reporte_servicios_vendidos.pdf"'
+
+    # Crear documento PDF
+    doc = SimpleDocTemplate(response, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Obtener tenant
+    tenant = request.tenant
+
+    # Logo y encabezado
+    if tenant.logo:
+        try:
+            logo = RLImage(tenant.logo.path, width=60, height=60)
+            logo.hAlign = 'CENTER'
+            story.append(logo)
+            story.append(Spacer(1, 6))
+        except Exception:
+            pass
+
+    # Título del reporte
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#0d6efd'),
+        alignment=TA_CENTER,
+        spaceAfter=6
+    )
+    story.append(Paragraph(f"<b>{tenant.nombre}</b>", title_style))
+    story.append(Paragraph("Reporte de Servicios Más Vendidos", styles['Heading2']))
+    story.append(Paragraph(f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+    story.append(Spacer(1, 20))
+
+    # Tarjetas de estadísticas (en tabla 2x2)
+    stats_data = [
+        [
+            Paragraph(f"<b>Servicios Realizados</b><br/><font size=16 color='#0d6efd'>{len(servicios)}</font>", styles['Normal']),
+            Paragraph(f"<b>Total de Ventas</b><br/><font size=16 color='#ffc107'>{total_cantidad}</font>", styles['Normal'])
+        ],
+        [
+            Paragraph(f"<b>Ingresos Totales</b><br/><font size=16 color='#198754'>${total_ingresos:,.2f}</font>", styles['Normal']),
+            Paragraph(f"<b>Ingreso Promedio</b><br/><font size=16 color='#dc3545'>${promedio_ingreso:,.2f}</font>", styles['Normal'])
+        ]
+    ]
+
+    stats_table = Table(stats_data, colWidths=[3*inch, 3*inch])
+    stats_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (0,0), colors.HexColor('#e7f3ff')),
+        ('BACKGROUND', (1,0), (1,0), colors.HexColor('#fff3cd')),
+        ('BACKGROUND', (0,1), (0,1), colors.HexColor('#d1e7dd')),
+        ('BACKGROUND', (1,1), (1,1), colors.HexColor('#f8d7da')),
+        ('BOX', (0,0), (-1,-1), 1, colors.grey),
+        ('INNERGRID', (0,0), (-1,-1), 1, colors.grey),
+        ('TOPPADDING', (0,0), (-1,-1), 12),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+    ]))
+    story.append(stats_table)
+    story.append(Spacer(1, 20))
+
+    # Tabla detallada de servicios
+    story.append(Paragraph("<b>Detalle de Servicios</b>", styles['Heading3']))
+    story.append(Spacer(1, 10))
+
+    # Encabezado de la tabla
+    table_data = [['Rank', 'Servicio', 'Cantidad', 'Precio Unit.', 'Ingresos', 'Participación']]
+
+    # Agregar filas de servicios
+    for idx, servicio in enumerate(servicios, 1):
+        # Medallas para top 3
+        rank_text = "🥇" if idx == 1 else "🥈" if idx == 2 else "🥉" if idx == 3 else str(idx)
+
+        table_data.append([
+            rank_text,
+            servicio.nombre[:30],  # Limitar longitud del nombre
+            str(servicio.cantidad_vendida),
+            f"${servicio.precio:,.2f}",
+            f"${servicio.ingresos_generados:,.2f}",
+            f"{servicio.porcentaje:.1f}%"
+        ])
+
+    # Fila de totales
+    table_data.append([
+        '',
+        'TOTAL',
+        str(total_cantidad),
+        '',
+        f"${total_ingresos:,.2f}",
+        '100%'
+    ])
+
+    # Crear tabla
+    table = Table(table_data, colWidths=[0.6*inch, 2.2*inch, 0.8*inch, 1*inch, 1.2*inch, 1*inch])
+
+    # Estilos de la tabla
+    table_style = TableStyle([
+        # Encabezado
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0d6efd')),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('ALIGN', (0,0), (-1,0), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 8),
+        ('TOPPADDING', (0,0), (-1,0), 8),
+
+        # Cuerpo
+        ('BACKGROUND', (0,1), (-1,-2), colors.beige),
+        ('TEXTCOLOR', (0,1), (-1,-2), colors.black),
+        ('ALIGN', (0,1), (0,-2), 'CENTER'),  # Rank
+        ('ALIGN', (1,1), (1,-2), 'LEFT'),    # Servicio
+        ('ALIGN', (2,1), (2,-2), 'CENTER'),  # Cantidad
+        ('ALIGN', (3,1), (-1,-2), 'RIGHT'),  # Precios
+        ('FONTNAME', (0,1), (-1,-2), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-2), 9),
+        ('TOPPADDING', (0,1), (-1,-2), 6),
+        ('BOTTOMPADDING', (0,1), (-1,-2), 6),
+
+        # Fila de totales
+        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#f8f9fa')),
+        ('TEXTCOLOR', (0,-1), (-1,-1), colors.black),
+        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,-1), (-1,-1), 10),
+        ('ALIGN', (0,-1), (1,-1), 'CENTER'),
+        ('ALIGN', (2,-1), (-1,-1), 'RIGHT'),
+        ('TOPPADDING', (0,-1), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,-1), (-1,-1), 10),
+
+        # Bordes
+        ('GRID', (0,0), (-1,-1), 1, colors.grey),
+        ('LINEBELOW', (0,0), (-1,0), 2, colors.HexColor('#0d6efd')),
+        ('LINEABOVE', (0,-1), (-1,-1), 2, colors.grey),
+    ])
+
+    # Resaltar top 3 con colores
+    if len(servicios) >= 1:
+        table_style.add('BACKGROUND', (0,1), (-1,1), colors.HexColor('#fff9e6'))  # Oro
+    if len(servicios) >= 2:
+        table_style.add('BACKGROUND', (0,2), (-1,2), colors.HexColor('#f0f0f0'))  # Plata
+    if len(servicios) >= 3:
+        table_style.add('BACKGROUND', (0,3), (-1,3), colors.HexColor('#ffe5cc'))  # Bronce
+
+    table.setStyle(table_style)
+    story.append(table)
+
+    # Pie de página
+    story.append(Spacer(1, 20))
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.grey,
+        alignment=TA_CENTER
+    )
+    story.append(Paragraph(
+        f"Este reporte muestra los servicios más vendidos ordenados por cantidad de tratamientos realizados.",
+        footer_style
+    ))
+
+    # Construir PDF
+    doc.build(story)
+    return response
 
 class ReporteIngresosPorDentistaView(TenantLoginRequiredMixin, ListView):
     model = models.Pago
@@ -3663,12 +3931,12 @@ def inventario_importar_excel(request):
         archivo = request.FILES.get('archivo_excel')
         if not archivo:
             messages.error(request, "Por favor seleccione un archivo Excel.")
-            return redirect('core:insumo_list')
+            return redirect(tenant_reverse('core:insumo_list', request=request))
 
         # Validar extensión
         if not archivo.name.endswith(('.xlsx', '.xls')):
             messages.error(request, "El archivo debe ser un Excel (.xlsx o .xls)")
-            return redirect('core:insumo_list')
+            return redirect(tenant_reverse('core:insumo_list', request=request))
 
         try:
             wb = load_workbook(archivo, data_only=True)
@@ -3825,7 +4093,7 @@ def inventario_importar_excel(request):
         except Exception as e:
             messages.error(request, f"Error al procesar el archivo: {str(e)}")
 
-        return redirect('core:insumo_list')
+        return redirect(tenant_reverse('core:insumo_list', request=request))
 
     # GET request - mostrar formulario
     return render(request, 'core/inventario_importar.html')
@@ -3855,19 +4123,20 @@ class ProcesarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateVi
     success_url = reverse_lazy('core:citas_pendientes_pago')
 
     def get_success_url(self):
-        # Redirigir directamente al PDF del recibo para impresión
-        return reverse('core:generar_recibo_pdf', kwargs={'pk': self.object.pk})
+        # Redirigir a la página HTML del recibo (no directamente al PDF)
+        # El usuario puede descargar el PDF desde ahí si lo desea
+        return tenant_reverse('core:recibo_pago', request=self.request, kwargs={'pk': self.object.pk})
 
     def dispatch(self, request, *args, **kwargs):
         cita_id = self.kwargs.get('pk') or self.request.GET.get('cita')
         if not cita_id:
             messages.error(self.request, "No se especificó una cita válida.")
-            return redirect('core:citas_pendientes_pago')
+            return redirect(tenant_reverse('core:citas_pendientes_pago', request=request))
         try:
             models.Cita.objects.get(id=cita_id)
         except models.Cita.DoesNotExist:
             messages.error(self.request, f"No se encontró una cita con ID {cita_id}. Por favor, seleccione una cita válida.")
-            return redirect('core:citas_pendientes_pago')
+            return redirect(tenant_reverse('core:citas_pendientes_pago', request=request))
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
@@ -4401,8 +4670,9 @@ class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin,
     success_url = reverse_lazy('core:saldos_pendientes')
 
     def get_success_url(self):
-        # Redirigir directamente al PDF del recibo para impresión
-        return reverse('core:generar_recibo_pdf', kwargs={'pk': self.object.pk})
+        # Redirigir a la página HTML del recibo (no directamente al PDF)
+        # El usuario puede descargar el PDF desde ahí si lo desea
+        return tenant_reverse('core:recibo_pago', request=self.request, kwargs={'pk': self.object.pk})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -4423,6 +4693,19 @@ class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin,
         context = super().get_context_data(**kwargs)
         context['paciente'] = self.paciente
         context['saldo_actual'] = getattr(self.paciente, 'saldo_global', 0)
+
+        # Obtener citas con saldo pendiente
+        citas_con_saldo = []
+        citas = models.Cita.objects.filter(
+            paciente=self.paciente,
+            estado__in=['ATN', 'COM']
+        ).prefetch_related('servicios_planeados', 'tratamientos_realizados__servicios', 'pagos').order_by('-fecha_hora')
+
+        for cita in citas:
+            if cita.saldo_pendiente > 0.005:  # Más de medio centavo
+                citas_con_saldo.append(cita)
+
+        context['citas_pendientes'] = citas_con_saldo
         return context
 
     def form_valid(self, form):
@@ -4450,7 +4733,9 @@ class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin,
                 pass
             if not models.DatosFiscales.objects.filter(paciente=self.paciente).exists():
                 messages.info(self.request, 'Para facturar, primero complete los datos fiscales del paciente.')
-                return redirect('core:paciente_datos_fiscales', pk=self.paciente.pk)
+                # Construir URL con prefijo del tenant usando tenant_reverse
+                url = tenant_reverse('core:paciente_datos_fiscales', request=self.request, kwargs={'pk': self.paciente.pk})
+                return HttpResponseRedirect(url)
         return super().form_valid(form)
 
 @tenant_login_required
@@ -4797,7 +5082,7 @@ class CompletarCuestionarioView(TenantLoginRequiredMixin, TemplateView):
                     'Revise el historial del paciente.'
                 )
             
-            return redirect('core:cuestionario_detalle', paciente_id=context['paciente'].id)
+            return redirect(tenant_reverse('core:cuestionario_detalle', request=request, kwargs={'paciente_id': context['paciente'].id}))
         
         messages.error(request, 'Por favor, corrija los errores en el formulario.')
         return self.render_to_response(context)
@@ -5292,7 +5577,7 @@ def presentar_consentimiento_desde_cuestionario(request, cuestionario_id):
             request, 
             'Ya se ha presentado un consentimiento informado para este cuestionario.'
         )
-        return redirect('core:paciente_consentimiento_detail', pk=cuestionario.consentimiento_presentado.id)
+        return redirect(tenant_reverse('core:paciente_consentimiento_detail', request=request, kwargs={'pk': cuestionario.consentimiento_presentado.id}))
     
     if request.method == 'POST':
         tipo_documento = request.POST.get('tipo_documento')
@@ -5305,7 +5590,7 @@ def presentar_consentimiento_desde_cuestionario(request, cuestionario_id):
                 dentista = models.PerfilDentista.objects.get(id=dentista_id)
             except models.PerfilDentista.DoesNotExist:
                 messages.error(request, 'Dentista no encontrado.')
-                return redirect('core:cuestionario_detalle', paciente_id=cuestionario.paciente.id)
+                return redirect(tenant_reverse('core:cuestionario_detalle', request=request, kwargs={'paciente_id': cuestionario.paciente.id}))
         
         # Presentar consentimiento
         paciente_consentimiento = cuestionario.presentar_consentimiento(
@@ -5318,7 +5603,7 @@ def presentar_consentimiento_desde_cuestionario(request, cuestionario_id):
                 request,
                 f'Consentimiento informado presentado al paciente {cuestionario.paciente}.'
             )
-            return redirect('core:paciente_consentimiento_detail', pk=paciente_consentimiento.id)
+            return redirect(tenant_reverse('core:paciente_consentimiento_detail', request=request, kwargs={'pk': paciente_consentimiento.id}))
         else:
             messages.error(
                 request,
@@ -5348,7 +5633,7 @@ def firmar_consentimiento(request, paciente_consentimiento_id):
             request, 
             'Este consentimiento ya ha sido procesado y no puede ser modificado.'
         )
-        return redirect('core:paciente_consentimiento_detail', pk=paciente_consentimiento_id)
+        return redirect(tenant_reverse('core:paciente_consentimiento_detail', request=request, kwargs={'pk': paciente_consentimiento_id}))
     
     if request.method == 'POST':
         # Procesar firmas (esto se implementaría con JavaScript para capturar firmas)
@@ -5367,12 +5652,12 @@ def firmar_consentimiento(request, paciente_consentimiento_id):
                     paciente_consentimiento.firma_testigo1 = firma_testigo1
                 else:
                     messages.error(request, 'Se requiere nombre y firma del testigo.')
-                    return redirect('core:firmar_consentimiento', paciente_consentimiento_id=paciente_consentimiento_id)
+                    return redirect(tenant_reverse('core:firmar_consentimiento', request=request, kwargs={'paciente_consentimiento_id': paciente_consentimiento_id}))
             
             # Marcar como firmado
             if paciente_consentimiento.marcar_como_firmado():
                 messages.success(request, 'Consentimiento firmado exitosamente.')
-                return redirect('core:paciente_consentimiento_detail', pk=paciente_consentimiento_id)
+                return redirect(tenant_reverse('core:paciente_consentimiento_detail', request=request, kwargs={'pk': paciente_consentimiento_id}))
         else:
             messages.error(request, 'Se requiere la firma del paciente.')
     
@@ -5397,7 +5682,7 @@ def descargar_consentimiento_pdf(request, consentimiento_id):
         return response
     except FileNotFoundError:
         messages.error(request, 'El archivo PDF no se encuentra disponible.')
-        return redirect('core:consentimiento_detail', pk=consentimiento_id)
+        return redirect(tenant_reverse('core:consentimiento_detail', request=request, kwargs={'pk': consentimiento_id}))
 
 # === INTEGRACIÓN CON CUESTIONARIO ===
 

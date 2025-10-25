@@ -147,6 +147,38 @@ def get_menu_for_user(user):
                     'modulo': modulo,
                     'submenus': list(submenus_activos)
                 })
+
+        # FALLBACK: Si no hay módulos configurados, mostrar menú de emergencia
+        if not menu:
+            # Crear objeto simple que simula módulo y submenú para compatibilidad con templates
+            class MenuEmergencia:
+                def __init__(self, nombre, icono, items):
+                    self.nombre = nombre
+                    self.icono = icono
+                    self.items = items
+
+            class ItemEmergencia:
+                def __init__(self, nombre, url_name, icono):
+                    self.nombre = nombre
+                    self.url_name = url_name
+                    self.icono = icono
+
+            # Menú básico de emergencia para superusuarios
+            menu_emergencia = MenuEmergencia(
+                nombre='⚠️ Configuración Requerida',
+                icono='bi bi-exclamation-triangle-fill',
+                items=[
+                    ItemEmergencia('Inicializar Permisos', 'admin:index', 'bi bi-gear-fill'),
+                    ItemEmergencia('Admin Django', 'admin:index', 'bi bi-shield-lock-fill'),
+                    ItemEmergencia('Pacientes', 'core:paciente_list', 'bi bi-people-fill'),
+                    ItemEmergencia('Citas', 'core:cita_list', 'bi bi-calendar-check'),
+                ]
+            )
+
+            menu.append({
+                'modulo': menu_emergencia,
+                'submenus': menu_emergencia.items
+            })
     else:
         # Obtener módulos basados en permisos
         grupos_usuario = user.groups.all()

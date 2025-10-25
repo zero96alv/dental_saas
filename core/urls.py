@@ -32,7 +32,7 @@ from .views import (
     ReporteServiciosMasVendidosView, ReporteIngresosPorDentistaView,
     DiagnosticoListView, DiagnosticoCreateView, DiagnosticoUpdateView, DiagnosticoDeleteView,
     exportar_ingresos_excel, exportar_saldos_excel, exportar_facturacion_excel,
-    generar_recibo_pdf,
+    generar_recibo_pdf, generar_servicios_vendidos_pdf,
     DashboardCofeprisView,
     AvisoFuncionamientoListView, AvisoFuncionamientoCreateView, AvisoFuncionamientoUpdateView,
     EquipoListView, EquipoCreateView, EquipoUpdateView, EquipoDeleteView,
@@ -64,6 +64,14 @@ from .views_prueba import (
     prueba_odontograma_anatomico, prueba_aplicar_diagnostico
 )
 
+# Importar vistas de laboratorio
+from .views_laboratorio import (
+    TrabajoLaboratorioListView, TrabajoLaboratorioDetailView,
+    TrabajoLaboratorioCreateView, TrabajoLaboratorioUpdateView, TrabajoLaboratorioDeleteView,
+    trabajo_laboratorio_cambiar_estado_api, trabajo_laboratorio_obtener_costo_api,
+    obtener_citas_paciente_api
+)
+
 
 app_name = 'core'
 
@@ -85,6 +93,7 @@ urlpatterns = [
     path('reportes/facturacion/', ReporteFacturacionView.as_view(), name='reporte_facturacion'),
     path('reportes/facturacion/export/', exportar_facturacion_excel, name='exportar_facturacion_excel'),
     path('reportes/servicios-vendidos/', ReporteServiciosMasVendidosView.as_view(), name='reporte_servicios_vendidos'),
+    path('reportes/servicios-vendidos/pdf/', generar_servicios_vendidos_pdf, name='reporte_servicios_vendidos_pdf'),
     path('reportes/servicios-vendidos/periodo/', views.ReporteServiciosVendidosPeriodoView.as_view(), name='reporte_servicios_vendidos_periodo'),
     path('reportes/ingresos-dentista/', ReporteIngresosPorDentistaView.as_view(), name='reporte_ingresos_dentista'),
     path('reportes/ingresos-dentista/periodo/', views.ReporteIngresosDentistaPeriodoView.as_view(), name='reporte_ingresos_dentista_periodo'),
@@ -329,4 +338,24 @@ urlpatterns = [
 
     # Configuración de clínica
     path('configuracion/', views.configuracion_clinica, name='configuracion_clinica'),
+
+    # === RUTAS DE TRABAJOS DE LABORATORIO ===
+
+    # Listado y detalle
+    path('trabajos-laboratorio/', TrabajoLaboratorioListView.as_view(), name='trabajo_laboratorio_list'),
+    path('trabajos-laboratorio/<int:pk>/', TrabajoLaboratorioDetailView.as_view(), name='trabajo_laboratorio_detail'),
+
+    # Creación y edición
+    path('trabajos-laboratorio/nuevo/', TrabajoLaboratorioCreateView.as_view(), name='trabajo_laboratorio_create'),
+    path('trabajos-laboratorio/<int:pk>/editar/', TrabajoLaboratorioUpdateView.as_view(), name='trabajo_laboratorio_update'),
+    path('trabajos-laboratorio/<int:pk>/eliminar/', TrabajoLaboratorioDeleteView.as_view(), name='trabajo_laboratorio_delete'),
+
+    # Crear desde cita o paciente
+    path('citas/<int:cita_id>/trabajo-laboratorio/nuevo/', TrabajoLaboratorioCreateView.as_view(), name='trabajo_laboratorio_create_desde_cita'),
+    path('pacientes/<int:paciente_id>/trabajo-laboratorio/nuevo/', TrabajoLaboratorioCreateView.as_view(), name='trabajo_laboratorio_create_desde_paciente'),
+
+    # APIs
+    path('api/trabajos-laboratorio/<int:pk>/cambiar-estado/', trabajo_laboratorio_cambiar_estado_api, name='trabajo_laboratorio_cambiar_estado_api'),
+    path('api/trabajos-laboratorio/obtener-costo/', trabajo_laboratorio_obtener_costo_api, name='trabajo_laboratorio_obtener_costo_api'),
+    path('api/pacientes/<int:paciente_id>/citas/', obtener_citas_paciente_api, name='obtener_citas_paciente_api'),
 ]

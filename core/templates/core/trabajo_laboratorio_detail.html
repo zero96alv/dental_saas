@@ -1,0 +1,314 @@
+{% extends 'core/base.html' %}
+{% load tenant_urls %}
+{% load static %}
+{% load custom_tags %}
+
+{% block title %}Trabajo de Laboratorio #{{ trabajo.pk }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge-estado-trabajo {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    .badge-SOLICITADO { background-color: #0dcaf0; color: #000; }
+    .badge-EN_PROCESO { background-color: #ffc107; color: #000; }
+    .badge-ENTREGADO { background-color: #198754; color: #fff; }
+    .badge-COLOCADO { background-color: #0d6efd; color: #fff; }
+    .badge-PAGADO { background-color: #6c757d; color: #fff; }
+    .badge-CANCELADO { background-color: #dc3545; color: #fff; }
+
+    .info-card {
+        border-radius: 10px;
+        transition: transform 0.2s;
+    }
+    .info-card:hover {
+        transform: scale(1.02);
+    }
+
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 40px;
+        margin-bottom: 20px;
+    }
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #198754;
+        color: white;
+        text-align: center;
+        line-height: 30px;
+    }
+    .timeline-marker.pending {
+        background: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0">
+                <i class="bi bi-clipboard-data me-2"></i>{{ trabajo.tipo_trabajo.nombre }}
+            </h1>
+            <p class="text-muted mb-0">Trabajo #{{ trabajo.pk }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% tenant_url 'core:trabajo_laboratorio_list' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver
+            </a>
+            {% if trabajo.estado == 'SOLICITADO' or user.is_superuser %}
+            <a href="{% tenant_url 'core:trabajo_laboratorio_update' trabajo.pk %}" class="btn btn-warning">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+            {% endif %}
+            {% if trabajo.estado == 'SOLICITADO' and user.is_superuser %}
+            <a href="{% tenant_url 'core:trabajo_laboratorio_delete' trabajo.pk %}" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>Eliminar
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Estado y Alertas -->
+    <div class="mb-4">
+        <span class="badge badge-estado-trabajo badge-{{ trabajo.estado }}">
+            {{ trabajo.get_estado_display }}
+        </span>
+
+        {% if trabajo.esta_retrasado %}
+        <div class="alert alert-warning mt-2">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Atención:</strong> Este trabajo está retrasado. Se esperaba para el {{ trabajo.fecha_entrega_estimada|date:"d/m/Y" }}.
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Columna Izquierda: Información Principal -->
+        <div class="col-md-8">
+            <!-- Información del Paciente y Cita -->
+            <div class="card info-card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-fill me-2"></i>Información del Paciente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Nombre:</strong> {{ trabajo.paciente.nombre }} {{ trabajo.paciente.apellido }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Email:</strong> {{ trabajo.paciente.email|default:"No registrado" }}
+                            </p>
+                            <p class="mb-0">
+                                <strong>Teléfono:</strong> {{ trabajo.paciente.telefono|default:"No registrado" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Cita Origen:</strong> #{{ trabajo.cita_origen.pk }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Fecha de Cita:</strong> {{ trabajo.cita_origen.fecha_hora|date:"d/m/Y H:i" }}
+                            </p>
+                            <p class="mb-0">
+                                <a href="{% tenant_url 'core:cita_detail' trabajo.cita_origen.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>Ver Cita
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles del Trabajo -->
+            <div class="card info-card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clipboard-check me-2"></i>Detalles del Trabajo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="bi bi-hospital me-1"></i>Laboratorio:</strong><br>
+                                {{ trabajo.laboratorio.nombre }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="bi bi-tooth me-1"></i>Dientes Involucrados:</strong><br>
+                                <span class="badge bg-secondary">{{ trabajo.dientes }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="bi bi-palette me-1"></i>Material:</strong><br>
+                                {{ trabajo.material|default:"No especificado" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="bi bi-eyedropper me-1"></i>Color/Tono:</strong><br>
+                                {{ trabajo.color|default:"No especificado" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if trabajo.observaciones %}
+                    <div class="alert alert-light">
+                        <strong><i class="bi bi-chat-left-text me-1"></i>Observaciones:</strong><br>
+                        {{ trabajo.observaciones }}
+                    </div>
+                    {% endif %}
+
+                    {% if trabajo.notas %}
+                    <div class="alert alert-warning">
+                        <strong><i class="bi bi-sticky me-1"></i>Notas Adicionales:</strong><br>
+                        {{ trabajo.notas }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de Fechas -->
+            <div class="card info-card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-event me-2"></i>Línea de Tiempo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <!-- Solicitud -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                <i class="bi bi-check"></i>
+                            </div>
+                            <div>
+                                <strong>Solicitado</strong><br>
+                                <small class="text-muted">{{ trabajo.fecha_solicitud|date:"d/m/Y H:i" }} ({{ trabajo.dias_transcurridos }} días atrás)</small>
+                            </div>
+                        </div>
+
+                        <!-- Fecha estimada -->
+                        <div class="timeline-item">
+                            <div class="timeline-marker {% if not trabajo.fecha_entrega_real %}pending{% endif %}">
+                                <i class="bi bi-{% if trabajo.fecha_entrega_real %}check{% else %}clock{% endif %}"></i>
+                            </div>
+                            <div>
+                                <strong>Entrega Estimada</strong><br>
+                                <small class="text-muted">{{ trabajo.fecha_entrega_estimada|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Fecha real (si existe) -->
+                        {% if trabajo.fecha_entrega_real %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker">
+                                <i class="bi bi-check"></i>
+                            </div>
+                            <div>
+                                <strong>Entregado</strong><br>
+                                <small class="text-muted">{{ trabajo.fecha_entrega_real|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Información Financiera y Acciones -->
+        <div class="col-md-4">
+            <!-- Información Financiera -->
+            <div class="card info-card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-currency-dollar me-2"></i>Costos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                        <small class="text-muted d-block">Costo del Laboratorio</small>
+                        <h3 class="text-danger mb-0">${{ trabajo.costo_laboratorio|floatformat:2 }}</h3>
+                    </div>
+
+                    <div class="mb-3 text-center">
+                        <small class="text-muted d-block">Precio al Paciente</small>
+                        <h3 class="text-primary mb-0">${{ trabajo.precio_paciente|floatformat:2 }}</h3>
+                    </div>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <small class="text-muted d-block">Margen de Utilidad</small>
+                        <h2 class="text-success mb-0">${{ trabajo.margen|floatformat:2 }}</h2>
+                        <small class="text-muted">
+                            ({{ trabajo.porcentaje_utilidad|floatformat:1 }}%)
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Dentista -->
+            <div class="card info-card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge me-2"></i>Dentista
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Dr. {{ trabajo.dentista_solicitante.nombre }} {{ trabajo.dentista_solicitante.apellido }}</strong>
+                    </p>
+                    <p class="mb-0">
+                        <small class="text-muted">
+                            <i class="bi bi-envelope me-1"></i>{{ trabajo.dentista_solicitante.email|default:"No disponible" }}
+                        </small>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="card info-card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>Acciones
+                    </h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    {% if trabajo.estado != 'CANCELADO' %}
+                        <a href="{% tenant_url 'core:trabajo_laboratorio_update' trabajo.pk %}" class="btn btn-primary">
+                            <i class="bi bi-pencil me-1"></i>Actualizar Estado
+                        </a>
+                    {% endif %}
+
+                    {% if trabajo.estado == 'SOLICITADO' %}
+                        <button class="btn btn-danger" onclick="if(confirm('¿Está seguro de cancelar este trabajo?')) window.location.href='{% tenant_url 'core:trabajo_laboratorio_delete' trabajo.pk %}'">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar Trabajo
+                        </button>
+                    {% endif %}
+
+                    <a href="{% tenant_url 'core:paciente_detail' trabajo.paciente.pk %}" class="btn btn-outline-primary">
+                        <i class="bi bi-person me-1"></i>Ver Paciente
+                    </a>
+
+                    <a href="{% tenant_url 'core:cita_detail' trabajo.cita_origen.pk %}" class="btn btn-outline-info">
+                        <i class="bi bi-calendar me-1"></i>Ver Cita
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

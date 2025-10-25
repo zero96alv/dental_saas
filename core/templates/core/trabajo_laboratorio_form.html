@@ -1,0 +1,400 @@
+{% extends 'core/base.html' %}
+{% load tenant_urls %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Nueva Solicitud de Trabajo de Laboratorio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .form-section h5 {
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .costo-preview {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="mb-2">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Solicitud de Trabajo de Laboratorio
+        </h1>
+        {% if paciente %}
+        <p class="text-muted mb-0">
+            <i class="bi bi-person-fill me-1"></i>
+            Para: <strong>{{ paciente.nombre }} {{ paciente.apellido }}</strong>
+        </p>
+        {% endif %}
+        {% if cita %}
+        <p class="text-muted mb-0">
+            <i class="bi bi-calendar me-1"></i>
+            Cita: <strong>#{{ cita.pk }} - {{ cita.fecha_hora|date:"d/m/Y H:i" }}</strong>
+        </p>
+        {% endif %}
+    </div>
+
+    <form method="post" id="trabajo-form">
+        {% csrf_token %}
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Sección 0: Paciente y Cita -->
+                <div class="form-section">
+                    <h5><i class="bi bi-person-fill me-2"></i>Paciente y Cita</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.paciente.id_for_label }}" class="form-label">
+                                <i class="bi bi-person me-1"></i>{{ form.paciente.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.paciente }}
+                            {% if form.paciente.help_text %}
+                            <small class="form-text text-muted">{{ form.paciente.help_text }}</small>
+                            {% endif %}
+                            {% if form.paciente.errors %}
+                            <div class="invalid-feedback d-block">{{ form.paciente.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cita_origen.id_for_label }}" class="form-label">
+                                <i class="bi bi-calendar me-1"></i>{{ form.cita_origen.label }}
+                            </label>
+                            {{ form.cita_origen }}
+                            <small class="form-text text-muted" id="citas-loading" style="display: none;">
+                                <i class="bi bi-hourglass-split"></i> Cargando citas...
+                            </small>
+                            <small class="form-text text-muted" id="no-citas" style="display: none;">
+                                <i class="bi bi-info-circle"></i> Este paciente no tiene citas registradas
+                            </small>
+                            {% if form.cita_origen.help_text %}
+                            <small class="form-text text-muted">{{ form.cita_origen.help_text }}</small>
+                            {% endif %}
+                            {% if form.cita_origen.errors %}
+                            <div class="invalid-feedback d-block">{{ form.cita_origen.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección 1: Tipo de Trabajo y Laboratorio -->
+                <div class="form-section">
+                    <h5><i class="bi bi-clipboard-data me-2"></i>Información del Trabajo</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.tipo_trabajo.id_for_label }}" class="form-label">
+                                <i class="bi bi-list-check me-1"></i>{{ form.tipo_trabajo.label }}
+                            </label>
+                            {{ form.tipo_trabajo }}
+                            {% if form.tipo_trabajo.help_text %}
+                            <small class="form-text text-muted">{{ form.tipo_trabajo.help_text }}</small>
+                            {% endif %}
+                            {% if form.tipo_trabajo.errors %}
+                            <div class="invalid-feedback d-block">{{ form.tipo_trabajo.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.laboratorio.id_for_label }}" class="form-label">
+                                <i class="bi bi-hospital me-1"></i>{{ form.laboratorio.label }}
+                            </label>
+                            {{ form.laboratorio }}
+                            {% if form.laboratorio.help_text %}
+                            <small class="form-text text-muted">{{ form.laboratorio.help_text }}</small>
+                            {% endif %}
+                            {% if form.laboratorio.errors %}
+                            <div class="invalid-feedback d-block">{{ form.laboratorio.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección 2: Detalles Clínicos -->
+                <div class="form-section">
+                    <h5><i class="bi bi-tooth me-2"></i>Detalles Clínicos</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.dientes.id_for_label }}" class="form-label">
+                                <i class="bi bi-123 me-1"></i>{{ form.dientes.label }}
+                            </label>
+                            {{ form.dientes }}
+                            {% if form.dientes.help_text %}
+                            <small class="form-text text-muted">{{ form.dientes.help_text }}</small>
+                            {% endif %}
+                            {% if form.dientes.errors %}
+                            <div class="invalid-feedback d-block">{{ form.dientes.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.material.id_for_label }}" class="form-label">
+                                <i class="bi bi-palette me-1"></i>{{ form.material.label }}
+                            </label>
+                            {{ form.material }}
+                            {% if form.material.help_text %}
+                            <small class="form-text text-muted">{{ form.material.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.color.id_for_label }}" class="form-label">
+                                <i class="bi bi-eyedropper me-1"></i>{{ form.color.label }}
+                            </label>
+                            {{ form.color }}
+                            {% if form.color.help_text %}
+                            <small class="form-text text-muted">{{ form.color.help_text }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fecha_entrega_estimada.id_for_label }}" class="form-label">
+                                <i class="bi bi-calendar-event me-1"></i>{{ form.fecha_entrega_estimada.label }}
+                            </label>
+                            {{ form.fecha_entrega_estimada }}
+                            {% if form.fecha_entrega_estimada.help_text %}
+                            <small class="form-text text-muted">{{ form.fecha_entrega_estimada.help_text }}</small>
+                            {% endif %}
+                            {% if form.fecha_entrega_estimada.errors %}
+                            <div class="invalid-feedback d-block">{{ form.fecha_entrega_estimada.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                            <i class="bi bi-chat-left-text me-1"></i>{{ form.observaciones.label }}
+                        </label>
+                        {{ form.observaciones }}
+                        {% if form.observaciones.help_text %}
+                        <small class="form-text text-muted">{{ form.observaciones.help_text }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Sección 3: Costos -->
+                <div class="form-section">
+                    <h5><i class="bi bi-currency-dollar me-2"></i>Información de Costos</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.costo_laboratorio.id_for_label }}" class="form-label">
+                                <i class="bi bi-cash-coin me-1"></i>{{ form.costo_laboratorio.label }}
+                            </label>
+                            {{ form.costo_laboratorio }}
+                            {% if form.costo_laboratorio.help_text %}
+                            <small class="form-text text-muted">{{ form.costo_laboratorio.help_text }}</small>
+                            {% endif %}
+                            {% if form.costo_laboratorio.errors %}
+                            <div class="invalid-feedback d-block">{{ form.costo_laboratorio.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.precio_paciente.id_for_label }}" class="form-label">
+                                <i class="bi bi-cash-stack me-1"></i>{{ form.precio_paciente.label }}
+                            </label>
+                            {{ form.precio_paciente }}
+                            {% if form.precio_paciente.help_text %}
+                            <small class="form-text text-muted">{{ form.precio_paciente.help_text }}</small>
+                            {% endif %}
+                            {% if form.precio_paciente.errors %}
+                            <div class="invalid-feedback d-block">{{ form.precio_paciente.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Preview de margen -->
+                    <div class="costo-preview" id="margen-preview" style="display: none;">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted d-block">Costo Laboratorio</small>
+                                <strong id="preview-costo">$0.00</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Precio Paciente</small>
+                                <strong id="preview-precio">$0.00</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Margen</small>
+                                <strong class="text-success" id="preview-margen">$0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar: Ayuda e Información -->
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Ayuda</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Numeración de Dientes</h6>
+                        <p><small>Use el sistema FDI:</small></p>
+                        <ul class="small">
+                            <li>Superior derecho: 11-18</li>
+                            <li>Superior izquierdo: 21-28</li>
+                            <li>Inferior izquierdo: 31-38</li>
+                            <li>Inferior derecho: 41-48</li>
+                        </ul>
+                        <p class="small mb-0"><strong>Ejemplo:</strong> 11,12,13</p>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Consejos</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="small mb-0">
+                            <li>El tipo de trabajo auto-sugiere el costo</li>
+                            <li>Asegúrese de especificar el color exacto</li>
+                            <li>Considere 7-10 días para trabajos complejos</li>
+                            <li>Agregue margen suficiente para cubrir gastos</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle me-1"></i>Crear Solicitud
+                    </button>
+                    <a href="{% if cita %}{% tenant_url 'core:cita_manage' cita.pk %}{% else %}{% tenant_url 'core:trabajo_laboratorio_list' %}{% endif %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pacienteSelect = document.getElementById('id_paciente');
+    const citaSelect = document.getElementById('id_cita_origen');
+    const citasLoading = document.getElementById('citas-loading');
+    const noCitas = document.getElementById('no-citas');
+    const tipoTrabajoSelect = document.getElementById('{{ form.tipo_trabajo.id_for_label }}');
+    const costoInput = document.getElementById('{{ form.costo_laboratorio.id_for_label }}');
+    const precioInput = document.getElementById('{{ form.precio_paciente.id_for_label }}');
+    const margenPreview = document.getElementById('margen-preview');
+    const previewCosto = document.getElementById('preview-costo');
+    const previewPrecio = document.getElementById('preview-precio');
+    const previewMargen = document.getElementById('preview-margen');
+
+    // === CARGA DINÁMICA DE CITAS CUANDO SE SELECCIONA PACIENTE ===
+    if (pacienteSelect && !pacienteSelect.disabled) {
+        pacienteSelect.addEventListener('change', function() {
+            const pacienteId = this.value;
+
+            // Limpiar select de citas
+            citaSelect.innerHTML = '<option value="">Sin cita asociada</option>';
+            noCitas.style.display = 'none';
+
+            if (!pacienteId) {
+                return;
+            }
+
+            // Mostrar indicador de carga
+            citasLoading.style.display = 'block';
+
+            // Obtener citas del paciente vía API
+            const schema = window.location.pathname.split('/')[1]; // Obtener tenant del path
+            fetch(`/${schema}/api/pacientes/${pacienteId}/citas/`)
+                .then(response => response.json())
+                .then(data => {
+                    citasLoading.style.display = 'none';
+
+                    if (data.success && data.citas.length > 0) {
+                        // Agregar citas al select
+                        data.citas.forEach(cita => {
+                            const option = document.createElement('option');
+                            option.value = cita.id;
+                            option.textContent = `Cita #${cita.id} - ${cita.fecha_hora} - ${cita.servicios} - ${cita.dentista}`;
+                            citaSelect.appendChild(option);
+                        });
+                    } else {
+                        // No hay citas para este paciente
+                        noCitas.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar citas:', error);
+                    citasLoading.style.display = 'none';
+                    alert('Error al cargar las citas del paciente');
+                });
+        });
+    }
+
+    // Auto-cargar costo de referencia cuando cambia tipo de trabajo
+    tipoTrabajoSelect.addEventListener('change', function() {
+        const tipoId = this.value;
+        if (tipoId) {
+            fetch(`{% tenant_url 'core:trabajo_laboratorio_obtener_costo_api' %}?tipo_trabajo_id=${tipoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        costoInput.value = data.costo_referencia.toFixed(2);
+                        calcularMargen();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    });
+
+    // Calcular margen en tiempo real
+    function calcularMargen() {
+        const costo = parseFloat(costoInput.value) || 0;
+        const precio = parseFloat(precioInput.value) || 0;
+        const margen = precio - costo;
+
+        if (costo > 0 || precio > 0) {
+            previewCosto.textContent = '$' + costo.toFixed(2);
+            previewPrecio.textContent = '$' + precio.toFixed(2);
+            previewMargen.textContent = '$' + margen.toFixed(2);
+            previewMargen.className = margen >= 0 ? 'text-success' : 'text-danger';
+            margenPreview.style.display = 'block';
+        } else {
+            margenPreview.style.display = 'none';
+        }
+    }
+
+    costoInput.addEventListener('input', calcularMargen);
+    precioInput.addEventListener('input', calcularMargen);
+
+    // Calcular margen inicial si hay valores
+    calcularMargen();
+
+    // Establecer fecha mínima (hoy) para fecha de entrega
+    const fechaInput = document.getElementById('{{ form.fecha_entrega_estimada.id_for_label }}');
+    const today = new Date().toISOString().split('T')[0];
+    fechaInput.setAttribute('min', today);
+
+    // Sugerir fecha de entrega en 7 días
+    if (!fechaInput.value) {
+        const suggestedDate = new Date();
+        suggestedDate.setDate(suggestedDate.getDate() + 7);
+        fechaInput.value = suggestedDate.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

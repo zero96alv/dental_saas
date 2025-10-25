@@ -1,0 +1,157 @@
+{% extends 'core/base.html' %}
+{% load tenant_urls %}
+{% load static %}
+
+{% block title %}Eliminar Trabajo de Laboratorio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5><i class="bi bi-exclamation-triangle-fill me-2"></i>¡Atención!</h5>
+                        <p class="mb-0">
+                            Está a punto de eliminar esta solicitud de trabajo de laboratorio.
+                            <strong>Esta acción no se puede deshacer.</strong>
+                        </p>
+                    </div>
+
+                    <h5 class="mb-3">Información del Trabajo a Eliminar:</h5>
+
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th width="30%">Tipo de Trabajo</th>
+                                <td>{{ object.tipo_trabajo.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <th>Paciente</th>
+                                <td>{{ object.paciente.nombre }} {{ object.paciente.apellido }}</td>
+                            </tr>
+                            <tr>
+                                <th>Laboratorio</th>
+                                <td>{{ object.laboratorio.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <th>Dientes</th>
+                                <td><span class="badge bg-secondary">{{ object.dientes }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Material</th>
+                                <td>{{ object.material|default:"No especificado" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Estado Actual</th>
+                                <td>
+                                    <span class="badge bg-info">{{ object.get_estado_display }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Fecha de Solicitud</th>
+                                <td>{{ object.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Costo Laboratorio</th>
+                                <td class="text-danger"><strong>${{ object.costo_laboratorio|floatformat:2 }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Precio Paciente</th>
+                                <td class="text-success"><strong>${{ object.precio_paciente|floatformat:2 }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {% if object.observaciones %}
+                    <div class="alert alert-light">
+                        <strong>Observaciones:</strong><br>
+                        {{ object.observaciones }}
+                    </div>
+                    {% endif %}
+
+                    {% if object.estado != 'SOLICITADO' %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle-fill me-2"></i>
+                        <strong>Advertencia:</strong> Este trabajo no está en estado "SOLICITADO".
+                        Solo se recomienda eliminar trabajos que aún no han sido procesados.
+                    </div>
+                    {% endif %}
+
+                    <form method="post" id="delete-form">
+                        {% csrf_token %}
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="confirm-delete" required>
+                            <label class="form-check-label" for="confirm-delete">
+                                Confirmo que deseo eliminar permanentemente este trabajo de laboratorio
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% tenant_url 'core:trabajo_laboratorio_detail' object.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger" id="btn-delete" disabled>
+                                <i class="bi bi-trash me-1"></i>Sí, Eliminar Trabajo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Alternativas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Si no desea eliminar el trabajo, considere estas opciones:</p>
+                    <ul>
+                        <li>
+                            <strong>Cancelar el trabajo:</strong> Puede cambiar el estado a "CANCELADO"
+                            desde la opción de editar. Esto mantiene el registro para referencia.
+                        </li>
+                        <li>
+                            <strong>Agregar notas:</strong> Puede documentar cambios o razones en las notas
+                            del trabajo.
+                        </li>
+                    </ul>
+                    <a href="{% tenant_url 'core:trabajo_laboratorio_update' object.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i>Ir a Editar en vez de Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirm-delete');
+    const deleteBtn = document.getElementById('btn-delete');
+    const deleteForm = document.getElementById('delete-form');
+
+    // Habilitar botón solo cuando se marca el checkbox
+    checkbox.addEventListener('change', function() {
+        deleteBtn.disabled = !this.checked;
+    });
+
+    // Confirmación adicional al enviar
+    deleteForm.addEventListener('submit', function(e) {
+        if (!confirm('¿Está ABSOLUTAMENTE seguro de eliminar este trabajo de laboratorio? Esta acción no se puede deshacer.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

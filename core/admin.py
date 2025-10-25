@@ -1,9 +1,9 @@
 from django.contrib import admin
 from .models import (
-    Paciente, Servicio, PerfilDentista, Especialidad, Pago, Proveedor, 
-    Insumo, Compra, DetalleCompra, LoteInsumo, Cita, Diagnostico, 
+    Paciente, Servicio, PerfilDentista, Especialidad, Pago, Proveedor,
+    Insumo, Compra, DetalleCompra, LoteInsumo, Cita, Diagnostico,
     HistorialClinico, EstadoDiente, UnidadDental, DatosFiscales,
-    PreguntaHistorial, RespuestaHistorial
+    PreguntaHistorial, RespuestaHistorial, TipoTrabajoLaboratorio, TrabajoLaboratorio
 )
 from .models_permissions import ModuloSistema, SubmenuItem, PermisoRol, LogAcceso
 
@@ -90,3 +90,37 @@ admin.site.register(HistorialClinico)
 admin.site.register(EstadoDiente)
 admin.site.register(UnidadDental)
 admin.site.register(DatosFiscales)
+
+# Modelos de Laboratorio Dental
+@admin.register(TipoTrabajoLaboratorio)
+class TipoTrabajoLaboratorioAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'costo_referencia', 'activo')
+    list_filter = ('activo',)
+    search_fields = ('nombre', 'descripcion')
+    list_editable = ('activo',)
+
+@admin.register(TrabajoLaboratorio)
+class TrabajoLaboratorioAdmin(admin.ModelAdmin):
+    list_display = ('tipo_trabajo', 'paciente', 'laboratorio', 'estado', 'fecha_solicitud', 'fecha_entrega_estimada', 'esta_retrasado')
+    list_filter = ('estado', 'fecha_solicitud', 'laboratorio', 'tipo_trabajo')
+    search_fields = ('paciente__nombre', 'paciente__apellido', 'dientes', 'observaciones')
+    readonly_fields = ('fecha_solicitud', 'dias_transcurridos', 'margen', 'esta_retrasado')
+    date_hierarchy = 'fecha_solicitud'
+
+    fieldsets = (
+        ('Información General', {
+            'fields': ('paciente', 'cita_origen', 'tipo_trabajo', 'laboratorio', 'dentista_solicitante')
+        }),
+        ('Detalles del Trabajo', {
+            'fields': ('dientes', 'material', 'color', 'observaciones')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_solicitud', 'fecha_entrega_estimada', 'fecha_entrega_real', 'dias_transcurridos')
+        }),
+        ('Estado y Costos', {
+            'fields': ('estado', 'costo_laboratorio', 'precio_paciente', 'margen', 'esta_retrasado')
+        }),
+        ('Notas', {
+            'fields': ('notas',)
+        }),
+    )
