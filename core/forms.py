@@ -926,14 +926,12 @@ class BaseHorarioLaboralFormSet(BaseModelFormSet):
             # Validar rango permitido
             if hi < inicio_permitido or hf > fin_permitido:
                 raise ValidationError("Los horarios deben estar entre 09:00 y 21:00.")
-            # Validar duración
+            # Validar lógica básica: hora fin > hora inicio
             dt0 = _dt.datetime.combine(_dt.date.today(), hi)
             dt1 = _dt.datetime.combine(_dt.date.today(), hf)
             if dt1 <= dt0:
                 raise ValidationError("La hora de fin debe ser posterior a la hora de inicio.")
-            dur = (dt1 - dt0).seconds / 3600.0
-            if dur > 9.0:
-                raise ValidationError("Cada turno no debe exceder 9 horas.")
+            # Sin límite de duración - permitir turnos de cualquier longitud dentro del rango
             lista = by_day.setdefault(dia, [])
             # Verificar traslapes con existentes del mismo día
             for (e_hi, e_hf) in lista:
