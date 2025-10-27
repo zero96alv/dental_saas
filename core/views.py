@@ -4407,7 +4407,7 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
         # Agregar última cita y calcular antigüedad para cada paciente
         hoy = date.today()
         for paciente in queryset:
-            ultima_cita = paciente.citas.order_by('-fecha_hora').first()
+            ultima_cita = paciente.cita_set.order_by('-fecha_hora').first()
             if ultima_cita:
                 dias_antiguedad = (hoy - ultima_cita.fecha_hora.date()).days
                 paciente.dias_antiguedad = dias_antiguedad
