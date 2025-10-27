@@ -4402,11 +4402,14 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
         for paciente in pacientes:
             paciente.actualizar_saldo_global()
 
-        queryset = pacientes.filter(saldo_global__gt=0).select_related('usuario')
+        queryset = pacientes.filter(saldo_global__gt=0).select_related('usuario').order_by('-saldo_global')
+
+        # Convertir a lista para preservar atributos dinámicos
+        lista_pacientes = list(queryset)
 
         # Agregar última cita y calcular antigüedad para cada paciente
         hoy = date.today()
-        for paciente in queryset:
+        for paciente in lista_pacientes:
             ultima_cita = paciente.cita_set.order_by('-fecha_hora').first()
             if ultima_cita:
                 dias_antiguedad = (hoy - ultima_cita.fecha_hora.date()).days
@@ -4429,7 +4432,7 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
                 paciente.categoria_antiguedad = 'desconocida'
                 paciente.badge_class = 'secondary'
 
-        return queryset.order_by('-saldo_global')
+        return lista_pacientes
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
