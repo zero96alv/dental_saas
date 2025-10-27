@@ -3645,6 +3645,7 @@ class ReporteIngresosView(TenantLoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from datetime import timedelta
+        from django.db.models import Count, Avg
         today = timezone.now().date()
         default_inicio = today - timedelta(days=30)
         default_fin = today
@@ -3656,8 +3657,74 @@ class ReporteIngresosView(TenantLoginRequiredMixin, ListView):
         context['form'] = form
         context['default_fecha_inicio'] = default_inicio.isoformat()
         context['default_fecha_fin'] = default_fin.isoformat()
-        context['total_ingresos'] = self.get_queryset().aggregate(total=Sum('monto'))['total'] or 0
+
+        # KPIs del periodo actual
+        queryset_actual = self.get_queryset()
+        stats_actual = queryset_actual.aggregate(
+            total=Sum('monto'),
+            count=Count('id'),
+            promedio=Avg('monto')
+        )
+
+        context['total_ingresos'] = stats_actual['total'] or 0
+        context['total_pagos'] = stats_actual['count'] or 0
+        context['ticket_promedio'] = stats_actual['promedio'] or 0
+
+        # Método de pago más usado
+        metodo_mas_usado = queryset_actual.values('metodo_pago').annotate(
+            total=Count('id')
+        ).order_by('-total').first()
+
+        if metodo_mas_usado:
+            context['metodo_mas_usado'] = metodo_mas_usado['metodo_pago']
+            context['metodo_mas_usado_porcentaje'] = round((metodo_mas_usado['total'] / context['total_pagos'] * 100) if context['total_pagos'] > 0 else 0, 1)
+        else:
+            context['metodo_mas_usado'] = 'N/A'
+            context['metodo_mas_usado_porcentaje'] = 0
+
+        # Distribución por método de pago (para gráfica de pastel)
+        metodos_distribucion = queryset_actual.values('metodo_pago').annotate(
+            count=Count('id'),
+            total_monto=Sum('monto')
+        ).order_by('-count')
+        context['metodos_distribucion'] = list(metodos_distribucion)
+
+        # Comparación con periodo anterior (para % de cambio)
+        form_data = form.cleaned_data if form.is_valid() else {}
+        fecha_inicio = form_data.get('fecha_inicio') or default_inicio
+        fecha_fin = form_data.get('fecha_fin') or default_fin
+
+        duracion_periodo = (fecha_fin - fecha_inicio).days + 1
+        fecha_inicio_anterior = fecha_inicio - timedelta(days=duracion_periodo)
+        fecha_fin_anterior = fecha_inicio - timedelta(days=1)
+
+        queryset_anterior = models.Pago.objects.filter(
+            fecha_pago__date__gte=fecha_inicio_anterior,
+            fecha_pago__date__lte=fecha_fin_anterior
+        )
+
+        stats_anterior = queryset_anterior.aggregate(
+            total=Sum('monto'),
+            count=Count('id'),
+            promedio=Avg('monto')
+        )
+
+        # Calcular porcentajes de cambio
+        total_anterior = stats_anterior['total'] or 0
+        count_anterior = stats_anterior['count'] or 0
+        promedio_anterior = stats_anterior['promedio'] or 0
+
+        context['cambio_ingresos'] = self._calcular_cambio_porcentual(context['total_ingresos'], total_anterior)
+        context['cambio_pagos'] = self._calcular_cambio_porcentual(context['total_pagos'], count_anterior)
+        context['cambio_ticket'] = self._calcular_cambio_porcentual(context['ticket_promedio'], promedio_anterior)
+
         return context
+
+    def _calcular_cambio_porcentual(self, actual, anterior):
+        """Calcula el cambio porcentual entre dos valores"""
+        if anterior == 0:
+            return 100 if actual > 0 else 0
+        return round(((actual - anterior) / anterior) * 100, 1)
 # ==================== VISTAS FALTANTES ====================
 
 # --- PROVEEDORES ---

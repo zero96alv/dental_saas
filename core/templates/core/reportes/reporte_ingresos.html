@@ -4,13 +4,127 @@
 
 {% block title %}Reporte de Ingresos{% endblock %}
 
+{% block extra_css %}
+<style>
+    .kpi-card {
+        border-radius: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .kpi-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    .kpi-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .kpi-change {
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .kpi-change.positive {
+        color: #28a745;
+    }
+    .kpi-change.negative {
+        color: #dc3545;
+    }
+    .kpi-icon {
+        font-size: 2.5rem;
+        opacity: 0.2;
+        position: absolute;
+        right: 15px;
+        top: 15px;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mb-4">Reporte de Ingresos</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="bi bi-graph-up me-2"></i>Reporte de Ingresos</h1>
+    </div>
 
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+        <!-- Total Ingresos -->
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body position-relative">
+                    <i class="bi bi-currency-dollar kpi-icon"></i>
+                    <div class="kpi-label" style="color: rgba(255,255,255,0.8);">Total Periodo</div>
+                    <div class="kpi-value">${{ total_ingresos|floatformat:0 }}</div>
+                    <div class="kpi-change {% if cambio_ingresos >= 0 %}positive{% else %}negative{% endif %}" style="color: rgba(255,255,255,0.9);">
+                        <i class="bi bi-{% if cambio_ingresos >= 0 %}arrow-up{% else %}arrow-down{% endif %}-circle-fill"></i>
+                        {{ cambio_ingresos|floatformat:1 }}% vs periodo anterior
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Promedio -->
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card bg-gradient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                <div class="card-body position-relative">
+                    <i class="bi bi-receipt kpi-icon"></i>
+                    <div class="kpi-label" style="color: rgba(255,255,255,0.8);">Ticket Promedio</div>
+                    <div class="kpi-value">${{ ticket_promedio|floatformat:0 }}</div>
+                    <div class="kpi-change {% if cambio_ticket >= 0 %}positive{% else %}negative{% endif %}" style="color: rgba(255,255,255,0.9);">
+                        <i class="bi bi-{% if cambio_ticket >= 0 %}arrow-up{% else %}arrow-down{% endif %}-circle-fill"></i>
+                        {{ cambio_ticket|floatformat:1 }}% vs periodo anterior
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagos Registrados -->
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card bg-gradient" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                <div class="card-body position-relative">
+                    <i class="bi bi-clipboard-check kpi-icon"></i>
+                    <div class="kpi-label" style="color: rgba(255,255,255,0.8);">Pagos Registrados</div>
+                    <div class="kpi-value">{{ total_pagos }}</div>
+                    <div class="kpi-change {% if cambio_pagos >= 0 %}positive{% else %}negative{% endif %}" style="color: rgba(255,255,255,0.9);">
+                        <i class="bi bi-{% if cambio_pagos >= 0 %}arrow-up{% else %}arrow-down{% endif %}-circle-fill"></i>
+                        {{ cambio_pagos|floatformat:1 }}% vs periodo anterior
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Método Más Usado -->
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card bg-gradient" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                <div class="card-body position-relative">
+                    <i class="bi bi-credit-card kpi-icon"></i>
+                    <div class="kpi-label" style="color: rgba(255,255,255,0.8);">Método Más Usado</div>
+                    <div class="kpi-value" style="font-size: 1.5rem;">{{ metodo_mas_usado }}</div>
+                    <div class="kpi-change" style="color: rgba(255,255,255,0.9);">
+                        <i class="bi bi-pie-chart-fill"></i>
+                        {{ metodo_mas_usado_porcentaje }}% de los pagos
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros del Reporte -->
     <div class="card mb-4">
         <div class="card-header">
-            Filtros del Reporte
+            <i class="bi bi-funnel me-2"></i>Filtros del Reporte
         </div>
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end" data-default-inicio="{{ default_fecha_inicio }}" data-default-fin="{{ default_fecha_fin }}">
@@ -32,18 +146,41 @@
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            Gráfica de Ingresos por Día
+    <!-- Gráficas -->
+    <div class="row mb-4">
+        <!-- Gráfica de Línea: Ingresos por Día -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-graph-up me-2"></i>Tendencia de Ingresos por Día
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="ingresosChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <canvas id="ingresosChart"></canvas>
+
+        <!-- Gráfica de Pastel: Métodos de Pago -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-pie-chart me-2"></i>Distribución por Método de Pago
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="metodosChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Tabla de Resultados -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            Resultados
+            <span><i class="bi bi-table me-2"></i>Detalle de Pagos</span>
             <span class="badge bg-success fs-6">Total: ${{ total_ingresos|floatformat:2 }}</span>
         </div>
         <div class="card-body">
@@ -64,16 +201,20 @@
                             <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
                             <td>{{ pago.cita.paciente }}</td>
                             <td>Cita del {{ pago.cita.fecha_hora|date:"d/m/Y" }}</td>
-                            <td>{{ pago.metodo_pago }}</td>
-                            <td class="text-end">${{ pago.monto|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ pago.metodo_pago }}</span>
+                            </td>
+                            <td class="text-end"><strong>${{ pago.monto|floatformat:2 }}</strong></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">
+                            <td colspan="5" class="text-center text-muted py-4">
                                 {% if form.is_valid %}
-                                    No se encontraron pagos en el rango de fechas seleccionado.
+                                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                    <p class="mt-2">No se encontraron pagos en el rango de fechas seleccionado.</p>
                                 {% else %}
-                                    Por favor, seleccione un rango de fechas para generar el reporte.
+                                    <i class="bi bi-funnel" style="font-size: 3rem;"></i>
+                                    <p class="mt-2">Por favor, seleccione un rango de fechas para generar el reporte.</p>
                                 {% endif %}
                             </td>
                         </tr>
@@ -90,7 +231,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Prefijar fechas si están vacías (ej. al entrar por primera vez o solo con paginación)
+    // Prefijar fechas si están vacías
     const formEl = document.querySelector('form[method="get"][data-default-inicio]');
     if (formEl) {
         const inicio = document.getElementById('id_fecha_inicio');
@@ -101,33 +242,173 @@ document.addEventListener('DOMContentLoaded', function() {
         if (fin && !fin.value && defFin) fin.value = defFin;
     }
 
-    const ctx = document.getElementById('ingresosChart').getContext('2d');
-    const url = `{% tenant_url 'core:reporte_ingresos_api' %}?{{ request.GET.urlencode }}`;
+    // Configuración de colores y estilo común
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#666';
 
-    fetch(url)
+    // Gráfica de Línea con Área: Ingresos por Día
+    const ctxLine = document.getElementById('ingresosChart').getContext('2d');
+    const urlLine = `{% tenant_url 'core:reporte_ingresos_api' %}?{{ request.GET.urlencode }}`;
+
+    fetch(urlLine)
         .then(response => response.json())
         .then(data => {
-            new Chart(ctx, {
-                type: 'bar',
+            new Chart(ctxLine, {
+                type: 'line',
                 data: {
                     labels: data.labels,
                     datasets: [{
-                        label: 'Ingresos por Día',
+                        label: 'Ingresos Diarios',
                         data: data.values,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(102, 126, 234, 1)'
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Ingresos: $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
                     scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
                         }
                     }
                 }
             });
         });
+
+    // Gráfica de Pastel: Métodos de Pago
+    const ctxPie = document.getElementById('metodosChart').getContext('2d');
+    const metodosData = {{ metodos_distribucion|safe }};
+
+    if (metodosData && metodosData.length > 0) {
+        const coloresPastel = [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(245, 87, 108, 0.8)',
+            'rgba(79, 172, 254, 0.8)',
+            'rgba(250, 112, 154, 0.8)',
+            'rgba(164, 124, 255, 0.8)',
+            'rgba(255, 159, 64, 0.8)'
+        ];
+
+        const coloresBorde = [
+            'rgba(102, 126, 234, 1)',
+            'rgba(245, 87, 108, 1)',
+            'rgba(79, 172, 254, 1)',
+            'rgba(250, 112, 154, 1)',
+            'rgba(164, 124, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+        ];
+
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: metodosData.map(m => m.metodo_pago),
+                datasets: [{
+                    data: metodosData.map(m => m.count),
+                    backgroundColor: coloresPastel,
+                    borderColor: coloresBorde,
+                    borderWidth: 2,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                            text: `${label} (${percentage}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} pagos (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // Mostrar mensaje si no hay datos
+        const canvas = document.getElementById('metodosChart');
+        const parent = canvas.parentElement;
+        parent.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-pie-chart" style="font-size: 3rem;"></i><p class="mt-2">No hay datos de métodos de pago</p></div>';
+    }
 });
 </script>
 {% endblock %}
