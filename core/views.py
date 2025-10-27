@@ -1332,28 +1332,78 @@ class RecibirCompraView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, Success
         formset = context['formset']
         if formset.is_valid():
             with transaction.atomic():
-                for detalle_form in formset:
+                # Procesar cada detalle de la compra
+                for idx, detalle_form in enumerate(formset):
                     detalle = detalle_form.instance
-                    unidad_dental = detalle_form.cleaned_data.get('unidad_dental')
-                    
-                    if not unidad_dental:
-                        messages.error(self.request, f"Debe seleccionar una unidad de destino para {detalle.insumo.nombre}.")
+
+                    # Obtener arrays de unidades y cantidades desde el POST
+                    unidades_key = f'detalle_{idx}_unidades[]'
+                    cantidades_key = f'detalle_{idx}_cantidades[]'
+
+                    unidades_ids = self.request.POST.getlist(unidades_key)
+                    cantidades = self.request.POST.getlist(cantidades_key)
+
+                    # Validar que existan asignaciones
+                    if not unidades_ids or not cantidades:
+                        messages.error(self.request, f"Debe asignar al menos una unidad para {detalle.insumo.nombre}.")
                         return self.form_invalid(form)
 
-                    lote, created = models.LoteInsumo.objects.get_or_create(
-                        insumo=detalle.insumo,
-                        unidad_dental=unidad_dental,
-                        numero_lote=detalle_form.cleaned_data.get('numero_lote'),
-                        fecha_caducidad=detalle_form.cleaned_data.get('fecha_caducidad'),
-                        defaults={'cantidad': detalle.cantidad}
-                    )
-                    if not created:
-                        lote.cantidad += detalle.cantidad
-                        lote.save()
+                    # Validar que las cantidades sumen el total
+                    suma_asignada = sum(int(c) for c in cantidades)
+                    if suma_asignada != detalle.cantidad:
+                        messages.error(
+                            self.request,
+                            f"Error en {detalle.insumo.nombre}: La suma de cantidades asignadas ({suma_asignada}) "
+                            f"no coincide con el total ({detalle.cantidad})."
+                        )
+                        return self.form_invalid(form)
 
+                    # Obtener campos COFEPRIS si aplica
+                    numero_lote = detalle_form.cleaned_data.get('numero_lote')
+                    fecha_caducidad = detalle_form.cleaned_data.get('fecha_caducidad')
+
+                    # Crear un lote por cada asignación
+                    for unidad_id, cantidad_str in zip(unidades_ids, cantidades):
+                        if not unidad_id:
+                            messages.error(self.request, f"Todas las asignaciones deben tener una unidad seleccionada.")
+                            return self.form_invalid(form)
+
+                        cantidad = int(cantidad_str)
+                        unidad_dental = models.UnidadDental.objects.get(id=unidad_id)
+
+                        # Crear o actualizar lote
+                        lote, created = models.LoteInsumo.objects.get_or_create(
+                            insumo=detalle.insumo,
+                            unidad_dental=unidad_dental,
+                            numero_lote=numero_lote if detalle.insumo.requiere_lote_caducidad else None,
+                            fecha_caducidad=fecha_caducidad if detalle.insumo.requiere_lote_caducidad else None,
+                            defaults={'cantidad': cantidad}
+                        )
+
+                        if not created:
+                            # Si ya existe el lote, sumar la cantidad
+                            lote.cantidad += cantidad
+                            lote.save()
+
+                        logger.info(
+                            f"Asignado {cantidad} de {detalle.insumo.nombre} a {unidad_dental.nombre} "
+                            f"(Lote: {numero_lote or 'N/A'})"
+                        )
+
+                # Actualizar stock total de todos los insumos afectados
+                insumos_afectados = set(df.instance.insumo for df in formset)
+                for insumo in insumos_afectados:
+                    insumo.actualizar_stock_total()
+
+                # Marcar compra como recibida
                 self.object.estado = 'RECIBIDA'
                 self.object.save()
-            
+
+                messages.success(
+                    self.request,
+                    f"Compra recibida exitosamente. Se distribuyó el stock entre las unidades dentales."
+                )
+
             return super().form_valid(form)
         else:
             return self.form_invalid(form)

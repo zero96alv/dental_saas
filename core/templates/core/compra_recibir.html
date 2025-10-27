@@ -75,17 +75,63 @@
                                 <div class="col-md-12">
                                     <div class="alert alert-light border-start border-warning border-4 mb-3">
                                         <i class="bi bi-building me-2"></i>
-                                        <strong>Seleccione Unidad de Destino:</strong>
-                                        <small class="d-block text-muted">Esta cantidad completa será asignada a la unidad seleccionada</small>
+                                        <strong>Distribuir entre Unidades Dentales:</strong>
+                                        <small class="d-block text-muted">Puede dividir la cantidad entre varias unidades. Total disponible: <span class="fw-bold">{{ form.instance.cantidad }}</span></small>
                                     </div>
-                                    {{ form.unidad_dental|as_crispy_field }}
+
+                                    <!-- Contenedor de asignaciones dinámicas -->
+                                    <div class="asignaciones-container" data-detalle-idx="{{ forloop.counter0 }}" data-cantidad-total="{{ form.instance.cantidad }}">
+                                        <!-- Primera asignación (por defecto) -->
+                                        <div class="asignacion-row card mb-2 border-info" data-asignacion-idx="0">
+                                            <div class="card-body py-2">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label small mb-1">Unidad Dental:</label>
+                                                        <select class="form-select form-select-sm unidad-select" name="detalle_{{ forloop.counter0 }}_unidades[]" required>
+                                                            <option value="">Seleccione unidad...</option>
+                                                            {% for unidad in form.fields.unidad_dental.queryset %}
+                                                                <option value="{{ unidad.id }}">{{ unidad.nombre }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small mb-1">Cantidad:</label>
+                                                        <input type="number" class="form-control form-control-sm cantidad-input"
+                                                               name="detalle_{{ forloop.counter0 }}_cantidades[]"
+                                                               min="1" max="{{ form.instance.cantidad }}"
+                                                               value="{{ form.instance.cantidad }}" required>
+                                                    </div>
+                                                    <div class="col-md-2 text-end">
+                                                        <label class="form-label small mb-1 text-white">.</label>
+                                                        <button type="button" class="btn btn-sm btn-danger eliminar-asignacion" style="display:none;">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Botón agregar + resumen -->
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary agregar-destino" data-detalle-idx="{{ forloop.counter0 }}">
+                                            <i class="bi bi-plus-circle me-1"></i>Agregar Otro Destino
+                                        </button>
+                                        <div class="badge bg-secondary restante-badge">
+                                            Restante: <span class="restante-valor">0</span> / {{ form.instance.cantidad }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Campos ocultos del formset original (mantener compatibilidad) -->
+                                    <input type="hidden" name="{{ form.prefix }}-unidad_dental" class="unidad-dental-hidden">
                                 </div>
+
                                 {% if form.instance.insumo.requiere_lote_caducidad %}
-                                    <div class="col-12">
+                                    <div class="col-12 mt-3">
                                         <div class="alert alert-warning border-start border-danger border-4 mb-2">
                                             <i class="bi bi-exclamation-triangle me-2"></i>
                                             <strong>Insumo con Seguimiento COFEPRIS</strong>
-                                            <small class="d-block">Este insumo requiere número de lote y fecha de caducidad para cumplir con regulaciones sanitarias</small>
+                                            <small class="d-block">Este insumo requiere número de lote y fecha de caducidad</small>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -113,4 +159,160 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Sistema de división dinámica de compras cargado');
+
+    // Configurar todos los contenedores de asignaciones
+    document.querySelectorAll('.asignaciones-container').forEach(container => {
+        const detalleIdx = container.dataset.detalleIdx;
+        const cantidadTotal = parseInt(container.dataset.cantidadTotal);
+
+        // Función para actualizar el restante y validaciones
+        function actualizarRestante() {
+            let sumaAsignada = 0;
+            container.querySelectorAll('.cantidad-input').forEach(input => {
+                sumaAsignada += parseInt(input.value) || 0;
+            });
+
+            const restante = cantidadTotal - sumaAsignada;
+            const badgeRestante = container.parentElement.querySelector('.restante-badge');
+            const valorRestante = badgeRestante.querySelector('.restante-valor');
+
+            valorRestante.textContent = restante;
+
+            // Cambiar color del badge según el restante
+            badgeRestante.classList.remove('bg-secondary', 'bg-success', 'bg-warning', 'bg-danger');
+            if (restante === 0) {
+                badgeRestante.classList.add('bg-success');
+            } else if (restante > 0) {
+                badgeRestante.classList.add('bg-warning');
+            } else {
+                badgeRestante.classList.add('bg-danger');
+            }
+
+            // Habilitar/deshabilitar botón agregar
+            const btnAgregar = container.parentElement.querySelector('.agregar-destino');
+            if (restante <= 0) {
+                btnAgregar.disabled = true;
+                btnAgregar.classList.add('disabled');
+            } else {
+                btnAgregar.disabled = false;
+                btnAgregar.classList.remove('disabled');
+            }
+
+            // Actualizar max de todos los inputs
+            container.querySelectorAll('.cantidad-input').forEach(input => {
+                const valorActual = parseInt(input.value) || 0;
+                input.max = valorActual + restante;
+            });
+        }
+
+        // Función para actualizar botones de eliminar
+        function actualizarBotonesEliminar() {
+            const asignaciones = container.querySelectorAll('.asignacion-row');
+            asignaciones.forEach((row, idx) => {
+                const btnEliminar = row.querySelector('.eliminar-asignacion');
+                if (asignaciones.length > 1) {
+                    btnEliminar.style.display = 'inline-block';
+                } else {
+                    btnEliminar.style.display = 'none';
+                }
+            });
+        }
+
+        // Event listeners para cambios en cantidad
+        container.addEventListener('input', function(e) {
+            if (e.target.classList.contains('cantidad-input')) {
+                actualizarRestante();
+            }
+        });
+
+        // Event listener para botón agregar destino
+        const btnAgregar = container.parentElement.querySelector('.agregar-destino');
+        btnAgregar.addEventListener('click', function() {
+            const asignaciones = container.querySelectorAll('.asignacion-row');
+            const ultimaAsignacion = asignaciones[asignaciones.length - 1];
+            const nuevoIdx = asignaciones.length;
+
+            // Clonar la última asignación
+            const nuevaAsignacion = ultimaAsignacion.cloneNode(true);
+            nuevaAsignacion.dataset.asignacionIdx = nuevoIdx;
+
+            // Limpiar valores
+            const select = nuevaAsignacion.querySelector('.unidad-select');
+            const input = nuevaAsignacion.querySelector('.cantidad-input');
+
+            select.selectedIndex = 0;
+            input.value = Math.max(1, parseInt(container.parentElement.querySelector('.restante-valor').textContent));
+
+            // Agregar al contenedor
+            container.appendChild(nuevaAsignacion);
+
+            actualizarRestante();
+            actualizarBotonesEliminar();
+
+            console.log(`➕ Agregada asignación #${nuevoIdx} para detalle ${detalleIdx}`);
+        });
+
+        // Event listener para botones eliminar (delegación)
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.eliminar-asignacion')) {
+                e.preventDefault();
+                const row = e.target.closest('.asignacion-row');
+                const asignaciones = container.querySelectorAll('.asignacion-row');
+
+                if (asignaciones.length > 1) {
+                    row.remove();
+                    actualizarRestante();
+                    actualizarBotonesEliminar();
+                    console.log(`🗑️ Eliminada asignación`);
+                }
+            }
+        });
+
+        // Inicializar
+        actualizarRestante();
+        actualizarBotonesEliminar();
+    });
+
+    // Validación antes de enviar el formulario
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        let errores = [];
+
+        document.querySelectorAll('.asignaciones-container').forEach(container => {
+            const detalleIdx = container.dataset.detalleIdx;
+            const cantidadTotal = parseInt(container.dataset.cantidadTotal);
+            const restanteValor = parseInt(container.parentElement.querySelector('.restante-valor').textContent);
+
+            if (restanteValor !== 0) {
+                errores.push(`Detalle #${parseInt(detalleIdx) + 1}: Debe asignar exactamente ${cantidadTotal} unidades (restante: ${restanteValor})`);
+            }
+
+            // Validar que no haya unidades duplicadas
+            const unidades = [];
+            container.querySelectorAll('.unidad-select').forEach(select => {
+                if (select.value && unidades.includes(select.value)) {
+                    errores.push(`Detalle #${parseInt(detalleIdx) + 1}: No puede asignar a la misma unidad dos veces`);
+                }
+                unidades.push(select.value);
+            });
+        });
+
+        if (errores.length > 0) {
+            e.preventDefault();
+            alert('❌ Errores de validación:\n\n' + errores.join('\n'));
+            return false;
+        }
+
+        console.log('✅ Validación exitosa, enviando formulario...');
+    });
+
+    console.log('✅ Sistema de división dinámica inicializado correctamente');
+});
+</script>
 {% endblock %}
