@@ -3491,40 +3491,80 @@ class ReporteServiciosVendidosPeriodoView(TenantLoginRequiredMixin, TemplateView
         resultados = []
         from collections import defaultdict, Counter
 
+        # KPIs Globales
+        total_servicios_vendidos = 0
+        total_ingresos = 0
+        servicios_counter = Counter()
+        servicios_ingresos = defaultdict(float)
+
+        # Recolectar datos para KPIs
+        for tratamiento in tratamientos_qs:
+            for servicio in tratamiento.servicios.all():
+                total_servicios_vendidos += 1
+                total_ingresos += float(servicio.precio)
+                servicios_counter[servicio.nombre] += 1
+                servicios_ingresos[servicio.nombre] += float(servicio.precio)
+
+        # Servicio top
+        servicio_top = servicios_counter.most_common(1)
+        servicio_top_nombre = servicio_top[0][0] if servicio_top else 'N/A'
+        servicio_top_cantidad = servicio_top[0][1] if servicio_top else 0
+
+        # Ticket promedio
+        ticket_promedio = total_ingresos / total_servicios_vendidos if total_servicios_vendidos > 0 else 0
+
         if periodo == 'mes':
-            # Agrupar por mes
-            grouped = defaultdict(Counter)
+            # Agrupar por mes con cantidad e ingresos
+            grouped = defaultdict(lambda: {'counter': Counter(), 'ingresos': defaultdict(float)})
             for tratamiento in tratamientos_qs:
                 mes_key = tratamiento.cita.fecha_hora.strftime('%Y-%m')
                 for servicio in tratamiento.servicios.all():
-                    grouped[mes_key][servicio.nombre] += 1
+                    grouped[mes_key]['counter'][servicio.nombre] += 1
+                    grouped[mes_key]['ingresos'][servicio.nombre] += float(servicio.precio)
 
-            # Convertir a formato esperado y tomar top 10 por mes
+            # Convertir a formato esperado con ingresos
             resultados = [
                 {
                     'periodo': mes,
-                    'items': [{'servicio': nombre, 'cantidad': cant} for nombre, cant in counter.most_common(10)]
+                    'items': [
+                        {
+                            'servicio': nombre,
+                            'cantidad': cant,
+                            'ingresos': data['ingresos'][nombre],
+                            'precio_promedio': data['ingresos'][nombre] / cant
+                        }
+                        for nombre, cant in data['counter'].most_common(10)
+                    ]
                 }
-                for mes, counter in sorted(grouped.items())
+                for mes, data in sorted(grouped.items())
             ]
         else:
-            # Agrupar por semana
-            grouped = defaultdict(Counter)
+            # Agrupar por semana con cantidad e ingresos
+            grouped = defaultdict(lambda: {'counter': Counter(), 'ingresos': defaultdict(float)})
             for tratamiento in tratamientos_qs:
                 fecha = tratamiento.cita.fecha_hora
                 anio = fecha.year
                 semana = fecha.isocalendar()[1]
                 semana_key = f"{anio}-W{semana:02d}"
                 for servicio in tratamiento.servicios.all():
-                    grouped[semana_key][servicio.nombre] += 1
+                    grouped[semana_key]['counter'][servicio.nombre] += 1
+                    grouped[semana_key]['ingresos'][servicio.nombre] += float(servicio.precio)
 
-            # Convertir a formato esperado y tomar top 10 por semana
+            # Convertir a formato esperado con ingresos
             resultados = [
                 {
                     'periodo': semana,
-                    'items': [{'servicio': nombre, 'cantidad': cant} for nombre, cant in counter.most_common(10)]
+                    'items': [
+                        {
+                            'servicio': nombre,
+                            'cantidad': cant,
+                            'ingresos': data['ingresos'][nombre],
+                            'precio_promedio': data['ingresos'][nombre] / cant
+                        }
+                        for nombre, cant in data['counter'].most_common(10)
+                    ]
                 }
-                for semana, counter in sorted(grouped.items())
+                for semana, data in sorted(grouped.items())
             ]
 
         context.update({
@@ -3533,6 +3573,12 @@ class ReporteServiciosVendidosPeriodoView(TenantLoginRequiredMixin, TemplateView
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
             'resultados': resultados,
+            # KPIs
+            'total_servicios_vendidos': total_servicios_vendidos,
+            'total_ingresos': total_ingresos,
+            'servicio_top_nombre': servicio_top_nombre,
+            'servicio_top_cantidad': servicio_top_cantidad,
+            'ticket_promedio': ticket_promedio,
         })
         return context
 
@@ -3572,6 +3618,50 @@ class ReporteIngresosDentistaPeriodoView(TenantLoginRequiredMixin, TemplateView)
         if dentista:
             qs = qs.filter(cita__dentista=dentista)
 
+        # KPIs Globales
+        from django.db.models import Count, Avg
+        from collections import defaultdict
+
+        total_ingresos = float(qs.aggregate(total=Sum('monto'))['total'] or 0)
+
+        # Agrupar por dentista para KPIs
+        dentistas_stats = qs.values(
+            'cita__dentista__id',
+            'cita__dentista__nombre',
+            'cita__dentista__apellido'
+        ).annotate(
+            ingresos=Sum('monto'),
+            num_citas=Count('cita__id', distinct=True)
+        )
+
+        # Calcular dentista top y promedio
+        dentista_top_nombre = 'N/A'
+        dentista_top_ingresos = 0
+        total_dentistas = 0
+
+        if dentistas_stats:
+            dentistas_list = list(dentistas_stats)
+            total_dentistas = len(dentistas_list)
+
+            # Dentista con más ingresos
+            top = max(dentistas_list, key=lambda x: x['ingresos'])
+            dentista_top_nombre = f"Dr. {top['cita__dentista__nombre']} {top['cita__dentista__apellido']}"
+            dentista_top_ingresos = float(top['ingresos'])
+
+        promedio_por_dentista = total_ingresos / total_dentistas if total_dentistas > 0 else 0
+
+        # Total de citas atendidas en el periodo
+        total_citas = models.Cita.objects.filter(
+            fecha_hora__date__gte=fecha_inicio,
+            fecha_hora__date__lte=fecha_fin,
+            dentista__isnull=False,
+            estado__in=['ATN', 'COM']  # Atendida o Completada
+        )
+        if dentista:
+            total_citas = total_citas.filter(dentista=dentista)
+        total_citas_count = total_citas.count()
+
+        # Datos para gráficas y tablas (agrupados por periodo)
         resultados = []
         if periodo == 'mes':
             agg = qs.annotate(
@@ -3580,15 +3670,24 @@ class ReporteIngresosDentistaPeriodoView(TenantLoginRequiredMixin, TemplateView)
                 dentista_nombre=F('cita__dentista__nombre'),
                 dentista_apellido=F('cita__dentista__apellido'),
             ).values('periodo_mes', 'dentista_id', 'dentista_nombre', 'dentista_apellido').annotate(
-                total=Sum('monto')
+                total=Sum('monto'),
+                num_citas=Count('cita__id', distinct=True)
             ).order_by('periodo_mes', '-total')
 
-            from collections import defaultdict
             grouped = defaultdict(list)
             for row in agg:
                 key = row['periodo_mes'].strftime('%Y-%m') if row['periodo_mes'] else 'N/A'
                 nombre = f"Dr. {row['dentista_nombre']} {row['dentista_apellido']}"
-                grouped[key].append({'dentista': nombre, 'total': row['total']})
+                ingreso = float(row['total'])
+                citas = row['num_citas']
+                promedio_cita = ingreso / citas if citas > 0 else 0
+
+                grouped[key].append({
+                    'dentista': nombre,
+                    'total': ingreso,
+                    'citas': citas,
+                    'promedio_cita': promedio_cita
+                })
             resultados = [{'periodo': k, 'items': v} for k, v in sorted(grouped.items())]
         else:
             agg = qs.annotate(
@@ -3598,15 +3697,24 @@ class ReporteIngresosDentistaPeriodoView(TenantLoginRequiredMixin, TemplateView)
                 dentista_nombre=F('cita__dentista__nombre'),
                 dentista_apellido=F('cita__dentista__apellido'),
             ).values('anio', 'semana', 'dentista_id', 'dentista_nombre', 'dentista_apellido').annotate(
-                total=Sum('monto')
+                total=Sum('monto'),
+                num_citas=Count('cita__id', distinct=True)
             ).order_by('anio', 'semana', '-total')
 
-            from collections import defaultdict
             grouped = defaultdict(list)
             for row in agg:
                 key = f"{row['anio']}-W{int(row['semana']):02d}"
                 nombre = f"Dr. {row['dentista_nombre']} {row['dentista_apellido']}"
-                grouped[key].append({'dentista': nombre, 'total': row['total']})
+                ingreso = float(row['total'])
+                citas = row['num_citas']
+                promedio_cita = ingreso / citas if citas > 0 else 0
+
+                grouped[key].append({
+                    'dentista': nombre,
+                    'total': ingreso,
+                    'citas': citas,
+                    'promedio_cita': promedio_cita
+                })
             resultados = [{'periodo': k, 'items': v} for k, v in sorted(grouped.items())]
 
         context.update({
@@ -3615,6 +3723,13 @@ class ReporteIngresosDentistaPeriodoView(TenantLoginRequiredMixin, TemplateView)
             'fecha_inicio': fecha_inicio,
             'fecha_fin': fecha_fin,
             'resultados': resultados,
+            # KPIs
+            'total_ingresos': total_ingresos,
+            'promedio_por_dentista': promedio_por_dentista,
+            'total_dentistas': total_dentistas,
+            'dentista_top_nombre': dentista_top_nombre,
+            'dentista_top_ingresos': dentista_top_ingresos,
+            'total_citas_count': total_citas_count,
         })
         return context
 # REEMPLAZA la clase ReporteIngresosView existente por:
