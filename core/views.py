@@ -585,11 +585,12 @@ class UsuarioCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, Success
         # Corregir la obtención de grupos - usar el campo 'rol' del formulario
         rol_seleccionado = form.cleaned_data.get('rol')
         if rol_seleccionado and rol_seleccionado.name in ['Administrador', 'Dentista']:
+            # Crear perfil sin email para evitar conflictos de unicidad
+            # El email se puede obtener desde usuario.email cuando sea necesario
             models.PerfilDentista.objects.create(
                 usuario=user,
                 nombre=user.first_name,
-                apellido=user.last_name,
-                email=user.email
+                apellido=user.last_name
             )
         messages.warning(self.request, "Se asignó la contraseña temporal 'password123'. El usuario debe cambiarla.")
         return super().form_valid(form)
@@ -1174,6 +1175,32 @@ class PagoListView(TenantLoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return models.Pago.objects.select_related('cita__paciente', 'paciente').order_by('-fecha_pago')
+
+    def get_context_data(self, **kwargs):
+        from django.db.models import Sum, Count, Avg
+        from datetime import date, timedelta
+
+        context = super().get_context_data(**kwargs)
+
+        # Calcular estadísticas de todos los pagos
+        all_pagos = models.Pago.objects.all()
+        stats = all_pagos.aggregate(
+            total_count=Count('id'),
+            total_sum=Sum('monto'),
+            avg_payment=Avg('monto')
+        )
+
+        # Pagos de hoy
+        hoy = date.today()
+        pagos_hoy = all_pagos.filter(fecha_pago__date=hoy).count()
+
+        context['total_pagos'] = stats['total_count'] or 0
+        context['total_ingresos'] = stats['total_sum'] or 0
+        context['promedio_pago'] = stats['avg_payment'] or 0
+        context['pagos_hoy'] = pagos_hoy
+        context['date_threshold'] = hoy - timedelta(days=30)
+
+        return context
 
 class PagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Pago
@@ -3685,14 +3712,22 @@ class InsumoListView(TenantLoginRequiredMixin, ListView):
 class InsumoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
-    fields = ['nombre', 'descripcion', 'proveedor', 'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario']
+    fields = [
+        'nombre', 'descripcion', 'proveedor', 'unidad_medida',
+        'unidad_empaque', 'cantidad_por_empaque', 'precio_unitario',
+        'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
+    ]
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' creado con éxito."
 
 class InsumoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Insumo
     template_name = 'core/insumo_form.html'
-    fields = ['nombre', 'descripcion', 'unidad_medida', 'stock_minimo', 'precio_unitario']
+    fields = [
+        'nombre', 'descripcion', 'proveedor', 'unidad_medida',
+        'unidad_empaque', 'cantidad_por_empaque', 'precio_unitario',
+        'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
+    ]
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' actualizado con éxito."
 

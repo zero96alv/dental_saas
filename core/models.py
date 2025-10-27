@@ -374,13 +374,17 @@ class Proveedor(models.Model):
 class Insumo(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True)
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True, help_text="Proveedor del insumo (opcional para compras en tiendas como Garis, Walmart, etc.)")
     stock = models.PositiveIntegerField(default=0, editable=False, help_text="Este campo se calcula automáticamente a partir de los lotes.")
     stock_minimo = models.PositiveIntegerField(default=10, help_text="Nivel de stock global para generar alertas.")
     requiere_lote_caducidad = models.BooleanField(default=False, help_text="Marcar si este insumo necesita seguimiento por lote y caducidad (COFEPRIS).")
     registro_sanitario = models.CharField(max_length=100, blank=True, null=True, help_text="Registro COFEPRIS del insumo, si aplica.")
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio unitario del insumo.")
-    unidad_medida = models.CharField(max_length=50, blank=True, help_text="Unidad de medida del insumo (ej. pieza, litro, kg).")
+    unidad_medida = models.CharField(max_length=50, blank=True, default='pieza', help_text="Unidad de medida individual (ej. pieza, litro, kg).")
+
+    # Campos para manejo de empaques (cajas, paquetes, etc.)
+    unidad_empaque = models.CharField(max_length=50, blank=True, null=True, help_text="Tipo de empaque (ej. Caja, Paquete, Bulto). Dejar vacío si se compra por unidad individual.")
+    cantidad_por_empaque = models.PositiveIntegerField(default=1, help_text="Cantidad de unidades individuales por empaque (ej. 100 guantes por caja).")
 
     def __str__(self):
         return self.nombre
@@ -389,6 +393,12 @@ class Insumo(models.Model):
         total = self.lotes.aggregate(total_cantidad=Sum('cantidad'))['total_cantidad'] or 0
         self.stock = total
         self.save(update_fields=['stock'])
+
+    def get_presentacion_display(self):
+        """Retorna una descripción legible del empaque"""
+        if self.unidad_empaque:
+            return f"{self.cantidad_por_empaque} {self.unidad_medida}/s por {self.unidad_empaque}"
+        return f"Por {self.unidad_medida}"
 
 class LoteInsumo(models.Model):
     insumo = models.ForeignKey(Insumo, on_delete=models.CASCADE, related_name='lotes')

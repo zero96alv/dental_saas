@@ -52,19 +52,15 @@
                                 <tr>
                                     {{ form.id }}
                                     <td>
-                                        <input type="hidden" name="{{ form.prefix }}-dia_semana" value="{{ form.dia_semana.value }}">
                                         {{ form.dia_semana|as_crispy_field }}
                                     </td>
                                     <td>
-                                        <input type="hidden" name="{{ form.prefix }}-hora_inicio" value="{{ form.hora_inicio.value }}">
                                         {{ form.hora_inicio|as_crispy_field }}
                                     </td>
                                     <td>
-                                        <input type="hidden" name="{{ form.prefix }}-hora_fin" value="{{ form.hora_fin.value }}">
                                         {{ form.hora_fin|as_crispy_field }}
                                     </td>
                                     <td>
-                                        <input type="hidden" name="{{ form.prefix }}-activo" value="{{ form.activo.value }}">
                                         {{ form.activo|as_crispy_field }}
                                     </td>
                                     {% if puede_editar %}
