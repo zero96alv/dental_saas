@@ -1366,7 +1366,11 @@ class AgendaView(TenantLoginRequiredMixin, TemplateView):
             context = super().get_context_data(**kwargs)
             context['cita_form'] = forms.CitaForm()
             context['paciente_form'] = forms.PacienteForm()
-            context['dentistas'] = models.PerfilDentista.objects.filter(activo=True)
+            # Filtrar solo dentistas activos Y con el grupo "Dentista"
+            context['dentistas'] = models.PerfilDentista.objects.filter(
+                activo=True,
+                usuario__groups__name='Dentista'
+            ).distinct().select_related('usuario').order_by('usuario__last_name', 'usuario__first_name')
             logger.debug(f"AgendaView context dentistas={context['dentistas'].count()}")
             return context
         except Exception:
@@ -1380,7 +1384,11 @@ class AgendaLegacyView(TenantLoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         try:
             context = super().get_context_data(**kwargs)
-            context['dentistas'] = models.PerfilDentista.objects.filter(activo=True)
+            # Filtrar solo dentistas activos Y con el grupo "Dentista"
+            context['dentistas'] = models.PerfilDentista.objects.filter(
+                activo=True,
+                usuario__groups__name='Dentista'
+            ).distinct().select_related('usuario').order_by('usuario__last_name', 'usuario__first_name')
             logger.debug(f"AgendaLegacyView context dentistas={context['dentistas'].count()}")
             return context
         except Exception:
