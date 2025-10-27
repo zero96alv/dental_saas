@@ -932,8 +932,8 @@ class BaseHorarioLaboralFormSet(BaseModelFormSet):
             if dt1 <= dt0:
                 raise ValidationError("La hora de fin debe ser posterior a la hora de inicio.")
             dur = (dt1 - dt0).seconds / 3600.0
-            if dur > 8.0:
-                raise ValidationError("Cada turno no debe exceder 8 horas.")
+            if dur > 9.0:
+                raise ValidationError("Cada turno no debe exceder 9 horas.")
             lista = by_day.setdefault(dia, [])
             # Verificar traslapes con existentes del mismo día
             for (e_hi, e_hf) in lista:
