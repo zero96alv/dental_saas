@@ -4435,11 +4435,12 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         from django.db.models import Sum, Count
 
-        queryset = self.get_queryset()
+        # Usar object_list que ya tiene los atributos dinámicos asignados
+        pacientes = context['object_list']
 
         # KPIs Generales
-        total_saldo = queryset.aggregate(total=Sum('saldo_global'))['total'] or 0
-        total_pacientes = queryset.count()
+        total_saldo = sum(p.saldo_global for p in pacientes)
+        total_pacientes = len(pacientes)
 
         context['total_saldo'] = total_saldo
         context['total_pacientes'] = total_pacientes
@@ -4452,7 +4453,7 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
         pacientes_31_60 = 0
         pacientes_61_mas = 0
 
-        for paciente in queryset:
+        for paciente in pacientes:
             if paciente.categoria_antiguedad == 'reciente':
                 saldo_0_30 += paciente.saldo_global
                 pacientes_0_30 += 1
