@@ -5086,14 +5086,25 @@ class GestionarHorarioView(TenantLoginRequiredMixin, TemplateView):
                 instance.dentista = dentista
                 instance.save()
             formset.save_m2m()
-            
+
             # Eliminar los marcados para eliminación
             for obj in formset.deleted_objects:
                 obj.delete()
-            
+
             messages.success(request, 'Horarios actualizados con éxito.')
+            logger.info(f"Horarios guardados exitosamente para dentista {dentista.nombre}")
         else:
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
+            # Mostrar errores específicos del formset
+            errores = []
+            for i, form in enumerate(formset):
+                if form.errors:
+                    errores.append(f"Fila {i+1}: {form.errors.as_text()}")
+            if formset.non_form_errors():
+                errores.append(f"Errores generales: {formset.non_form_errors().as_text()}")
+
+            error_msg = 'Errores en el formulario: ' + ' | '.join(errores) if errores else 'Por favor, corrige los errores en el formulario.'
+            messages.error(request, error_msg)
+            logger.error(f"Errores al guardar horarios para dentista {dentista_id}: {errores}")
         
         from django.http import HttpResponseRedirect
         tenant_prefix = getattr(request, 'tenant_prefix', '')
