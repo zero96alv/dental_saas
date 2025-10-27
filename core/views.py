@@ -4396,10 +4396,88 @@ class ReporteSaldosView(TenantLoginRequiredMixin, ListView):
     context_object_name = 'pacientes'
 
     def get_queryset(self):
+        from datetime import date, timedelta
+
         pacientes = models.Paciente.objects.all()
         for paciente in pacientes:
             paciente.actualizar_saldo_global()
-        return pacientes.filter(saldo_global__gt=0).select_related('usuario')
+
+        queryset = pacientes.filter(saldo_global__gt=0).select_related('usuario')
+
+        # Agregar última cita y calcular antigüedad para cada paciente
+        hoy = date.today()
+        for paciente in queryset:
+            ultima_cita = paciente.citas.order_by('-fecha_hora').first()
+            if ultima_cita:
+                dias_antiguedad = (hoy - ultima_cita.fecha_hora.date()).days
+                paciente.dias_antiguedad = dias_antiguedad
+                paciente.ultima_cita_fecha = ultima_cita.fecha_hora
+
+                # Categorizar por antigüedad
+                if dias_antiguedad <= 30:
+                    paciente.categoria_antiguedad = 'reciente'
+                    paciente.badge_class = 'success'
+                elif dias_antiguedad <= 60:
+                    paciente.categoria_antiguedad = 'media'
+                    paciente.badge_class = 'warning'
+                else:
+                    paciente.categoria_antiguedad = 'alta'
+                    paciente.badge_class = 'danger'
+            else:
+                paciente.dias_antiguedad = 0
+                paciente.ultima_cita_fecha = None
+                paciente.categoria_antiguedad = 'desconocida'
+                paciente.badge_class = 'secondary'
+
+        return queryset.order_by('-saldo_global')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import Sum, Count
+
+        queryset = self.get_queryset()
+
+        # KPIs Generales
+        total_saldo = queryset.aggregate(total=Sum('saldo_global'))['total'] or 0
+        total_pacientes = queryset.count()
+
+        context['total_saldo'] = total_saldo
+        context['total_pacientes'] = total_pacientes
+
+        # KPIs por Antigüedad
+        saldo_0_30 = 0
+        saldo_31_60 = 0
+        saldo_61_mas = 0
+        pacientes_0_30 = 0
+        pacientes_31_60 = 0
+        pacientes_61_mas = 0
+
+        for paciente in queryset:
+            if paciente.categoria_antiguedad == 'reciente':
+                saldo_0_30 += paciente.saldo_global
+                pacientes_0_30 += 1
+            elif paciente.categoria_antiguedad == 'media':
+                saldo_31_60 += paciente.saldo_global
+                pacientes_31_60 += 1
+            elif paciente.categoria_antiguedad == 'alta':
+                saldo_61_mas += paciente.saldo_global
+                pacientes_61_mas += 1
+
+        context['saldo_0_30'] = saldo_0_30
+        context['saldo_31_60'] = saldo_31_60
+        context['saldo_61_mas'] = saldo_61_mas
+        context['pacientes_0_30'] = pacientes_0_30
+        context['pacientes_31_60'] = pacientes_31_60
+        context['pacientes_61_mas'] = pacientes_61_mas
+
+        # Datos para gráfica apilada
+        context['datos_antiguedad'] = {
+            '0-30': {'saldo': float(saldo_0_30), 'pacientes': pacientes_0_30},
+            '31-60': {'saldo': float(saldo_31_60), 'pacientes': pacientes_31_60},
+            '>60': {'saldo': float(saldo_61_mas), 'pacientes': pacientes_61_mas}
+        }
+
+        return context
     
 class ReporteFacturacionView(TenantLoginRequiredMixin, ListView):
     model = models.Cita
