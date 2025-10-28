@@ -602,24 +602,22 @@ class UnidadDentalForm(forms.ModelForm):
 class CompraForm(forms.ModelForm):
     class Meta:
         model = models.Compra
-        fields = ['proveedor', 'tipo_compra', 'fecha_compra', 'estado', 'total', 'factura_adjunta', 'notas']
+        fields = ['proveedor', 'tipo_compra', 'fecha_compra', 'estado', 'factura_adjunta', 'notas']
         widgets = {
             'fecha_compra': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'notas': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'})
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['total'].widget.attrs['readonly'] = True
-        self.fields['total'].widget.attrs['class'] = 'form-control'
-        
+
         # Hacer proveedor opcional según el tipo
         self.fields['proveedor'].required = False
         self.fields['proveedor'].widget.attrs['class'] = 'form-select'
         self.fields['tipo_compra'].widget.attrs['class'] = 'form-select'
         self.fields['fecha_compra'].widget.attrs['class'] = 'form-control'
         self.fields['estado'].widget.attrs['class'] = 'form-select'
-        
+
         # Labels personalizados
         self.fields['proveedor'].help_text = "Opcional para compras internas o ajustes de inventario"
         self.fields['tipo_compra'].label = "Tipo de Movimiento"
@@ -636,15 +634,14 @@ class CompraForm(forms.ModelForm):
         return cleaned_data
 
 DetalleCompraFormSet = inlineformset_factory(
-    models.Compra, 
+    models.Compra,
     models.DetalleCompra,
-    fields=('insumo', 'cantidad', 'precio_unitario'),
+    fields=('insumo', 'cantidad'),
     extra=1,
     can_delete=True,
     widgets={
         'insumo': forms.Select(attrs={'class': 'form-select'}),
         'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
-        'precio_unitario': forms.NumberInput(attrs={'class': 'form-control'}),
     }
 )
 

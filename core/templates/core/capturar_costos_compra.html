@@ -1,0 +1,216 @@
+{% extends "core/base.html" %}
+{% load tenant_urls %}
+
+{% block title %}Capturar Costos de Compra{% endblock %}
+
+{% block extra_css %}
+<style>
+    .insumo-row {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #0d6efd;
+    }
+    .precio-input {
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+    .subtotal-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    .total-general {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-currency-dollar me-2"></i> Capturar Costos de Compra</h2>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Información de la Compra</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Fecha:</strong> {{ compra.fecha_compra|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Proveedor:</strong>
+                        {% if compra.proveedor %}
+                            {{ compra.proveedor.nombre }}
+                        {% else %}
+                            <span class="text-muted">Sin proveedor</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Tipo:</strong> {{ compra.get_tipo_compra_display }}</p>
+                    <p><strong>Estado:</strong> <span class="badge bg-success">{{ compra.get_estado_display }}</span></p>
+                </div>
+            </div>
+            {% if compra.notas %}
+            <div class="alert alert-info mt-3" role="alert">
+                <strong>Notas:</strong> {{ compra.notas }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="post" id="formCostos">
+        {% csrf_token %}
+
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Insumos de la Compra</h5>
+                <small class="text-muted">Ingrese el precio unitario de cada insumo según la factura</small>
+            </div>
+            <div class="card-body">
+                {% for detalle in detalles %}
+                <div class="insumo-row" data-detalle-id="{{ detalle.id }}">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <h6 class="mb-1">{{ detalle.insumo.nombre }}</h6>
+                            <small class="text-muted">{{ detalle.insumo.descripcion|truncatewords:10 }}</small>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted mb-0">Cantidad</label>
+                            <p class="mb-0">
+                                <strong>{{ detalle.cantidad }}</strong> {{ detalle.insumo.unidad_medida }}
+                            </p>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="precio_{{ detalle.id }}" class="form-label">
+                                Precio Unitario <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number"
+                                       class="form-control precio-input"
+                                       id="precio_{{ detalle.id }}"
+                                       name="precio_{{ detalle.id }}"
+                                       step="0.01"
+                                       min="0"
+                                       value="{{ detalle.precio_unitario|default:'' }}"
+                                       required
+                                       data-cantidad="{{ detalle.cantidad }}"
+                                       onchange="calcularSubtotal({{ detalle.id }})">
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <label class="form-label small text-muted mb-0">Subtotal</label>
+                            <p class="subtotal-display mb-0" id="subtotal_{{ detalle.id }}">$0.00</p>
+                        </div>
+                    </div>
+
+                    <!-- Mostrar lotes generados -->
+                    {% if detalle.lotes_generados.exists %}
+                    <div class="mt-2 pt-2 border-top">
+                        <small class="text-muted">
+                            <i class="bi bi-box-seam"></i> Lotes generados:
+                            {% for lote in detalle.lotes_generados.all %}
+                                {{ lote.cantidad }} en {{ lote.unidad_dental.nombre }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 offset-md-6">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                            <h4 class="mb-0">Total de la Compra:</h4>
+                            <h3 class="total-general mb-0" id="totalGeneral">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{% tenant_url 'core:compras_sin_costos' %}" class="btn btn-secondary">
+                <i class="bi bi-x-circle"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg" id="btnGuardar">
+                <i class="bi bi-check-circle-fill"></i> Guardar Costos
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Calcular subtotal de un detalle específico
+    function calcularSubtotal(detalleId) {
+        const precioInput = document.getElementById(`precio_${detalleId}`);
+        const subtotalDisplay = document.getElementById(`subtotal_${detalleId}`);
+        const cantidad = parseFloat(precioInput.dataset.cantidad);
+        const precio = parseFloat(precioInput.value) || 0;
+
+        const subtotal = cantidad * precio;
+        subtotalDisplay.textContent = `$${subtotal.toFixed(2)}`;
+
+        calcularTotalGeneral();
+    }
+
+    // Calcular total general de la compra
+    function calcularTotalGeneral() {
+        let total = 0;
+        document.querySelectorAll('.precio-input').forEach(input => {
+            const cantidad = parseFloat(input.dataset.cantidad);
+            const precio = parseFloat(input.value) || 0;
+            total += cantidad * precio;
+        });
+
+        document.getElementById('totalGeneral').textContent = `$${total.toFixed(2)}`;
+    }
+
+    // Calcular todos los subtotales al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        {% for detalle in detalles %}
+            {% if detalle.precio_unitario %}
+                calcularSubtotal({{ detalle.id }});
+            {% endif %}
+        {% endfor %}
+    });
+
+    // Validar formulario antes de enviar
+    document.getElementById('formCostos').addEventListener('submit', function(e) {
+        const precios = document.querySelectorAll('.precio-input');
+        let todosCompletos = true;
+
+        precios.forEach(input => {
+            if (!input.value || parseFloat(input.value) <= 0) {
+                todosCompletos = false;
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        if (!todosCompletos) {
+            e.preventDefault();
+            alert('Por favor, ingrese todos los precios unitarios con valores mayores a 0.');
+            return false;
+        }
+
+        // Confirmar antes de guardar
+        const total = document.getElementById('totalGeneral').textContent;
+        if (!confirm(`¿Está seguro de guardar los costos?\n\nTotal de la compra: ${total}\n\nEsta acción actualizará los costos de los lotes en inventario.`)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+</script>
+{% endblock %}

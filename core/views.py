@@ -3974,7 +3974,7 @@ class InsumoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessM
     template_name = 'core/insumo_form.html'
     fields = [
         'nombre', 'descripcion', 'proveedor', 'unidad_medida',
-        'unidad_empaque', 'cantidad_por_empaque', 'precio_unitario',
+        'unidad_empaque', 'cantidad_por_empaque',
         'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
     ]
     success_url = reverse_lazy('core:insumo_list')
@@ -3985,7 +3985,7 @@ class InsumoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessM
     template_name = 'core/insumo_form.html'
     fields = [
         'nombre', 'descripcion', 'proveedor', 'unidad_medida',
-        'unidad_empaque', 'cantidad_por_empaque', 'precio_unitario',
+        'unidad_empaque', 'cantidad_por_empaque',
         'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
     ]
     success_url = reverse_lazy('core:insumo_list')

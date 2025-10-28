@@ -1,0 +1,146 @@
+{% extends "core/base.html" %}
+{% load tenant_urls %}
+
+{% block title %}Compras sin Costos{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-cash-coin me-2"></i> Gestión de Costos - Compras Pendientes</h2>
+    </div>
+
+    {% if total_pendientes > 0 %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        Hay <strong>{{ total_pendientes }}</strong> compra{{ total_pendientes|pluralize }} recibida{{ total_pendientes|pluralize }} sin costos capturados.
+    </div>
+    {% else %}
+    <div class="alert alert-success" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        ¡Excelente! Todas las compras recibidas tienen costos capturados.
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Compras Recibidas sin Costos</h5>
+            <small class="text-muted">Capture los costos cuando llegue la factura del proveedor</small>
+        </div>
+        <div class="card-body">
+            {% if compras %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Proveedor</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Insumos</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col" class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for compra in compras %}
+                        <tr>
+                            <td>
+                                <strong>{{ compra.fecha_compra|date:"d/m/Y" }}</strong><br>
+                                <small class="text-muted">{{ compra.fecha_compra|date:"H:i" }}</small>
+                            </td>
+                            <td>
+                                {% if compra.proveedor %}
+                                    {{ compra.proveedor.nombre }}
+                                {% else %}
+                                    <span class="text-muted">Sin proveedor</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ compra.get_tipo_compra_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    {{ compra.detalles.count }} insumo{{ compra.detalles.count|pluralize }}
+                                </span>
+                                <br>
+                                <small class="text-muted">
+                                    {% for detalle in compra.detalles.all|slice:":2" %}
+                                        {{ detalle.insumo.nombre }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                    {% if compra.detalles.count > 2 %}...{% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">RECIBIDA</span>
+                                <span class="badge bg-warning text-dark">Sin Costos</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% tenant_url 'core:capturar_costos_compra' pk=compra.pk %}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-currency-dollar"></i> Capturar Costos
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <nav aria-label="Navegación de páginas">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="Primera">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Última">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="text-muted mt-3">No hay compras recibidas sin costos pendientes.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{% tenant_url 'core:compra_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Compras
+        </a>
+    </div>
+</div>
+{% endblock %}

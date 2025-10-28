@@ -72,6 +72,11 @@ from .views_laboratorio import (
     obtener_citas_paciente_api
 )
 
+# Importar vistas de gestión de costos (separado del inventario físico)
+from .views_costos import (
+    ComprasSinCostosView, CapturarCostosCompraView, ReporteValorInventarioView
+)
+
 
 app_name = 'core'
 
@@ -205,6 +210,11 @@ urlpatterns = [
     path('compras/<int:pk>/edit/', CompraUpdateView.as_view(), name='compra_edit'),
     path('compras/<int:pk>/delete/', CompraDeleteView.as_view(), name='compra_delete'),
     path('compras/<int:pk>/recibir/', RecibirCompraView.as_view(), name='compra_recibir'),
+
+    # Rutas de Gestión de Costos (módulo separado)
+    path('costos/compras-sin-costos/', ComprasSinCostosView.as_view(), name='compras_sin_costos'),
+    path('costos/compras/<int:pk>/capturar/', CapturarCostosCompraView.as_view(), name='capturar_costos_compra'),
+    path('costos/valor-inventario/', ReporteValorInventarioView.as_view(), name='reporte_valor_inventario'),
 
     # Rutas de COFEPRIS
     path('cofepris/', DashboardCofeprisView.as_view(), name='dashboard_cofepris'),

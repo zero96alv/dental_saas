@@ -379,7 +379,7 @@ class Insumo(models.Model):
     stock_minimo = models.PositiveIntegerField(default=10, help_text="Nivel de stock global para generar alertas.")
     requiere_lote_caducidad = models.BooleanField(default=False, help_text="Marcar si este insumo necesita seguimiento por lote y caducidad (COFEPRIS).")
     registro_sanitario = models.CharField(max_length=100, blank=True, null=True, help_text="Registro COFEPRIS del insumo, si aplica.")
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio unitario del insumo.")
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, blank=True, null=True, help_text="Precio de referencia (opcional). El costo real se captura en cada compra.")
     unidad_medida = models.CharField(max_length=50, blank=True, default='pieza', help_text="Unidad de medida individual (ej. pieza, litro, kg).")
 
     # Campos para manejo de empaques (cajas, paquetes, etc.)
@@ -408,8 +408,33 @@ class LoteInsumo(models.Model):
     fecha_caducidad = models.DateField(blank=True, null=True)
     fecha_recepcion = models.DateTimeField(auto_now_add=True)
 
+    # Campos de costeo
+    costo_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        blank=True,
+        null=True,
+        help_text="Costo de entrada desde la compra. Se captura cuando llega la factura."
+    )
+    detalle_compra = models.ForeignKey(
+        'DetalleCompra',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='lotes_generados',
+        help_text="Referencia al detalle de compra que originó este lote"
+    )
+
     def __str__(self):
         return f"{self.cantidad} de {self.insumo.nombre} (Lote: {self.numero_lote or 'N/A'}) en {self.unidad_dental.nombre}"
+
+    @property
+    def valor_total(self):
+        """Valor monetario del lote (cantidad × costo_unitario)"""
+        if self.costo_unitario:
+            return self.cantidad * self.costo_unitario
+        return 0
 
 class ServicioInsumo(models.Model):
     servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
@@ -488,10 +513,21 @@ class Compra(models.Model):
     
     fecha_compra = models.DateTimeField(default=timezone.now)
     estado = models.CharField(max_length=10, choices=ESTADOS_COMPRA, default='PENDIENTE')
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        blank=True,
+        null=True,
+        help_text="Se calcula al capturar los costos de la factura"
+    )
+    costos_capturados = models.BooleanField(
+        default=False,
+        help_text="Indica si ya se capturaron los costos de esta compra"
+    )
     factura_adjunta = models.FileField(upload_to='facturas/', blank=True, null=True)
     notas = models.TextField(blank=True)
-    
+
     def __str__(self):
         if self.proveedor:
             return f"Compra a {self.proveedor.nombre} - {self.fecha_compra.strftime('%d/%m/%Y')}"
@@ -501,7 +537,14 @@ class DetalleCompra(models.Model):
     compra = models.ForeignKey(Compra, on_delete=models.CASCADE, related_name='detalles')
     insumo = models.ForeignKey(Insumo, on_delete=models.PROTECT)
     cantidad = models.PositiveIntegerField()
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_unitario = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        blank=True,
+        null=True,
+        help_text="Se captura cuando llega la factura del proveedor"
+    )
 
     def __str__(self):
         return f"{self.cantidad} x {self.insumo.nombre} en {self.compra}"
