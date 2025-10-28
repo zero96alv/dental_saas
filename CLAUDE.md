@@ -197,10 +197,30 @@ Custom role-based permissions managed through:
 - Export to Excel and PDF
 
 ### Inventory Management
-- Suppliers with Mexican fiscal data
-- Products with minimum stock alerts
-- Purchase cycle: Create → Receive → Auto-update stock
-- Stock deduction on appointment completion
+**Arquitectura dual**: Inventario Físico (cantidades) + Gestión de Costos (financiero)
+
+#### Módulo de Inventario Físico
+- Proveedores con datos fiscales mexicanos
+- Insumos con alertas de stock mínimo
+- Control por lotes (número de lote, caducidad, COFEPRIS)
+- Distribución por unidades dentales
+- **Flujo**: Crear Compra (sin precios) → Recibir (distribuir) → Stock actualizado
+
+#### Módulo de Gestión de Costos (Separado)
+- **Vista**: `/costos/compras-sin-costos/` - Lista compras recibidas sin costos capturados
+- **Vista**: `/costos/compras/<pk>/capturar/` - Formulario para capturar precios de factura
+- **Vista**: `/costos/valor-inventario/` - Reporte de valor monetario del stock
+- **Campos clave**:
+  - `Compra.costos_capturados` (Boolean) - Track si ya se capturaron costos
+  - `LoteInsumo.costo_unitario` (Decimal) - Costo de entrada del lote
+  - `LoteInsumo.detalle_compra` (FK) - Trazabilidad a la compra original
+
+**Flujo operativo completo**:
+1. Personal de almacén recibe mercancía → Registra compra con cantidades (sin precios)
+2. Personal distribuye en unidades dentales → Stock actualizado inmediatamente
+3. Días después llega factura → Administración captura costos en `/costos/`
+4. Sistema actualiza: `Compra.total`, `LoteInsumo.costo_unitario` de lotes generados
+5. Reportes financieros muestran valor real del inventario
 
 ## Important Patterns and Conventions
 
@@ -619,6 +639,20 @@ connection.set_tenant(tenant)
 ---
 
 ## Changelog Principal
+
+### 2025-10-28
+- ✅ **[FEATURE]** Separación de Inventario Físico y Gestión de Costos
+- ✅ Precios opcionales en Insumo, DetalleCompra y Compra
+- ✅ Nuevo campo `Compra.costos_capturados` para tracking
+- ✅ Nuevo campo `LoteInsumo.costo_unitario` para rastrear costo por lote
+- ✅ Nuevo campo `LoteInsumo.detalle_compra` para trazabilidad
+- ✅ Nuevo módulo `core/views_costos.py` con:
+  - `ComprasSinCostosView`: Lista compras recibidas sin costos capturados
+  - `CapturarCostosCompraView`: Formulario para capturar costos cuando llega la factura
+  - `ReporteValorInventarioView`: Reporte de valor monetario del inventario actual
+- ✅ Nuevos templates: `compras_sin_costos.html`, `capturar_costos_compra.html`, `reporte_valor_inventario.html`
+- ✅ Nuevas rutas en `/costos/` para el módulo de gestión financiera
+- ✅ Migración `0038_separar_inventario_y_costos.py` aplicada al schema dev
 
 ### 2025-10-25
 - ✅ **[CRÍTICO]** Corregidos 26 redirects que perdían tenant context
