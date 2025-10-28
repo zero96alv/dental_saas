@@ -61,12 +61,7 @@ Reemplaza el menú hardcodeado por uno que se adapta a los permisos del usuario.
                 </li>
             {% endif %}
             
-            {% if not forloop.last %}
-                <!-- Separador visual entre grupos principales -->
-                {% if modulo.nombre in 'Finanzas,Administración,Reportes' %}
-                    <li class="nav-separator d-none d-lg-block"></li>
-                {% endif %}
-            {% endif %}
+            {# Separador visual deshabilitado temporalmente para evitar espacios extraños #}
         {% endwith %}
     {% endfor %}
 
@@ -88,7 +83,20 @@ Reemplaza el menú hardcodeado por uno que se adapta a los permisos del usuario.
             </ul>
         </li>
     {% endif %}
-    
+
+    <!-- Módulo de Gestión de Costos (solo Administradores y Recepcionistas) -->
+    {% if user|has_group:'Administrador,Recepcionista' %}
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="costosDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Gestión de Costos" data-bs-toggle="tooltip" data-bs-placement="bottom">
+                <i class="bi bi-currency-dollar me-2"></i><span class="nav-text">Costos</span>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="costosDropdown">
+                <li><a class="dropdown-item" href="{% tenant_url 'core:compras_sin_costos' %}"><i class="bi bi-exclamation-triangle me-2"></i>Compras sin Costos</a></li>
+                <li><a class="dropdown-item" href="{% tenant_url 'core:reporte_valor_inventario' %}"><i class="bi bi-box-seam me-2"></i>Valor del Inventario</a></li>
+            </ul>
+        </li>
+    {% endif %}
+
     <!-- Accesos rápidos siempre visibles por rol -->
     {% if user|has_group:'Administrador,Recepcionista,Dentista' %}
         <li class="nav-item dropdown">
@@ -105,12 +113,6 @@ Reemplaza el menú hardcodeado por uno que se adapta a los permisos del usuario.
                     <li><a class="dropdown-item" href="{% tenant_url 'core:dashboard_financiero' %}"><i class="fas fa-chart-line me-2"></i>Dashboard Financiero</a></li>
                     <li><a class="dropdown-item" href="{% tenant_url 'core:pago_list' %}"><i class="bi bi-cash-coin me-2"></i>Gestión de Pagos</a></li>
                     <li><a class="dropdown-item" href="{% tenant_url 'core:reporte_ingresos' %}"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ingresos</a></li>
-                {% endif %}
-                {% if user|has_group:'Administrador' %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li class="dropdown-header"><i class="bi bi-currency-dollar me-2"></i>Gestión de Costos</li>
-                    <li><a class="dropdown-item" href="{% tenant_url 'core:compras_sin_costos' %}"><i class="bi bi-exclamation-triangle me-2"></i>Compras sin Costos</a></li>
-                    <li><a class="dropdown-item" href="{% tenant_url 'core:reporte_valor_inventario' %}"><i class="bi bi-box-seam me-2"></i>Valor del Inventario</a></li>
                 {% endif %}
             </ul>
         </li>
