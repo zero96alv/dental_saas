@@ -40,7 +40,13 @@
                                     {{ compra.get_estado_display }}
                                 </span>
                             </td>
-                            <td>${{ compra.total|floatformat:2 }}</td>
+                            <td>
+                                {% if compra.costos_capturados %}
+                                    <strong>${{ compra.total|floatformat:2 }}</strong>
+                                {% else %}
+                                    <span class="text-muted">Sin costos</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if compra.factura_adjunta %}
                                     <a href="{{ compra.factura_adjunta.url }}" target="_blank" class="btn btn-sm btn-secondary">

@@ -32,10 +32,9 @@
                         <div id="detalle-formset">
                             {% for form in formset %}
                                 <div class="row detalle-form mb-3">
-                                    <div class="col-md-5">{{ form.insumo|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.cantidad|as_crispy_field }}</div>
-                                    <div class="col-md-3">{{ form.precio_unitario|as_crispy_field }}</div>
-                                    <div class="col-md-1 d-flex align-items-end">
+                                    <div class="col-md-6">{{ form.insumo|as_crispy_field }}</div>
+                                    <div class="col-md-4">{{ form.cantidad|as_crispy_field }}</div>
+                                    <div class="col-md-2 d-flex align-items-end">
                                         {% if form.instance.pk %}
                                             {{ form.DELETE }}
                                             <label for="{{ form.DELETE.id_for_label }}" class="btn btn-danger">Eliminar</label>
@@ -62,10 +61,9 @@
 
     <!-- Plantilla para nuevos formularios de detalle -->
     <div id="empty-form" class="row detalle-form mb-3" style="display: none;">
-        <div class="col-md-5">{{ formset.empty_form.insumo|as_crispy_field }}</div>
-        <div class="col-md-3">{{ formset.empty_form.cantidad|as_crispy_field }}</div>
-        <div class="col-md-3">{{ formset.empty_form.precio_unitario|as_crispy_field }}</div>
-        <div class="col-md-1 d-flex align-items-end">
+        <div class="col-md-6">{{ formset.empty_form.insumo|as_crispy_field }}</div>
+        <div class="col-md-4">{{ formset.empty_form.cantidad|as_crispy_field }}</div>
+        <div class="col-md-2 d-flex align-items-end">
             <button type="button" class="btn btn-danger remove-form">Eliminar</button>
         </div>
     </div>
@@ -79,24 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addButton = document.getElementById('add-form');
     const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
     const totalForms = document.getElementById('id_detalles-TOTAL_FORMS');
-    const totalField = document.getElementById('id_total');
     let formNum = {{ formset.total_form_count }};
-
-    function updateTotal() {
-        let total = 0;
-        document.querySelectorAll('.detalle-form').forEach(function(form) {
-            const cantidadInput = form.querySelector('input[name$="-cantidad"]');
-            const precioInput = form.querySelector('input[name$="-precio_unitario"]');
-            const deleteInput = form.querySelector('input[name$="-DELETE"]');
-
-            if (cantidadInput && precioInput && (!deleteInput || !deleteInput.checked)) {
-                const cantidad = parseFloat(cantidadInput.value) || 0;
-                const precio = parseFloat(precioInput.value) || 0;
-                total += cantidad * precio;
-            }
-        });
-        totalField.value = total.toFixed(2);
-    }
 
     addButton.addEventListener('click', function() {
         const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formNum);
@@ -106,27 +87,11 @@ document.addEventListener('DOMContentLoaded', function() {
         totalForms.value = ++formNum;
     });
 
-    formsetContainer.addEventListener('input', function(e) {
-        if (e.target && (e.target.name.endsWith('-cantidad') || e.target.name.endsWith('-precio_unitario'))) {
-            updateTotal();
-        }
-    });
-
-    formsetContainer.addEventListener('change', function(e) {
-        if (e.target && e.target.name.endsWith('-DELETE')) {
-            updateTotal();
-        }
-    });
-    
     formsetContainer.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('remove-form')) {
             e.target.closest('.detalle-form').remove();
-            updateTotal();
         }
     });
-
-    // Calcular total inicial al cargar la página
-    updateTotal();
 });
 </script>
 {% endblock %}
