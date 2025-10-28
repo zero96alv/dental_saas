@@ -106,6 +106,12 @@ Reemplaza el menú hardcodeado por uno que se adapta a los permisos del usuario.
                     <li><a class="dropdown-item" href="{% tenant_url 'core:pago_list' %}"><i class="bi bi-cash-coin me-2"></i>Gestión de Pagos</a></li>
                     <li><a class="dropdown-item" href="{% tenant_url 'core:reporte_ingresos' %}"><i class="bi bi-graph-up-arrow me-2"></i>Reporte de Ingresos</a></li>
                 {% endif %}
+                {% if user|has_group:'Administrador' %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="dropdown-header"><i class="bi bi-currency-dollar me-2"></i>Gestión de Costos</li>
+                    <li><a class="dropdown-item" href="{% tenant_url 'core:compras_sin_costos' %}"><i class="bi bi-exclamation-triangle me-2"></i>Compras sin Costos</a></li>
+                    <li><a class="dropdown-item" href="{% tenant_url 'core:reporte_valor_inventario' %}"><i class="bi bi-box-seam me-2"></i>Valor del Inventario</a></li>
+                {% endif %}
             </ul>
         </li>
     {% endif %}
