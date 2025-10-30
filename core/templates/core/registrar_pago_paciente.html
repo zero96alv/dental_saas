@@ -98,6 +98,15 @@
             <form method="POST">
                 {% csrf_token %}
                 {{ form|crispy }}
+
+                <!-- Indicador de cambio -->
+                <div id="cambioIndicador" class="alert alert-success mt-2" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-cash-stack me-2"></i><strong>Cambio a devolver:</strong></span>
+                        <span class="fs-5 fw-bold" id="cambioMonto">$0.00</span>
+                    </div>
+                </div>
+
                 <div class="d-flex gap-2 mt-3">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-1"></i> Procesar Pago
@@ -110,4 +119,63 @@
         </div>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    // Manejo de cambio para pagos en efectivo
+    const metodoPagoField = document.getElementById('id_metodo_pago');
+    const montoField = document.getElementById('id_monto');
+    const montoRecibidoField = document.getElementById('id_monto_recibido');
+    const cambioIndicador = document.getElementById('cambioIndicador');
+    const cambioMonto = document.getElementById('cambioMonto');
+    const montoRecibidoWrapper = montoRecibidoField ? montoRecibidoField.closest('.mb-3') : null;
+
+    function toggleMontoRecibido() {
+      if (!metodoPagoField || !montoRecibidoWrapper) return;
+
+      const esEfectivo = metodoPagoField.value === 'Efectivo';
+
+      if (esEfectivo) {
+        montoRecibidoWrapper.style.display = '';
+      } else {
+        montoRecibidoWrapper.style.display = 'none';
+        if (montoRecibidoField) montoRecibidoField.value = '';
+        cambioIndicador.style.display = 'none';
+      }
+    }
+
+    function calcularCambio() {
+      if (!montoField || !montoRecibidoField || !metodoPagoField) return;
+
+      const esEfectivo = metodoPagoField.value === 'Efectivo';
+      const monto = parseFloat(montoField.value) || 0;
+      const montoRecibido = parseFloat(montoRecibidoField.value) || 0;
+
+      if (esEfectivo && montoRecibido > 0 && montoRecibido >= monto) {
+        const cambio = montoRecibido - monto;
+        cambioMonto.textContent = '$' + cambio.toFixed(2);
+        cambioIndicador.style.display = '';
+      } else {
+        cambioIndicador.style.display = 'none';
+      }
+    }
+
+    if (metodoPagoField) {
+      metodoPagoField.addEventListener('change', function() {
+        toggleMontoRecibido();
+        calcularCambio();
+      });
+      toggleMontoRecibido(); // Inicializar al cargar
+    }
+
+    if (montoRecibidoField) {
+      montoRecibidoField.addEventListener('input', calcularCambio);
+    }
+
+    if (montoField) {
+      montoField.addEventListener('input', calcularCambio);
+    }
+  });
+</script>
+
 {% endblock %}

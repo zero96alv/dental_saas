@@ -506,7 +506,7 @@
                                 <label for="id_fecha_cita" class="form-label requiredField">
                                     <i class="fas fa-calendar"></i> Fecha de la Cita
                                 </label>
-                                <input type="date" id="id_fecha_cita" class="form-control" required>
+                                <input type="date" id="id_fecha_cita" name="fecha_cita" class="form-control">
                                 <small class="text-muted">Seleccione una fecha o haga clic en el calendario</small>
                             </div>
                             
@@ -569,21 +569,67 @@
                                     {{ cita_form.unidad_dental|as_crispy_field }}
                                     <div class="mb-3">
                                         <label for="id_hora" class="form-label">Hora</label>
-                                        <select id="id_hora" class="form-select" required>
+                                        <select id="id_hora" name="hora" class="form-select">
                                             <option value="">Primero seleccione un dentista</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
+                                    <!-- Buscador de Servicios -->
+                                    <div class="mb-2">
+                                        <label class="form-label">
+                                            <i class="fas fa-tooth me-1"></i> Servicios
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text"
+                                                   id="search-servicios"
+                                                   class="form-control"
+                                                   placeholder="Buscar servicio..."
+                                                   autocomplete="off">
+                                        </div>
+                                    </div>
+
+                                    <!-- Servicios Disponibles (Lista Clickeable) -->
                                     <div class="mb-3">
-                                        <label for="id_servicios_planeados" class="form-label">Añadir Servicios</label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <small class="text-muted">Disponibles</small>
+                                            <small class="text-muted" id="disponibles-count">0</small>
+                                        </div>
+                                        <div id="servicios-disponibles-list"
+                                             class="border rounded bg-light"
+                                             style="height: 120px; overflow-y: auto;">
+                                            <!-- Se llenará dinámicamente con JavaScript -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Servicios Seleccionados -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <small class="text-success fw-bold">
+                                                <i class="fas fa-check-circle me-1"></i>Seleccionados
+                                            </small>
+                                            <span class="badge bg-success" id="servicios-count">0</span>
+                                        </div>
+                                        <div id="lista-servicios-seleccionados"
+                                             class="border rounded bg-white"
+                                             style="min-height: 80px; max-height: 140px; overflow-y: auto;">
+                                            <div class="text-muted text-center py-3" id="empty-servicios-msg">
+                                                <i class="fas fa-arrow-up mb-1"></i>
+                                                <div><small>Click en servicios arriba para agregar</small></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Select oculto para envío de formulario (colocado fuera del div visible) -->
+                                    <div style="display: none;">
                                         {{ cita_form.servicios_planeados }}
                                     </div>
-                                    <h6>Servicios Seleccionados</h6>
-                                    <ul id="lista-servicios-seleccionados" class="list-group mb-3" style="min-height: 80px; max-height: 120px; overflow-y: auto;"></ul>
+
                                     {{ cita_form.motivo|as_crispy_field }}
                                     {{ cita_form.notas|as_crispy_field }}
-                                    <input type="hidden" id="id_servicios_seleccionados_hidden">
                                 </div>
                             </div>
                         </div>
@@ -620,11 +666,11 @@
                                     <input class="form-control" name="apellido" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" name="email" required>
+                                    <label class="form-label">Email <small class="text-muted">(opcional)</small></label>
+                                    <input type="email" class="form-control" name="email" placeholder="correo@ejemplo.com">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Teléfono</label>
+                                    <label class="form-label">Teléfono <small class="text-muted">(opcional)</small></label>
                                     <input class="form-control" name="telefono" placeholder="55 1234 5678">
                                 </div>
                                 <div class="col-md-6">
@@ -732,30 +778,201 @@ function ocultarLoading() {
             // Configurar selects nativos (sin Select2 para mayor compatibilidad)
             // Los selects ya funcionan nativamente
 
-            // Lógica de servicios con select multiple mejorado
-            function updateServiciosList() {
-                listaServiciosSeleccionados.empty();
-                
-                // Buscar todas las opciones seleccionadas en el select multiple
-                $('#id_servicios_planeados option:selected').each(function() {
+            // ========================================
+            // NUEVO SELECTOR DE SERVICIOS CON BÚSQUEDA
+            // ========================================
+            var serviciosDisponiblesList = $('#servicios-disponibles-list');
+            var listaServiciosSeleccionados = $('#lista-servicios-seleccionados');
+            var searchServiciosInput = $('#search-servicios');
+            var selectedServiciosIds = []; // Array para guardar IDs de servicios seleccionados
+            var allServicios = []; // Cache de todos los servicios
+
+            // Cargar todos los servicios al inicio
+            function loadAllServicios() {
+                allServicios = [];
+                serviciosSelect.find('option').each(function() {
                     const option = $(this);
                     const servicioId = option.val();
-                    const servicioLabel = option.text().trim();
-                    
-                    const li = $('<li class="list-group-item list-group-item-sm py-1 px-2 d-flex justify-content-between align-items-center">');
-                    li.html('<span><i class="fas fa-check-circle text-success me-2"></i>' + servicioLabel + '</span>');
-                    li.attr('data-service-id', servicioId);
-                    listaServiciosSeleccionados.append(li);
+                    const servicioNombre = option.text().trim();
+
+                    if (servicioId) {
+                        allServicios.push({
+                            id: servicioId,
+                            nombre: servicioNombre
+                        });
+                    }
                 });
-                
-                console.log('Servicios actualizados:', listaServiciosSeleccionados.find('li').length);
             }
 
-            // Detectar cambios en el select de servicios
-            serviciosSelect.on('change', function() {
-                console.log('Servicios changed');
-                updateServiciosList();
+            // Función para renderizar servicios disponibles (NO seleccionados)
+            function renderServiciosDisponibles(searchTerm = '') {
+                serviciosDisponiblesList.empty();
+
+                const searchLower = searchTerm.toLowerCase();
+                let disponiblesCount = 0;
+
+                allServicios.forEach(function(servicio) {
+                    // Filtrar: solo mostrar NO seleccionados y que coincidan con búsqueda
+                    if (selectedServiciosIds.includes(servicio.id)) {
+                        return; // Ya está seleccionado, no mostrar
+                    }
+
+                    if (searchTerm && !servicio.nombre.toLowerCase().includes(searchLower)) {
+                        return; // No coincide con búsqueda
+                    }
+
+                    disponiblesCount++;
+
+                    const itemDiv = $('<div class="servicio-disponible-item"></div>');
+                    itemDiv.attr('data-servicio-id', servicio.id);
+                    itemDiv.css({
+                        'padding': '8px 12px',
+                        'border-bottom': '1px solid #e9ecef',
+                        'cursor': 'pointer',
+                        'display': 'block',
+                        'transition': 'background-color 0.2s'
+                    });
+                    itemDiv.html(
+                        '<i class="fas fa-plus-circle text-primary me-2"></i>' +
+                        '<span style="font-size: 0.9rem;">' + servicio.nombre + '</span>'
+                    );
+
+                    itemDiv.hover(
+                        function() { $(this).css('background-color', '#d1ecf1'); },
+                        function() { $(this).css('background-color', 'transparent'); }
+                    );
+
+                    serviciosDisponiblesList.append(itemDiv);
+                });
+
+                // Actualizar contador de disponibles
+                $('#disponibles-count').text(disponiblesCount);
+
+                if (disponiblesCount === 0) {
+                    const emptyMsg = $('<div></div>');
+                    emptyMsg.css({
+                        'padding': '20px',
+                        'text-align': 'center',
+                        'color': '#6c757d',
+                        'font-size': '0.85rem'
+                    });
+
+                    if (searchTerm) {
+                        emptyMsg.html('<i class="fas fa-search mb-1"></i><br>No se encontraron servicios');
+                    } else if (selectedServiciosIds.length === allServicios.length) {
+                        emptyMsg.css('color', '#28a745');
+                        emptyMsg.html('<i class="fas fa-check-circle mb-1"></i><br>Todos seleccionados');
+                    } else {
+                        emptyMsg.html('No hay servicios disponibles');
+                    }
+
+                    serviciosDisponiblesList.append(emptyMsg);
+                }
+            }
+
+            // Búsqueda de servicios
+            searchServiciosInput.on('input', function() {
+                const searchTerm = $(this).val();
+                renderServiciosDisponibles(searchTerm);
             });
+
+            // Click en servicio disponible para agregarlo
+            serviciosDisponiblesList.on('click', '.servicio-disponible-item', function() {
+                const servicioId = String($(this).data('servicio-id')); // Convertir a string
+                addServicio(servicioId);
+            });
+
+            // Función para agregar un servicio
+            function addServicio(servicioId) {
+                servicioId = String(servicioId); // Asegurar que es string
+                if (!selectedServiciosIds.includes(servicioId)) {
+                    selectedServiciosIds.push(servicioId);
+                    updateServiciosList();
+                    renderServiciosDisponibles(searchServiciosInput.val());
+                }
+            }
+
+            // Función para remover un servicio
+            function removeServicio(servicioId) {
+                servicioId = String(servicioId); // Asegurar que es string
+                const index = selectedServiciosIds.indexOf(servicioId);
+                if (index > -1) {
+                    selectedServiciosIds.splice(index, 1);
+                    updateServiciosList();
+                    renderServiciosDisponibles(searchServiciosInput.val());
+                }
+            }
+
+            // Lógica de servicios con select multiple mejorado
+            function updateServiciosList() {
+                // Actualizar contador
+                $('#servicios-count').text(selectedServiciosIds.length);
+
+                // Actualizar el select oculto para envío del formulario
+                serviciosSelect.val(selectedServiciosIds);
+
+                // Limpiar lista
+                listaServiciosSeleccionados.empty();
+
+                if (selectedServiciosIds.length === 0) {
+                    // Mostrar mensaje de placeholder
+                    const emptyMsg = $('<div id="empty-servicios-msg"></div>');
+                    emptyMsg.css({
+                        'padding': '20px',
+                        'text-align': 'center',
+                        'color': '#6c757d',
+                        'font-size': '0.85rem'
+                    });
+                    emptyMsg.html(
+                        '<i class="fas fa-arrow-up mb-2" style="font-size: 1.5rem; display: block;"></i>' +
+                        'Click en servicios arriba para agregar'
+                    );
+                    listaServiciosSeleccionados.append(emptyMsg);
+                } else {
+                    // Renderizar servicios seleccionados
+                    selectedServiciosIds.forEach(function(servicioId) {
+                        const servicio = allServicios.find(s => s.id === servicioId);
+
+                        if (!servicio) {
+                            console.warn('Servicio no encontrado:', servicioId);
+                            return;
+                        }
+
+                        // Crear item con botón para remover
+                        const itemDiv = $('<div class="servicio-seleccionado-item"></div>');
+                        itemDiv.css({
+                            'padding': '8px 12px',
+                            'border-bottom': '1px solid #e9ecef',
+                            'display': 'flex',
+                            'justify-content': 'space-between',
+                            'align-items': 'center',
+                            'background-color': '#ffffff'
+                        });
+                        itemDiv.html(
+                            '<span style="font-size: 0.9rem;">' +
+                            '<i class="fas fa-check-circle text-success me-2"></i>' +
+                            servicio.nombre +
+                            '</span>' +
+                            '<button type="button" class="btn btn-sm btn-danger remove-servicio-btn" data-servicio-id="' + servicioId + '" title="Quitar servicio">' +
+                            '<i class="fas fa-times"></i>' +
+                            '</button>'
+                        );
+                        itemDiv.attr('data-service-id', servicioId);
+                        listaServiciosSeleccionados.append(itemDiv);
+                    });
+                }
+            }
+
+            // Remover servicio al hacer clic en la X
+            listaServiciosSeleccionados.on('click', '.remove-servicio-btn', function(e) {
+                e.preventDefault();
+                const servicioId = $(this).data('servicio-id');
+                removeServicio(servicioId);
+            });
+
+            // NO inicializar aquí - se hará al abrir el modal
+            // loadAllServicios();
+            // renderServiciosDisponibles();
 
             // ========================================
             // NUEVO SELECTOR INTELIGENTE DE PACIENTES
@@ -1198,9 +1415,15 @@ function ocultarLoading() {
                 unidadDentalSelect.val('');
                 horaSelect.empty().append('<option value="">Primero seleccione fecha y dentista</option>').prop('disabled', true);
 
-                // Limpiar servicios (deseleccionar todas las opciones)
-                serviciosSelect.val([]);
-                listaServiciosSeleccionados.empty();
+                // Limpiar servicios y buscador
+                selectedServiciosIds = [];
+                searchServiciosInput.val('');
+
+                // Recargar servicios desde el select actual
+                loadAllServicios();
+
+                updateServiciosList();
+                renderServiciosDisponibles();
 
                 statusIndicator.hide();
                 $('#editarCitaBtn').hide();
@@ -1358,7 +1581,12 @@ function ocultarLoading() {
                 console.log('  Dentista ID:', dentistaId);
                 console.log('  Selected Date:', selectedDate);
                 console.log('  Form dataset:', citaForm.dataset);
-                
+
+                // Recargar servicios (pueden cambiar según el dentista)
+                console.log('  -> Reloading services for dentista:', dentistaId);
+                loadAllServicios();
+                renderServiciosDisponibles(searchServiciosInput.val());
+
                 if (dentistaId && selectedDate) {
                     console.log('  -> Loading hours for', dentistaId, 'on', selectedDate);
                     horaSelect.prop('disabled', false);
@@ -1445,25 +1673,40 @@ function ocultarLoading() {
             });
             
             function submitAppointmentForm() {
+                // Validación personalizada antes de enviar
+                const selectedDate = citaForm.dataset.selectedDate;
+                const selectedTime = horaSelect.val();
+                const selectedPaciente = $('#id_paciente').val();
+
+                // Validar campos obligatorios
+                if (!selectedPaciente) {
+                    Toastify({ text: 'Por favor seleccione un paciente', duration: 3000, className: 'error' }).showToast();
+                    return;
+                }
+
+                if (!selectedDate) {
+                    Toastify({ text: 'Por favor seleccione una fecha desde el calendario', duration: 3000, className: 'error' }).showToast();
+                    return;
+                }
+
+                if (!selectedTime) {
+                    Toastify({ text: 'Por favor seleccione una hora', duration: 3000, className: 'error' }).showToast();
+                    return;
+                }
+
+                if (selectedServiciosIds.length === 0) {
+                    Toastify({ text: 'Por favor seleccione al menos un servicio', duration: 3000, className: 'error' }).showToast();
+                    return;
+                }
+
                 const formData = new FormData(citaForm);
                 const url = currentCitaId ? '/citas/' + currentCitaId + '/update/' : '{% tenant_url "core:cita_create" %}';
                 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
+
                 formData.append('csrfmiddlewaretoken', csrftoken);
-                
-                const selectedDate = citaForm.dataset.selectedDate;
-                const selectedTime = horaSelect.val();
-                if (selectedDate && selectedTime) {
-                    const localDateTime = selectedDate + 'T' + selectedTime + ':00';
-                    formData.append('fecha_hora', localDateTime);
-                } else {
-                    console.error('Missing date or time:', { selectedDate, selectedTime });
-                }
-                
-                // Los servicios ya vienen en formData desde los checkboxes
-                // Solo verificar que haya al menos uno seleccionado
-                const serviciosChecked = $('#id_servicios_planeados input[type="checkbox"]:checked').length;
-                console.log('Servicios seleccionados:', serviciosChecked);
+
+                const localDateTime = selectedDate + 'T' + selectedTime + ':00';
+                formData.append('fecha_hora', localDateTime);
 
                 $.ajax({
                     url: url,
@@ -1482,9 +1725,20 @@ function ocultarLoading() {
                         }
                     },
                     error: function(xhr) {
+                        console.error('Error al guardar cita:', xhr.status, xhr.responseJSON);
+
                         if (xhr.status === 403) {
                             Toastify({ text: 'Su sesión ha expirado. Redirigiendo...', duration: 3000, className: 'error' }).showToast();
                             setTimeout(function() { window.location.href = "{% tenant_url 'login' %}?next=" + encodeURIComponent(window.location.pathname); }, 2000);
+                        } else if (xhr.status === 400 && xhr.responseJSON) {
+                            // Error de validación - mostrar errores específicos
+                            if (xhr.responseJSON.errors) {
+                                showFormErrors(xhr.responseJSON.errors);
+                            } else if (xhr.responseJSON.error) {
+                                Toastify({ text: xhr.responseJSON.error, duration: 5000, className: 'error' }).showToast();
+                            } else {
+                                Toastify({ text: 'Error de validación. Revisa los datos ingresados.', duration: 5000, className: 'error' }).showToast();
+                            }
                         } else {
                             Toastify({ text: 'Error de comunicación con el servidor.', duration: 3000, className: 'error' }).showToast();
                         }

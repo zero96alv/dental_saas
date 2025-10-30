@@ -30,7 +30,7 @@ class Paciente(PersonaBase):
         blank=True, 
         related_name='paciente_perfil'
     )
-    fecha_nacimiento = models.DateField()
+    fecha_nacimiento = models.DateField(blank=True, null=True, help_text="Fecha de nacimiento del paciente")
     # Dirección estructurada
     calle = models.CharField(max_length=150, blank=True, null=True)
     numero_exterior = models.CharField(max_length=20, blank=True, null=True)
@@ -286,6 +286,21 @@ class Pago(models.Model):
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_pago = models.DateTimeField(auto_now_add=True)
     metodo_pago = models.CharField(max_length=50, default='Efectivo')
+    # Campos para manejo de cambio en efectivo
+    monto_recibido = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Monto en efectivo recibido del cliente (solo para pagos en efectivo)"
+    )
+    cambio_devuelto = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Cambio devuelto al cliente"
+    )
     # Nuevos campos para facturación SAT
     forma_pago_sat = models.ForeignKey('SatFormaPago', on_delete=models.SET_NULL, null=True, blank=True)
     metodo_sat = models.ForeignKey('SatMetodoPago', on_delete=models.SET_NULL, null=True, blank=True)

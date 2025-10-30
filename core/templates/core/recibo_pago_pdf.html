@@ -45,6 +45,16 @@
                     <td class="text-end"><strong>Monto Pagado:</strong></td>
                     <td class="text-end">${{ pago.monto|floatformat:2 }}</td>
                 </tr>
+                {% if pago.monto_recibido %}
+                <tr>
+                    <td class="text-end"><strong>Monto Recibido:</strong></td>
+                    <td class="text-end">${{ pago.monto_recibido|floatformat:2 }}</td>
+                </tr>
+                <tr style="background-color: #fffacd;">
+                    <td class="text-end"><strong>Cambio Devuelto:</strong></td>
+                    <td class="text-end">${{ pago.cambio_devuelto|floatformat:2 }}</td>
+                </tr>
+                {% endif %}
                 <tr>
                     <td class="text-end"><strong>Saldo Restante:</strong></td>
                     <td class="text-end">${{ pago.cita.saldo_pendiente|floatformat:2 }}</td>

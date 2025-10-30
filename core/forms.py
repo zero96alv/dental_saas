@@ -473,11 +473,17 @@ class PagoForm(forms.ModelForm):
 
     class Meta:
         model = models.Pago
-        fields = ['paciente', 'cita', 'monto', 'metodo_pago']
+        fields = ['paciente', 'cita', 'monto', 'metodo_pago', 'monto_recibido']
         widgets = {
             'cita': forms.HiddenInput(),  # La cita se pasa por URL
-            'monto': forms.NumberInput(attrs={'class': 'form-control'}),
-            'metodo_pago': forms.Select(attrs={'class': 'form-select'}),
+            'monto': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'id': 'id_monto'}),
+            'metodo_pago': forms.Select(attrs={'class': 'form-select', 'id': 'id_metodo_pago'}),
+            'monto_recibido': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'id': 'id_monto_recibido',
+                'placeholder': 'Ej: 500.00'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -543,6 +549,12 @@ class PagoForm(forms.ModelForm):
             # Opción 1: eliminar el campo para que no se muestre ni valide
             self.fields.pop('desea_factura')
 
+        # Configurar campo monto_recibido para pagos en efectivo
+        if 'monto_recibido' in self.fields:
+            self.fields['monto_recibido'].required = False
+            self.fields['monto_recibido'].label = 'Monto recibido del cliente'
+            self.fields['monto_recibido'].help_text = 'Solo para pagos en efectivo. El cambio se calculará automáticamente.'
+
     def clean(self):
         cleaned_data = super().clean()
         monto = cleaned_data.get('monto')
@@ -570,7 +582,17 @@ class PagoForm(forms.ModelForm):
                 raise forms.ValidationError(
                     f"El monto del pago (${monto:.2f}) excede el saldo pendiente del paciente (${saldo_actual:.2f})."
                 )
-        
+
+        # Validar monto_recibido para pagos en efectivo
+        metodo_pago = cleaned_data.get('metodo_pago')
+        monto_recibido = cleaned_data.get('monto_recibido')
+
+        if metodo_pago == 'Efectivo' and monto_recibido is not None:
+            if monto_recibido < monto:
+                raise forms.ValidationError(
+                    f"El monto recibido (${monto_recibido:.2f}) no puede ser menor que el monto a cobrar (${monto:.2f})."
+                )
+
         return cleaned_data
 
     def save(self, commit=True):

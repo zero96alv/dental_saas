@@ -84,6 +84,16 @@
                         <th class="text-end">Monto de Este Recibo:</th>
                         <th class="text-end fw-bold">${{ pago.monto|floatformat:2 }}</th>
                     </tr>
+                    {% if pago.monto_recibido %}
+                    <tr class="table-info">
+                        <td class="text-end">Monto Recibido:</td>
+                        <td class="text-end">${{ pago.monto_recibido|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <th class="text-end">Cambio Devuelto:</th>
+                        <th class="text-end fw-bold">${{ pago.cambio_devuelto|floatformat:2 }}</th>
+                    </tr>
+                    {% endif %}
                     <tr class="table-danger">
                         <th class="text-end">Saldo Pendiente del Paciente:</th>
                         <th class="text-end fw-bold">${{ saldo_pendiente_paciente|floatformat:2 }}</th>

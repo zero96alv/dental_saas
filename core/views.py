@@ -4465,6 +4465,15 @@ class ProcesarPagoView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateVi
             pago = form.save(commit=False)
             pago.cita = models.Cita.objects.get(id=cita_id)
             pago.paciente = pago.cita.paciente
+
+            # Calcular cambio automáticamente si es pago en efectivo
+            if pago.metodo_pago == 'Efectivo' and pago.monto_recibido:
+                pago.cambio_devuelto = pago.monto_recibido - pago.monto
+            else:
+                # Limpiar campos si no es efectivo
+                pago.monto_recibido = None
+                pago.cambio_devuelto = None
+
             pago.save()
         except models.Cita.DoesNotExist:
             messages.error(self.request, f"No se encontró una cita con ID {cita_id}. Por favor, seleccione una cita válida.")
@@ -5096,6 +5105,15 @@ class RegistrarPagoPacienteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin,
                 pago.cita = models.Cita.objects.get(id=cita_id, paciente=self.paciente)
             except Exception:
                 pago.cita = None
+
+        # Calcular cambio automáticamente si es pago en efectivo
+        if pago.metodo_pago == 'Efectivo' and pago.monto_recibido:
+            pago.cambio_devuelto = pago.monto_recibido - pago.monto
+        else:
+            # Limpiar campos si no es efectivo
+            pago.monto_recibido = None
+            pago.cambio_devuelto = None
+
         pago.save()
         # Actualizar saldo global del paciente de forma segura
         self.paciente.actualizar_saldo_global()
@@ -5601,22 +5619,37 @@ def crear_paciente_ajax(request):
         data = json.loads(request.body)
         
         # Validar datos mínimos
-        required_fields = ['nombre', 'apellido', 'fecha_nacimiento']
+        required_fields = ['nombre', 'apellido']
         for field in required_fields:
             if not data.get(field):
                 return JsonResponse({
-                    'success': False, 
+                    'success': False,
                     'error': f'El campo {field} es requerido'
                 }, status=400)
-        
+
+        # Manejar email opcional (None si está vacío para evitar problemas con unique=True)
+        email = data.get('email', '').strip()
+        if not email:
+            email = None
+        elif models.Paciente.objects.filter(email=email).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Ya existe un paciente con este correo electrónico'
+            }, status=400)
+
+        # Manejar fecha de nacimiento opcional
+        fecha_nacimiento = data.get('fecha_nacimiento', '').strip()
+        if not fecha_nacimiento:
+            fecha_nacimiento = None
+
         # Crear paciente
         paciente = models.Paciente.objects.create(
             nombre=data['nombre'],
             apellido=data['apellido'],
-            email=data.get('email', ''),
-            telefono=data.get('telefono', ''),
-            fecha_nacimiento=data['fecha_nacimiento'],
-            direccion=data.get('direccion', '')
+            email=email,
+            telefono=data.get('telefono', '').strip() or None,
+            fecha_nacimiento=fecha_nacimiento,
+            direccion=data.get('direccion', '').strip() or ''
         )
         
         return JsonResponse({
