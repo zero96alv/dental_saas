@@ -42,34 +42,39 @@
               <p><strong>Fecha y hora:</strong> {{ cita.fecha_hora }}</p>
               <p><strong>Unidad:</strong> {{ cita.unidad_dental }}</p>
               <p><strong>Estado:</strong> <span id="cita-estado">{{ cita.get_estado_display }}</span></p>
-              <div class="btn-toolbar flex-wrap" role="toolbar" aria-label="Acciones de Estado">
-                <div class="btn-group btn-group-sm me-2 mb-2" role="group">
-                  <button class="btn btn-outline-secondary" data-estado="PRO" id="btn-pro">Programar</button>
-                  <button class="btn btn-primary" data-estado="CON" id="btn-con">Confirmar</button>
-                  <button class="btn btn-warning" data-estado="ATN" id="btn-atn">Atender</button>
-                </div>
-                <div class="btn-group btn-group-sm mb-2" role="group">
-                  <button class="btn btn-success" data-estado="COM" id="btn-com">Completar</button>
-                  <button class="btn btn-danger" data-estado="CAN" id="btn-can">Cancelar</button>
-                </div>
+              <div class="d-grid gap-2 d-md-flex flex-md-wrap" role="toolbar" aria-label="Acciones de Estado">
+                <button class="btn btn-outline-secondary btn-sm" data-estado="PRO" id="btn-pro">
+                  <i class="bi bi-calendar"></i> Programar
+                </button>
+                <button class="btn btn-primary btn-sm" data-estado="CON" id="btn-con">
+                  <i class="bi bi-check-circle"></i> Confirmar
+                </button>
+                <button class="btn btn-warning btn-sm" data-estado="ATN" id="btn-atn">
+                  <i class="bi bi-person-check"></i> Atender
+                </button>
+                <button class="btn btn-success btn-sm" data-estado="COM" id="btn-com">
+                  <i class="bi bi-check-all"></i> Completar
+                </button>
+                <button class="btn btn-danger btn-sm" data-estado="CAN" id="btn-can">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </button>
               </div>
-              <style>
-                @media (max-width: 576px){
-                  .btn-toolbar .btn-group { width: 100%; }
-                  .btn-toolbar .btn-group .btn { flex: 1 0 auto; }
-                }
-              </style>
             </div>
           </div>
         </div>
         <div class="col-md-8">
           <div class="card h-100">
             <div class="card-body">
-              <h5 class="card-title">Servicios</h5>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Servicios</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarServicio">
+                  <i class="bi bi-gear-fill"></i> Administrar Servicios
+                </button>
+              </div>
               <div class="row">
                 <div class="col-md-6">
                   <h6>Planeados</h6>
-                  <ul>
+                  <ul id="lista-servicios-planeados">
                     {% for s in cita.servicios_planeados.all %}
                       <li>{{ s.nombre }} - ${{ s.precio }}</li>
                     {% empty %}<li>Sin servicios planeados</li>{% endfor %}
@@ -77,16 +82,24 @@
                 </div>
                 <div class="col-md-6">
                   <h6>Realizados</h6>
-                  <ul>
+                  <ul id="lista-servicios-realizados">
                     {% for s in cita.servicios_realizados %}
                       <li>{{ s.nombre }} - ${{ s.precio }}</li>
                     {% empty %}<li>Sin servicios realizados</li>{% endfor %}
                   </ul>
                 </div>
               </div>
-              <div class="mt-2">
-                <p><strong>Total pagado:</strong> ${{ cita.total_pagado }}</p>
-                <p><strong>Saldo pendiente:</strong> ${{ cita.saldo_pendiente }}</p>
+              <div class="mt-3 p-3 bg-light rounded">
+                <div class="row">
+                  <div class="col-6">
+                    <p class="mb-1"><strong>Costo de servicios:</strong></p>
+                    <p class="mb-0 text-primary fs-5" id="costo-servicios">${{ cita.costo_real|floatformat:2 }}</p>
+                  </div>
+                  <div class="col-6">
+                    <p class="mb-1"><strong>Total pagado:</strong> <span id="total-pagado">${{ cita.total_pagado|floatformat:2 }}</span></p>
+                    <p class="mb-0"><strong>Saldo pendiente:</strong> <span class="text-danger fs-5" id="saldo-pendiente">${{ cita.saldo_pendiente|floatformat:2 }}</span></p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -106,9 +119,19 @@
               </h5>
             </div>
             <div class="card-body">
-              <div class="mb-3">
-                <a class="btn btn-outline-secondary btn-sm me-2" href="{% tenant_url 'core:paciente_history' cita.paciente.id %}"><i class="bi bi-clock-history"></i> Ver historial completo</a>
-                <a class="btn btn-outline-primary btn-sm me-2" href="{% tenant_url 'core:paciente_cuestionario' cita.paciente.id %}"><i class="bi bi-ui-checks"></i> Cuestionario</a>
+              <div class="mb-3 d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-info btn-sm" href="{% tenant_url 'core:paciente_history' cita.paciente.id %}" target="_blank">
+                  <i class="bi bi-clock-history"></i> Ver Cronología + Odontograma
+                </a>
+                <a class="btn btn-outline-success btn-sm" href="{% tenant_url 'core:paciente_historial_mejorado' cita.paciente.id %}" target="_blank">
+                  <i class="bi bi-clipboard-heart"></i> Capturar Antecedentes Completos
+                </a>
+              </div>
+              <div class="alert alert-info py-2">
+                <small>
+                  <i class="bi bi-info-circle"></i>
+                  <strong>Sistema Dual:</strong> Use "Cronología" para ver historial + odontograma. Use "Antecedentes" para capturar escalas de dolor, antecedentes familiares y hábitos.
+                </small>
               </div>
               
               <!-- Mostrar últimas entradas del historial -->
@@ -141,14 +164,18 @@
         
         <!-- Panel para agregar nueva entrada -->
         <div class="col-md-4">
-          <div class="card">
-            <div class="card-header">
+          <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
               <h6 class="mb-0">
-                <i class="bi bi-plus-circle"></i>
-                Nueva Entrada
+                <i class="bi bi-lightning-charge"></i>
+                Nota Rápida de Consulta
               </h6>
             </div>
             <div class="card-body">
+              <p class="small text-muted mb-3">
+                <i class="bi bi-info-circle"></i> Para notas rápidas durante la atención.
+                Para antecedentes completos, use el botón verde arriba.
+              </p>
               <form id="form-historial" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="historial">
@@ -591,6 +618,161 @@
     </div>
   </div>
 </div>
+
+<!-- Modal para administrar servicios con dual-list -->
+<div class="modal fade" id="modalAgregarServicio" tabindex="-1" aria-labelledby="modalAgregarServicioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalAgregarServicioLabel">
+          <i class="bi bi-gear-fill"></i> Administración de Servicios de la Cita
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Buscador -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" class="form-control" id="buscar-servicio"
+                     placeholder="Buscar servicios por nombre...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual List -->
+        <div class="row">
+          <!-- Lista de servicios disponibles -->
+          <div class="col-md-5">
+            <div class="card h-100">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">
+                  <i class="bi bi-list-ul"></i> Servicios Disponibles
+                  <span class="badge bg-secondary" id="count-disponibles">0</span>
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="lista-disponibles" style="max-height: 400px; overflow-y: auto;">
+                  {% for servicio in servicios_disponibles %}
+                    {% if servicio not in cita.servicios_planeados.all %}
+                    <div class="list-group-item list-group-item-action servicio-item"
+                         data-servicio-id="{{ servicio.id }}"
+                         data-servicio-nombre="{{ servicio.nombre }}"
+                         data-servicio-precio="{{ servicio.precio }}">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                          <strong>{{ servicio.nombre }}</strong>
+                          <br>
+                          <small class="text-muted">
+                            <i class="bi bi-currency-dollar"></i> ${{ servicio.precio|floatformat:2 }}
+                          </small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-success btn-agregar"
+                                data-servicio-id="{{ servicio.id }}"
+                                title="Agregar a la cita">
+                          <i class="bi bi-arrow-right"></i>
+                        </button>
+                      </div>
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botones centrales -->
+          <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-2">
+            <button type="button" class="btn btn-success" id="btn-agregar-todos" title="Agregar todos">
+              <i class="bi bi-chevron-double-right"></i>
+            </button>
+            <button type="button" class="btn btn-danger" id="btn-quitar-todos" title="Quitar todos">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <div class="text-center mt-3">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i><br>
+                Use los botones<br>
+                o haga doble<br>
+                click en el item
+              </small>
+            </div>
+          </div>
+
+          <!-- Lista de servicios seleccionados -->
+          <div class="col-md-5">
+            <div class="card h-100">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                  <i class="bi bi-check-circle"></i> Servicios Seleccionados
+                  <span class="badge bg-light text-dark" id="count-seleccionados">0</span>
+                </h6>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="lista-seleccionados" style="max-height: 400px; overflow-y: auto;">
+                  {% for servicio in cita.servicios_planeados.all %}
+                    <div class="list-group-item list-group-item-action list-group-item-success servicio-item-seleccionado"
+                         data-servicio-id="{{ servicio.id }}"
+                         data-servicio-nombre="{{ servicio.nombre }}"
+                         data-servicio-precio="{{ servicio.precio }}">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-sm btn-danger btn-quitar"
+                                data-servicio-id="{{ servicio.id }}"
+                                title="Quitar de la cita">
+                          <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <div class="flex-grow-1 ms-2">
+                          <strong>{{ servicio.nombre }}</strong>
+                          <br>
+                          <small class="text-dark">
+                            <i class="bi bi-currency-dollar"></i> ${{ servicio.precio|floatformat:2 }}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de costos -->
+        <div class="row mt-3">
+          <div class="col-12">
+            <div class="alert alert-info mb-0">
+              <div class="row text-center">
+                <div class="col-md-4">
+                  <strong><i class="bi bi-calculator"></i> Costo actual:</strong><br>
+                  <span class="fs-5">$<span id="costo-actual">{{ cita.costo_real|floatformat:2 }}</span></span>
+                </div>
+                <div class="col-md-4">
+                  <strong><i class="bi bi-plus-minus"></i> Diferencia:</strong><br>
+                  <span class="fs-5" id="diferencia-costo">+$0.00</span>
+                </div>
+                <div class="col-md-4">
+                  <strong><i class="bi bi-currency-dollar"></i> Nuevo total:</strong><br>
+                  <span class="fs-5 text-primary"><strong>$<span id="nuevo-total">{{ cita.costo_real|floatformat:2 }}</span></strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="btn-confirmar-agregar-servicio">
+          <i class="bi bi-check-circle"></i> Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -790,6 +972,250 @@
       }
     });
   }
+
+  // ==========================================
+  // Funcionalidad de administración de servicios con dual-list
+  // ==========================================
+  const listaDisponibles = document.getElementById('lista-disponibles');
+  const listaSeleccionados = document.getElementById('lista-seleccionados');
+  const buscarServicioInput = document.getElementById('buscar-servicio');
+  const costoActualEl = document.getElementById('costo-actual');
+  const diferenciaEl = document.getElementById('diferencia-costo');
+  const nuevoTotalEl = document.getElementById('nuevo-total');
+  const btnConfirmarAgregar = document.getElementById('btn-confirmar-agregar-servicio');
+
+  // Contadores
+  function actualizarContadores() {
+    const countDisponibles = listaDisponibles.querySelectorAll('.servicio-item:not([style*="display: none"])').length;
+    const countSeleccionados = listaSeleccionados.querySelectorAll('.servicio-item-seleccionado').length;
+
+    document.getElementById('count-disponibles').textContent = countDisponibles;
+    document.getElementById('count-seleccionados').textContent = countSeleccionados;
+  }
+
+  // Calcular costos
+  function calcularCostos() {
+    const costoActual = parseFloat(costoActualEl.textContent) || 0;
+    let costoSeleccionados = 0;
+
+    listaSeleccionados.querySelectorAll('.servicio-item-seleccionado').forEach(item => {
+      const precio = parseFloat(item.dataset.servicioPrecio) || 0;
+      costoSeleccionados += precio;
+    });
+
+    const diferencia = costoSeleccionados - costoActual;
+    const nuevoTotal = costoSeleccionados;
+
+    // Actualizar UI
+    diferenciaEl.textContent = (diferencia >= 0 ? '+' : '') + '$' + Math.abs(diferencia).toFixed(2);
+    diferenciaEl.className = 'fs-5 ' + (diferencia >= 0 ? 'text-success' : 'text-danger');
+    nuevoTotalEl.textContent = nuevoTotal.toFixed(2);
+  }
+
+  // Mover servicio de disponibles a seleccionados
+  function agregarServicio(servicioId) {
+    const item = listaDisponibles.querySelector(`[data-servicio-id="${servicioId}"]`);
+    if (!item) return;
+
+    const nombre = item.dataset.servicioNombre;
+    const precio = item.dataset.servicioPrecio;
+
+    // Crear nuevo item en seleccionados
+    const nuevoItem = document.createElement('div');
+    nuevoItem.className = 'list-group-item list-group-item-action list-group-item-success servicio-item-seleccionado';
+    nuevoItem.dataset.servicioId = servicioId;
+    nuevoItem.dataset.servicioNombre = nombre;
+    nuevoItem.dataset.servicioPrecio = precio;
+    nuevoItem.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <button type="button" class="btn btn-sm btn-danger btn-quitar"
+                data-servicio-id="${servicioId}"
+                title="Quitar de la cita">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <div class="flex-grow-1 ms-2">
+          <strong>${nombre}</strong>
+          <br>
+          <small class="text-dark">
+            <i class="bi bi-currency-dollar"></i> $${parseFloat(precio).toFixed(2)}
+          </small>
+        </div>
+      </div>
+    `;
+
+    // Agregar a lista seleccionados
+    listaSeleccionados.appendChild(nuevoItem);
+
+    // Remover de disponibles
+    item.remove();
+
+    // Actualizar contadores y costos
+    actualizarContadores();
+    calcularCostos();
+  }
+
+  // Mover servicio de seleccionados a disponibles
+  function quitarServicio(servicioId) {
+    const item = listaSeleccionados.querySelector(`[data-servicio-id="${servicioId}"]`);
+    if (!item) return;
+
+    const nombre = item.dataset.servicioNombre;
+    const precio = item.dataset.servicioPrecio;
+
+    // Crear nuevo item en disponibles
+    const nuevoItem = document.createElement('div');
+    nuevoItem.className = 'list-group-item list-group-item-action servicio-item';
+    nuevoItem.dataset.servicioId = servicioId;
+    nuevoItem.dataset.servicioNombre = nombre;
+    nuevoItem.dataset.servicioPrecio = precio;
+    nuevoItem.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1">
+          <strong>${nombre}</strong>
+          <br>
+          <small class="text-muted">
+            <i class="bi bi-currency-dollar"></i> $${parseFloat(precio).toFixed(2)}
+          </small>
+        </div>
+        <button type="button" class="btn btn-sm btn-success btn-agregar"
+                data-servicio-id="${servicioId}"
+                title="Agregar a la cita">
+          <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    `;
+
+    // Agregar a lista disponibles
+    listaDisponibles.appendChild(nuevoItem);
+
+    // Remover de seleccionados
+    item.remove();
+
+    // Actualizar contadores y costos
+    actualizarContadores();
+    calcularCostos();
+  }
+
+  // Event listeners usando delegación de eventos
+  listaDisponibles.addEventListener('click', function(e) {
+    const btnAgregar = e.target.closest('.btn-agregar');
+    if (btnAgregar) {
+      e.preventDefault();
+      agregarServicio(btnAgregar.dataset.servicioId);
+    }
+  });
+
+  listaSeleccionados.addEventListener('click', function(e) {
+    const btnQuitar = e.target.closest('.btn-quitar');
+    if (btnQuitar) {
+      e.preventDefault();
+      quitarServicio(btnQuitar.dataset.servicioId);
+    }
+  });
+
+  // Doble click para mover items
+  listaDisponibles.addEventListener('dblclick', function(e) {
+    const item = e.target.closest('.servicio-item');
+    if (item) {
+      agregarServicio(item.dataset.servicioId);
+    }
+  });
+
+  listaSeleccionados.addEventListener('dblclick', function(e) {
+    const item = e.target.closest('.servicio-item-seleccionado');
+    if (item) {
+      quitarServicio(item.dataset.servicioId);
+    }
+  });
+
+  // Botones agregar/quitar todos
+  document.getElementById('btn-agregar-todos')?.addEventListener('click', function() {
+    const itemsDisponibles = listaDisponibles.querySelectorAll('.servicio-item:not([style*="display: none"])');
+    itemsDisponibles.forEach(item => {
+      agregarServicio(item.dataset.servicioId);
+    });
+  });
+
+  document.getElementById('btn-quitar-todos')?.addEventListener('click', function() {
+    const itemsSeleccionados = listaSeleccionados.querySelectorAll('.servicio-item-seleccionado');
+    itemsSeleccionados.forEach(item => {
+      quitarServicio(item.dataset.servicioId);
+    });
+  });
+
+  // Búsqueda en tiempo real
+  buscarServicioInput?.addEventListener('input', function() {
+    const termino = this.value.toLowerCase();
+
+    listaDisponibles.querySelectorAll('.servicio-item').forEach(item => {
+      const nombre = item.dataset.servicioNombre.toLowerCase();
+      if (nombre.includes(termino)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    actualizarContadores();
+  });
+
+  // Confirmar cambios
+  btnConfirmarAgregar?.addEventListener('click', function() {
+    const serviciosIds = Array.from(listaSeleccionados.querySelectorAll('.servicio-item-seleccionado'))
+      .map(item => item.dataset.servicioId);
+
+    // Deshabilitar botón
+    this.disabled = true;
+    this.innerHTML = '<i class="bi bi-clock"></i> Guardando...';
+
+    // Enviar petición
+    const formData = new FormData();
+    formData.append('action', 'agregar_servicios');
+    serviciosIds.forEach(id => formData.append('servicios', id));
+
+    fetch('{% tenant_url "core:cita_manage" cita.id %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCSRF(),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      body: formData
+    })
+    .then(async r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      if (data.success) {
+        showMsg(data.message || 'Servicios actualizados correctamente', true);
+
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarServicio'));
+        modal.hide();
+
+        // Recargar página para mostrar cambios
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        showMsg(data.error || 'Error al actualizar servicios', false);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showMsg('Error de conexión', false);
+    })
+    .finally(() => {
+      // Rehabilitar botón
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Cambios';
+    });
+  });
+
+  // Inicializar contadores y costos al abrir el modal
+  document.getElementById('modalAgregarServicio')?.addEventListener('shown.bs.modal', function() {
+    actualizarContadores();
+    calcularCostos();
+  });
 
 })();
 </script>

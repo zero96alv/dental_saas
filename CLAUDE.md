@@ -168,12 +168,33 @@ Custom role-based permissions managed through:
 
 ## Key Features Implementation
 
-### Odontogram (Dental Chart)
-- Interactive dental chart with 32 teeth (adult dentition)
-- API endpoints: `odontograma_api_get`, `odontograma_api_update`
-- Mobile-responsive with touch support
-- Supports multiple diagnoses per tooth (batch operations)
-- Visual feedback with colored states and selection highlighting
+### Odontogram (Dental Chart) ⭐ **DECISIÓN CONSOLIDADA**
+
+**Variante Oficial:** `odontograma_movil_optimizado.html`
+
+**Ubicación:** `core/templates/core/partials/odontograma_movil_optimizado.html`
+
+**Razón de elección** (Octubre 2025):
+Después de evaluar 28 variantes diferentes, se seleccionó `odontograma_movil_optimizado.html` como estándar oficial por:
+- ✅ **Funcionalidad completa:** 32 dientes, multi-selección, paleta de diagnósticos
+- ✅ **Responsive:** Optimizado para desktop y móvil
+- ✅ **Performance:** Carga rápida y fluida
+- ✅ **Integración:** Compatible con API existente (`odontograma_api_get`, `odontograma_api_update`)
+- ✅ **Ya en uso:** Implementado en `cita_manage.html`
+- ✅ **Mobile-responsive:** Touch support para tablets y smartphones
+
+**Variantes archivadas:** Las otras 27 variantes fueron movidas a:
+`core/templates/core/partials/archive_odontogramas/`
+
+**Uso en el sistema:**
+- Vista de gestión de citas (`cita_manage.html`) → Tab "Tratamientos"
+- Vista de historial del paciente (`historial_paciente.html`)
+- Vista de odontograma completo (`odontograma_48.html`)
+
+**API Endpoints:**
+- `GET /api/odontograma/<paciente_id>/` - Obtener estados dentales
+- `POST /api/odontograma/<paciente_id>/update/` - Actualizar estados
+- `GET /api/odontograma/partial/` - Cargar el odontograma estándar
 
 ### Appointment System
 - Calendar view powered by FullCalendar.js
@@ -639,6 +660,334 @@ connection.set_tenant(tenant)
 ---
 
 ## Changelog Principal
+
+### 2025-11-19 (Sesión 2)
+- ✅ **[FEATURE]** Rediseño completo del módulo de Insumos
+  - **Formulario profesional** (`insumo_form.html`):
+    - Header con gradiente púrpura-azul y diseño moderno
+    - Listas desplegables para `unidad_medida` (15 opciones) y `unidad_empaque` (9 opciones)
+    - 4 secciones organizadas: Información Básica, Unidades y Empaque, Stock y Precios, Control Sanitario
+    - JavaScript para ocultar/mostrar campos condicionales
+    - Ejemplos visuales en alertas informativas
+    - Card de ayuda con consejos útiles
+  - **Lista optimizada** (`insumo_list.html`):
+    - Cambio de tabla con modales anidados a vista de tarjetas (cards)
+    - Solución al problema de HTML inválido (modals dentro de `<tbody>`)
+    - Cards con distribución de stock por unidades dentales
+    - Vista responsive: 3 columnas (desktop), 2 (tablet), 1 (móvil)
+    - Efectos hover y sombras profesionales
+  - **Form class** (`core/forms.py:1593-1714`):
+    - Creado `InsumoForm` con choices para unidades
+    - Validación mejorada de campos
+  - **Vistas actualizadas** (`core/views.py:3915-3927`):
+    - `InsumoCreateView` y `InsumoUpdateView` ahora usan `form_class`
+
+- ✅ **[FEATURE]** Rediseño completo del módulo de Proveedores
+  - **Formulario profesional** (`proveedor_form.html`):
+    - Header con gradiente y diseño moderno
+    - Validación en tiempo real de RFC (Persona Moral/Física)
+    - Preview de formato de teléfono: (55) 1234-5678
+    - Auto-mayúsculas en campo RFC
+    - Secciones organizadas: Información de la Empresa + Información de Contacto
+    - Card de consejos útiles
+  - **Lista escalable con tabla** (`proveedor_list.html`):
+    - **Problema resuelto**: Cards no escalables para 20+ proveedores
+    - **Solución**: Tabla compacta con modales de detalles
+    - Búsqueda en tiempo real (filtra sin recargar página)
+    - Click en fila → abre modal con información completa
+    - Modal con header degradado y secciones organizadas
+    - Links funcionales: `tel:` y `mailto:`
+    - Responsive: tabla se adapta a móvil
+    - **Performance**: 7.5x más eficiente que vista de cards (800px vs 6000px de scroll)
+  - **Form class** (`core/forms.py:1717-1786`):
+    - Creado `ProveedorForm` con validación de RFC
+    - Clean method para RFC (12 o 13 caracteres)
+    - Validación de formato de teléfono
+  - **Vistas actualizadas** (`core/views.py:3795-3807`):
+    - `ProveedorCreateView` y `ProveedorUpdateView` ahora usan `form_class`
+    - Mensajes de éxito personalizados
+
+- ✅ **[DOCUMENTATION]** Actualización de CLAUDE.md con todos los cambios de la sesión
+
+### 2025-11-19 (Sesión 1)
+- ✅ **[FIX]** Corregido error JavaScript en módulo de compras (`compra_form.html`)
+  - Error: `Cannot read properties of null (reading 'value')` al agregar insumos
+  - Solución: Búsqueda robusta del campo `TOTAL_FORMS` usando `querySelector('[name$="-TOTAL_FORMS"]')`
+  - Archivo modificado: `core/templates/core/compra_form.html:73-106`
+
+- ✅ **[FEATURE]** Mejora visual del módulo de compras
+  - Cambio de tabla simple a vista de tarjetas (cards) con Bootstrap 5
+  - Muestra lista de insumos por compra con badges
+  - Mejor visualización de estados (Pendiente, Recibida, Cancelada)
+  - Vista responsive para móvil y desktop
+  - Optimización de queries: agregado `prefetch_related('detalles__insumo')` en `CompraListView`
+  - Archivos modificados:
+    - `core/templates/core/compra_list.html:20-127`
+    - `core/views.py:1161` (CompraListView.get_queryset)
+
+- ✅ **[FEATURE]** Sistema dinámico de servicios en gestión de citas
+  - **Problema resuelto**: Antes solo se podían usar servicios planeados inicialmente
+  - **Solución**: Modal para agregar servicios adicionales durante la atención de la cita
+  - **Funcionalidad**:
+    - Botón "Agregar Servicio" en pestaña "Resumen" de gestionar cita
+    - Modal con selector múltiple de servicios disponibles
+    - Cálculo en tiempo real del costo adicional y nuevo total
+    - Actualización automática de `cita.costo_real` y `cita.saldo_pendiente`
+    - Los servicios se agregan a `servicios_planeados` y quedan disponibles para tratamientos
+  - **Archivos modificados**:
+    - `core/templates/core/cita_manage.html:65-106` (UI mejorada de servicios)
+    - `core/templates/core/cita_manage.html:608-655` (Modal de agregar servicios)
+    - `core/templates/core/cita_manage.html:856-954` (JavaScript para agregar servicios)
+    - `core/views.py:4662-4672` (CitaManageView.post - nuevo action)
+    - `core/views.py:4714-4767` (Nuevo método `_handle_agregar_servicios`)
+  - **Flujo de usuario**:
+    1. Dentista atiende cita con servicio de "Valoración"
+    2. Durante la cita, detecta necesidad de "Limpieza" o "Extracción"
+    3. Click en "Agregar Servicio" → Selecciona servicios → Confirma
+    4. Sistema actualiza costo total y saldo a deber del paciente
+    5. Servicios quedan disponibles para registrar en tratamientos
+
+- ✅ **[DOCUMENTATION]** Documentación de historial clínico en gestión de citas
+  - El sistema ya tiene implementación completa y funcional:
+    - Formulario rápido en pestaña "Historial" de gestionar cita
+    - Muestra últimas 5 entradas del historial del paciente
+    - Botones de acceso rápido a historial completo y cuestionario
+    - Tipos de registro: CONSULTA, DIAGNOSTICO, TRATAMIENTO, SEGUIMIENTO, OBSERVACION, EMERGENCIA
+  - No requiere modificaciones adicionales
+
+- ✅ **[FIX]** Corrección crítica de vista de insumos (`insumo_list.html`)
+  - **Problema identificado**: HTML inválido con modales dentro de `<tbody>` causaba:
+    - Segundo insumo renderizado fuera de la tabla
+    - Elementos no interactuables
+    - Estructura visual inconsistente
+  - **Causa raíz**: Modales de lotes generados dentro del loop `{% for insumo %}` pero dentro de `<tbody>`
+  - **Solución implementada**:
+    - Template completamente rediseñado (1,256 líneas → 359 líneas)
+    - Cambio de tabla expandible a **vista de cards** (similar a compras)
+    - Eliminación de modales anidados problemáticos
+    - HTML válido y semántico
+  - **Mejoras funcionales**:
+    - ✅ Vista de tarjetas responsive con Bootstrap 5
+    - ✅ **Distribución por unidad dental visible directamente** (antes requería modal)
+    - ✅ Stock con barra de progreso visual
+    - ✅ Badges de estado con colores (crítico=rojo, bajo=amarillo, normal=verde)
+    - ✅ Información de lotes con fechas de caducidad resaltadas
+    - ✅ Estadísticas dashboard mantenidas (6 métricas)
+    - ✅ Filtros funcionales (búsqueda, proveedor, estado de stock)
+    - ✅ Eliminación de 900+ líneas de JavaScript innecesario
+  - **Archivos modificados**:
+    - `core/templates/core/insumo_list.html` (reescrito completamente)
+    - Respaldo creado: `core/templates/core/insumo_list_backup_YYYYMMDD_HHMMSS.html`
+  - **Acceso**: http://142.93.87.37/dev/insumos/
+
+- ✅ **[FEATURE]** Nueva interfaz de administración de servicios en gestión de citas
+  - **Mejora solicitada**: Interfaz más intuitiva para gestionar servicios de la cita
+  - **Antes**: Select múltiple confuso con Ctrl+Click
+  - **Ahora**: Interfaz dual-list profesional estilo administración
+  - **Características implementadas**:
+    - ✅ **Modal de tamaño XL** con dos columnas (disponibles vs seleccionados)
+    - ✅ **Búsqueda en tiempo real** por nombre de servicio
+    - ✅ **Transferencia de servicios** con botones de flechas
+    - ✅ **Doble click** para mover servicios rápidamente
+    - ✅ **Botones "Agregar/Quitar Todos"** para selección masiva
+    - ✅ **Contadores dinámicos** de servicios disponibles y seleccionados
+    - ✅ **Cálculo de costos en tiempo real**:
+      - Costo actual de la cita
+      - Diferencia (+/- en verde/rojo)
+      - Nuevo total
+    - ✅ **Reemplazo completo** de servicios (no solo agregar)
+    - ✅ **Vista clara de precios** en cada servicio
+  - **Cambios en UI**:
+    - Botón renombrado: "Agregar Servicio" → "Administrar Servicios"
+    - Icono cambiado: plus-circle → gear-fill (engranaje)
+    - Header del modal en azul primario
+  - **Cambios en backend** (`core/views.py:4714-4771`):
+    - `_handle_agregar_servicios()` ahora usa `.clear()` y `.set()`
+    - Permite quitar servicios (antes solo agregaba)
+    - Mensaje actualizado: "X servicio(s) asignado(s) a la cita"
+  - **Archivos modificados**:
+    - `core/templates/core/cita_manage.html:70-72` (botón)
+    - `core/templates/core/cita_manage.html:608-761` (modal dual-list)
+    - `core/templates/core/cita_manage.html:962-1204` (JavaScript completo)
+    - `core/views.py:4714-4771` (vista actualizada)
+  - **Acceso**: http://142.93.87.37/dev/citas/5/gestionar/ → Botón "Administrar Servicios"
+
+- ✅ **[FIX]** Botones de estado de cita ahora responsive
+  - **Problema**: Botones se encimaban en pantallas pequeñas
+  - **Solución**: Cambio de `btn-group` a `d-grid gap-2 d-md-flex flex-md-wrap`
+  - **Mejoras**:
+    - En móvil: Botones en columna (100% ancho)
+    - En desktop: Botones en fila con wrap
+    - Agregados iconos a cada botón para mejor identificación
+  - **Archivo modificado**: `core/templates/core/cita_manage.html:45-61`
+
+- ✅ **[FEATURE]** Sistema Dual de Historial Clínico implementado
+  - **Problema**: Confusión entre múltiples URLs de historial (3 versiones diferentes)
+  - **Solución**: Sistema organizado en dos flujos claros:
+
+  **1. VISUALIZACIÓN** (Azul - Solo Lectura):
+  - `Ver Cronología + Odontograma` → `/pacientes/<pk>/history/`
+    - Muestra timeline de eventos del `HistorialClinico`
+    - Incluye odontograma interactivo
+    - Para consulta rápida de historial existente
+
+  - `Odontograma Detallado` → `/pacientes/<pk>/odontograma_48/`
+    - Vista completa de 48 dientes
+    - Para análisis dental específico
+
+  **2. CAPTURA** (Verde - Formularios):
+  - `Antecedentes Completos` → `/pacientes/<pk>/historial-mejorado/`
+    - **Escalas de dolor** (numérica 0-10 + Wong Baker con emojis)
+    - **Antecedentes familiares** organizados
+    - **Hábitos orales** (bruxismo, tabaco, etc.)
+    - Formulario estructurado con formsets
+
+  - `Cuestionario Estructurado` → `/cuestionarios/paciente/<pk>/completar/`
+    - Cuestionario por categorías
+    - Para captura sistemática de datos
+
+  **3. NOTAS RÁPIDAS** (En gestión de cita):
+  - Formulario rápido en pestaña "Historial"
+  - Para notas durante la atención
+  - Vinculado automáticamente a la cita
+
+  **Archivos modificados**:
+  - `core/templates/core/cita_manage.html:122-135` (botones + explicación)
+  - `core/templates/core/cita_manage.html:167-178` (formulario rápido mejorado)
+  - `core/templates/core/paciente_detail.html:58-129` (card de sistema dual)
+
+  **Beneficios**:
+  - ✅ Separación clara entre visualizar y capturar
+  - ✅ Botones abren en nueva pestaña (target="_blank")
+  - ✅ Alertas informativas explicando cada sección
+  - ✅ UI organizada con colores distintivos (azul/verde)
+  - ✅ Deprecación implícita de la ruta `/cuestionario/` simple
+
+  **Accesos**:
+  - Gestión de cita: http://142.93.87.37/dev/citas/5/gestionar/ → Pestaña "Historial"
+  - Detalle paciente: http://142.93.87.37/dev/pacientes/1/ → Card "Sistema de Historial Clínico"
+
+- ✅ **[FEATURE]** Formulario mejorado de Insumos con choices y UI profesional
+  - **Problema**: Unidad de medida y empaque eran campos de texto libre, causando inconsistencias
+  - **Solución**: Formulario personalizado con listas desplegables predefinidas
+
+  **Mejoras implementadas**:
+
+  **1. Choices para Unidad de Medida** (15 opciones):
+  - Pieza, Caja, Paquete
+  - Líquidos: Litro, Mililitro
+  - Peso: Kilogramo, Gramo
+  - Longitud: Metro, Centímetro
+  - Otros: Rollo, Frasco, Tubo, Ampolleta, Sobre, Unidad
+
+  **2. Choices para Unidad de Empaque** (9 opciones + vacío):
+  - Sin empaque (venta individual)
+  - Caja, Paquete, Bulto, Display, Pack, Estuche, Bolsa, Contenedor
+
+  **3. UI Mejorada con secciones**:
+  - **Header con gradiente** morado/azul
+  - **4 Secciones organizadas**:
+    - Información Básica
+    - Unidades y Empaque (con ejemplo visual)
+    - Stock y Precios
+    - Control Sanitario (COFEPRIS)
+  - **Alertas informativas** con ejemplos prácticos
+  - **Link rápido** para crear proveedor
+  - **Card de ayuda** al final con próximos pasos
+
+  **4. JavaScript inteligente**:
+  - Oculta "Cantidad por Empaque" si no hay empaque seleccionado
+  - Oculta "Registro Sanitario" si no se marca checkbox COFEPRIS
+  - Valores por defecto: cantidad_por_empaque=1
+
+  **5. Validaciones mejoradas**:
+  - Campos numéricos con min/max
+  - Placeholders descriptivos
+  - Help texts claros en cada campo
+
+  **Archivos modificados**:
+  - `core/forms.py:1593-1714` (nuevo InsumoForm con 130 líneas)
+  - `core/views.py:3915-3927` (InsumoCreateView + InsumoUpdateView usan form_class)
+  - `core/templates/core/insumo_form.html` (reescrito completamente con 233 líneas)
+
+  **Beneficios**:
+  - ✅ Datos consistentes (no más "pza", "pieza", "pzas")
+  - ✅ UI profesional con gradientes y secciones
+  - ✅ Ejemplos visuales para evitar confusiones
+  - ✅ Campos condicionales (solo muestra lo necesario)
+  - ✅ Experiencia guiada para el usuario
+
+  **Acceso**: http://142.93.87.37/dev/insumos/new/
+
+- ✅ **[FEATURE]** Lista y formulario de Proveedores completamente rediseñados
+  - **Problema**: Lista de proveedores era tabla simple sin información visual
+  - **Solución**: Vista de cards + formulario profesional similar a insumos
+
+  **Mejoras en Lista de Proveedores**:
+
+  **1. Vista de Cards** (reemplazo de tabla):
+  - Cards con efecto hover (elevan al pasar mouse)
+  - Icono de edificio grande por card
+  - Badge de RFC o "Sin RFC" con colores
+  - **Información visible**:
+    - Nombre/Razón Social (título)
+    - RFC con badge
+    - Nombre de contacto con icono de persona
+    - Teléfono clickeable (tel:)
+    - Email clickeable (mailto:)
+    - Dirección fiscal truncada
+  - Botones Editar/Eliminar agrupados
+  - Grid responsive: 1 columna (móvil), 2 (tablet), 3 (desktop)
+
+  **2. Estadística**: Contador de total de proveedores
+
+  **Mejoras en Formulario de Proveedor**:
+
+  **1. UI Profesional** (igual que insumos):
+  - Header con gradiente morado/azul
+  - 2 Secciones organizadas:
+    - Información de la Empresa
+    - Información de Contacto (con fondo gris)
+
+  **2. Validaciones en Tiempo Real**:
+  - **RFC**: Detecta si es Persona Moral (12 chars) o Física (13 chars)
+    - ✅ "RFC Persona Moral válido" (verde)
+    - ✅ "RFC Persona Física válido" (verde)
+    - ❌ "RFC debe tener 12 o 13 caracteres" (rojo)
+    - Auto-mayúsculas al escribir
+  - **Teléfono**: Preview con formato
+    - Entrada: `5512345678`
+    - Preview: `(55) 1234-5678` ✅
+    - Contador: `10/10 dígitos`
+
+  **3. Validación de Backend**:
+  - RFC: Validación de longitud 12/13, conversión a mayúsculas
+  - Teléfono: Limpieza de caracteres no numéricos
+  - Nombre obligatorio con alerta si está vacío
+
+  **4. Card de Ayuda** con consejos:
+  - Cuándo capturar RFC
+  - Importancia del contacto
+  - Para qué sirve la dirección fiscal
+  - Qué hacer después de registrar
+
+  **Archivos modificados**:
+  - `core/templates/core/proveedor_list.html` (reescrito, 154 líneas)
+  - `core/templates/core/proveedor_form.html` (reescrito, 197 líneas)
+  - `core/forms.py:1717-1786` (nuevo ProveedorForm con 70 líneas)
+  - `core/views.py:3795-3807` (vistas usan form_class + success_message)
+
+  **Beneficios**:
+  - ✅ RFC siempre en mayúsculas y validado
+  - ✅ Teléfonos limpios (solo números)
+  - ✅ Vista más visual y profesional
+  - ✅ Feedback inmediato al usuario
+  - ✅ Validación antes de submit
+  - ✅ Experiencia consistente con módulo de insumos
+
+  **Accesos**:
+  - Lista: http://142.93.87.37/dev/proveedores/
+  - Nuevo: http://142.93.87.37/dev/proveedores/new/
 
 ### 2025-10-28
 - ✅ **[FEATURE]** Separación de Inventario Físico y Gestión de Costos

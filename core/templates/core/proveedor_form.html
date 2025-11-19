@@ -4,30 +4,193 @@
 
 {% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} Proveedor{% endblock %}
 
+{% block extra_css %}
+<style>
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    .section-divider {
+        border-top: 2px solid #e9ecef;
+        margin: 2rem 0;
+        padding-top: 1.5rem;
+    }
+    .field-group {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0">{% if object %}Editar{% else %}Nuevo{% endif %} Proveedor</h3>
-                </div>
+        <div class="col-lg-10">
+            <!-- Header Card -->
+            <div class="card info-card mb-4 shadow">
                 <div class="card-body">
-                    <form method="post">
+                    <div class="d-flex align-items-center">
+                        <div class="display-4 me-3">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1">{% if object %}Editar{% else %}Nuevo{% endif %} Proveedor</h2>
+                            <p class="mb-0 opacity-75">Registre la información del proveedor para gestión de compras</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <form method="post" id="proveedor-form">
                         {% csrf_token %}
-                        {{ form|crispy }}
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{% tenant_url 'core:proveedor_list' %}" class="btn btn-secondary me-md-2">
-                                <i class="bi bi-x-circle-fill me-1"></i> Cancelar
+
+                        <!-- Información de la Empresa -->
+                        <div class="mb-4">
+                            <h5 class="text-primary mb-3">
+                                <i class="bi bi-building me-2"></i>Información de la Empresa
+                            </h5>
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    {{ form.nombre|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.rfc|as_crispy_field }}
+                                    <div id="rfc-validation" class="form-text"></div>
+                                </div>
+                                <div class="col-md-12">
+                                    {{ form.direccion_fiscal|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-divider"></div>
+
+                        <!-- Información de Contacto -->
+                        <div class="mb-4">
+                            <h5 class="text-primary mb-3">
+                                <i class="bi bi-person-lines-fill me-2"></i>Información de Contacto
+                            </h5>
+                            <div class="field-group">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        {{ form.nombre_contacto|as_crispy_field }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.telefono|as_crispy_field }}
+                                        <div id="telefono-preview" class="form-text"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form.email|as_crispy_field }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4 pt-3 border-top">
+                            <a href="{% tenant_url 'core:proveedor_list' %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle-fill me-1"></i> Guardar
+                                <i class="bi bi-check-circle-fill me-1"></i>
+                                {% if object %}Actualizar{% else %}Guardar{% endif %} Proveedor
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+
+            <!-- Help Card -->
+            <div class="card mt-3 border-info">
+                <div class="card-body bg-light">
+                    <h6 class="text-info">
+                        <i class="bi bi-lightbulb"></i> Consejos útiles
+                    </h6>
+                    <small class="text-muted">
+                        <ul class="mb-0 mt-2">
+                            <li><strong>RFC:</strong> Si el proveedor emite facturas, es necesario capturar su RFC</li>
+                            <li><strong>Contacto:</strong> Registre el nombre de la persona con quien tramita pedidos</li>
+                            <li><strong>Dirección fiscal:</strong> Necesaria para facturación y seguimiento de compras</li>
+                            <li>Después de registrar el proveedor, podrás asociarlo con insumos y compras</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación de RFC en tiempo real
+    const rfcInput = document.getElementById('id_rfc');
+    const rfcValidation = document.getElementById('rfc-validation');
+
+    if (rfcInput) {
+        rfcInput.addEventListener('input', function() {
+            let rfc = this.value.toUpperCase().trim();
+            this.value = rfc;
+
+            if (rfc.length === 0) {
+                rfcValidation.innerHTML = '<span class="text-muted"><i class="bi bi-info-circle"></i> RFC opcional</span>';
+            } else if (rfc.length === 12) {
+                rfcValidation.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> RFC Persona Moral válido</span>';
+            } else if (rfc.length === 13) {
+                rfcValidation.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> RFC Persona Física válido</span>';
+            } else {
+                rfcValidation.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> RFC debe tener 12 o 13 caracteres</span>';
+            }
+        });
+    }
+
+    // Preview de formato de teléfono
+    const telefonoInput = document.getElementById('id_telefono');
+    const telefonoPreview = document.getElementById('telefono-preview');
+
+    if (telefonoInput) {
+        telefonoInput.addEventListener('input', function() {
+            const telefono = this.value.replace(/\D/g, '');
+
+            if (telefono.length === 10) {
+                // Formato: (XX) XXXX-XXXX
+                const formatted = `(${telefono.substring(0,2)}) ${telefono.substring(2,6)}-${telefono.substring(6)}`;
+                telefonoPreview.innerHTML = `<span class="text-success"><i class="bi bi-telephone"></i> ${formatted}</span>`;
+            } else if (telefono.length > 0) {
+                telefonoPreview.innerHTML = `<span class="text-muted">${telefono.length}/10 dígitos</span>`;
+            } else {
+                telefonoPreview.innerHTML = '';
+            }
+        });
+    }
+
+    // Auto-mayúsculas en RFC
+    if (rfcInput) {
+        rfcInput.addEventListener('blur', function() {
+            this.value = this.value.toUpperCase().trim();
+        });
+    }
+
+    // Validación del formulario
+    const form = document.getElementById('proveedor-form');
+    form.addEventListener('submit', function(e) {
+        const nombre = document.getElementById('id_nombre').value.trim();
+
+        if (!nombre) {
+            e.preventDefault();
+            alert('El nombre o razón social del proveedor es obligatorio');
+            document.getElementById('id_nombre').focus();
+            return false;
+        }
+    });
+});
+</script>
 {% endblock %}

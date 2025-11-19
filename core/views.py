@@ -51,145 +51,77 @@ from . import models
 logger = logging.getLogger(__name__)
 
 # === SAT Catalogs CRUD ===
-class SatFormaPagoListView(TenantLoginRequiredMixin, ListView):
-    model = models.SatFormaPago
-    template_name = 'core/configuracion/sat_forma_pago_list.html'
-    context_object_name = 'items'
+# REFACTORIZADO: Usando factory pattern para reducir duplicación de código
+# Antes: ~140 líneas de código duplicado
+# Después: ~35 líneas usando create_sat_catalog_views()
 
-class SatFormaPagoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
-    model = models.SatFormaPago
-    fields = ['codigo', 'descripcion', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_forma_pago_list')
-    success_message = 'Forma de Pago creada con éxito.'
+from core.view_mixins import create_sat_catalog_views
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Nueva Forma de Pago (SAT)'
-        return ctx
+# Generar vistas para SatFormaPago
+_forma_pago_views = create_sat_catalog_views(
+    models.SatFormaPago,
+    'forma_pago',
+    'Forma de Pago',
+    'Formas de Pago'
+)
+SatFormaPagoListView = _forma_pago_views['list']
+SatFormaPagoCreateView = _forma_pago_views['create']
+SatFormaPagoUpdateView = _forma_pago_views['update']
+SatFormaPagoDeleteView = _forma_pago_views['delete']
 
-class SatFormaPagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
-    model = models.SatFormaPago
-    fields = ['codigo', 'descripcion', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_forma_pago_list')
-    success_message = 'Forma de Pago actualizada con éxito.'
+# Generar vistas para SatMetodoPago
+_metodo_pago_views = create_sat_catalog_views(
+    models.SatMetodoPago,
+    'metodo_pago',
+    'Método de Pago',
+    'Métodos de Pago'
+)
+SatMetodoPagoListView = _metodo_pago_views['list']
+SatMetodoPagoCreateView = _metodo_pago_views['create']
+SatMetodoPagoUpdateView = _metodo_pago_views['update']
+SatMetodoPagoDeleteView = _metodo_pago_views['delete']
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Editar Forma de Pago (SAT)'
-        return ctx
+# Generar vistas para SatRegimenFiscal (con campos adicionales)
+_regimen_fiscal_views = create_sat_catalog_views(
+    models.SatRegimenFiscal,
+    'regimen_fiscal',
+    'Régimen Fiscal',
+    'Regímenes Fiscales'
+)
+SatRegimenFiscalListView = _regimen_fiscal_views['list']
+# Override fields para incluir persona_fisica y persona_moral
+SatRegimenFiscalCreateView = type(
+    'SatRegimenFiscalCreateView',
+    (_regimen_fiscal_views['create'],),
+    {'fields': ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']}
+)
+SatRegimenFiscalUpdateView = type(
+    'SatRegimenFiscalUpdateView',
+    (_regimen_fiscal_views['update'],),
+    {'fields': ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']}
+)
+SatRegimenFiscalDeleteView = _regimen_fiscal_views['delete']
 
-class SatFormaPagoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
-    model = models.SatFormaPago
-    template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
-    success_url = reverse_lazy('core:sat_forma_pago_list')
-    success_message = 'Forma de Pago eliminada con éxito.'
-
-class SatMetodoPagoListView(TenantLoginRequiredMixin, ListView):
-    model = models.SatMetodoPago
-    template_name = 'core/configuracion/sat_metodo_pago_list.html'
-    context_object_name = 'items'
-
-class SatMetodoPagoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
-    model = models.SatMetodoPago
-    fields = ['codigo', 'descripcion', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_metodo_pago_list')
-    success_message = 'Método de Pago creado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Nuevo Método de Pago (SAT)'
-        return ctx
-
-class SatMetodoPagoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
-    model = models.SatMetodoPago
-    fields = ['codigo', 'descripcion', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_metodo_pago_list')
-    success_message = 'Método de Pago actualizado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Editar Método de Pago (SAT)'
-        return ctx
-
-class SatMetodoPagoDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
-    model = models.SatMetodoPago
-    template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
-    success_url = reverse_lazy('core:sat_metodo_pago_list')
-    success_message = 'Método de Pago eliminado con éxito.'
-
-class SatRegimenFiscalListView(TenantLoginRequiredMixin, ListView):
-    model = models.SatRegimenFiscal
-    template_name = 'core/configuracion/sat_regimen_fiscal_list.html'
-    context_object_name = 'items'
-
-class SatRegimenFiscalCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
-    model = models.SatRegimenFiscal
-    fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_regimen_fiscal_list')
-    success_message = 'Régimen Fiscal creado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Nuevo Régimen Fiscal (SAT)'
-        return ctx
-
-class SatRegimenFiscalUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
-    model = models.SatRegimenFiscal
-    fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_regimen_fiscal_list')
-    success_message = 'Régimen Fiscal actualizado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Editar Régimen Fiscal (SAT)'
-        return ctx
-
-class SatRegimenFiscalDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
-    model = models.SatRegimenFiscal
-    template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
-    success_url = reverse_lazy('core:sat_regimen_fiscal_list')
-    success_message = 'Régimen Fiscal eliminado con éxito.'
-
-class SatUsoCFDIListView(TenantLoginRequiredMixin, ListView):
-    model = models.SatUsoCFDI
-    template_name = 'core/configuracion/sat_uso_cfdi_list.html'
-    context_object_name = 'items'
-
-class SatUsoCFDICreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
-    model = models.SatUsoCFDI
-    fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_uso_cfdi_list')
-    success_message = 'Uso CFDI creado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Nuevo Uso CFDI (SAT)'
-        return ctx
-
-class SatUsoCFDIUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
-    model = models.SatUsoCFDI
-    fields = ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']
-    template_name = 'core/configuracion/sat_catalog_form.html'
-    success_url = reverse_lazy('core:sat_uso_cfdi_list')
-    success_message = 'Uso CFDI actualizado con éxito.'
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['title'] = 'Editar Uso CFDI (SAT)'
-        return ctx
-
-class SatUsoCFDIDeleteView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, DeleteView):
-    model = models.SatUsoCFDI
-    template_name = 'core/configuracion/sat_catalog_confirm_delete.html'
-    success_url = reverse_lazy('core:sat_uso_cfdi_list')
-    success_message = 'Uso CFDI eliminado con éxito.'
+# Generar vistas para SatUsoCFDI (con campos adicionales)
+_uso_cfdi_views = create_sat_catalog_views(
+    models.SatUsoCFDI,
+    'uso_cfdi',
+    'Uso CFDI',
+    'Usos CFDI'
+)
+SatUsoCFDIListView = _uso_cfdi_views['list']
+# Override fields para incluir persona_fisica y persona_moral
+SatUsoCFDICreateView = type(
+    'SatUsoCFDICreateView',
+    (_uso_cfdi_views['create'],),
+    {'fields': ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']}
+)
+SatUsoCFDIUpdateView = type(
+    'SatUsoCFDIUpdateView',
+    (_uso_cfdi_views['update'],),
+    {'fields': ['codigo', 'descripcion', 'persona_fisica', 'persona_moral', 'activo']}
+)
+SatUsoCFDIDeleteView = _uso_cfdi_views['delete']
 
 # === DASHBOARD FINANCIERO INTEGRAL ===
 class DashboardFinancieroView(TenantLoginRequiredMixin, TemplateView):
@@ -1226,7 +1158,7 @@ class CompraListView(TenantLoginRequiredMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
-        return models.Compra.objects.select_related('proveedor').order_by('-fecha_compra')
+        return models.Compra.objects.select_related('proveedor').prefetch_related('detalles__insumo').order_by('-fecha_compra')
 
 class CompraCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Compra
@@ -2187,19 +2119,30 @@ def diagnostico_api_list(request):
 
 @tenant_login_required
 def odontograma_partial(request):
-    variant = (request.GET.get('variant') or '').strip() or 'clinico_profesional'
-    mapping = {
-        'clinico_profesional': 'core/partials/odontograma_clinico_profesional.html',
-        'responsive_48': 'core/partials/odontograma_48_responsive.html',
-        'anatomico_48': 'core/partials/odontograma_anatomico_48.html',
-        'profesional_v2': 'core/partials/odontograma_profesional_v2.html',
-        'movil_optimizado': 'core/partials/odontograma_movil_optimizado.html',
-    }
-    template = mapping.get(variant)
-    if not template:
-        return JsonResponse({'error': 'Variant not found'}, status=404)
-    html = render_to_string(template)
-    return HttpResponse(html)
+    """
+    Carga el odontograma estándar del sistema.
+
+    DECISIÓN: Después de evaluar 28 variantes, se eligió odontograma_movil_optimizado.html
+    como el estándar oficial por:
+    - Funcionalidad completa (32 dientes, multi-selección)
+    - Diseño responsive (desktop + móvil)
+    - Integración con API existente
+    - Performance óptima
+
+    Las otras 27 variantes fueron archivadas en:
+    core/templates/core/partials/archive_odontogramas/
+    """
+    # Siempre usar la variante estándar elegida
+    template_path = 'core/partials/odontograma_movil_optimizado.html'
+
+    try:
+        html = render_to_string(template_path)
+        return HttpResponse(html)
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Error loading odontogram',
+            'message': f'No se pudo cargar el odontograma estándar: {str(e)}'
+        }, status=500)
 
 @tenant_login_required
 def reporte_ingresos_api(request):
@@ -3849,16 +3792,17 @@ class ProveedorListView(TenantLoginRequiredMixin, ListView):
     context_object_name = 'proveedores'
     paginate_by = 15
 
-class ProveedorCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, CreateView):
+class ProveedorCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Proveedor
+    form_class = forms.ProveedorForm
     template_name = 'core/proveedor_form.html'
-    fields = ['nombre', 'rfc', 'nombre_contacto', 'telefono', 'email', 'direccion_fiscal']
     success_url = reverse_lazy('core:proveedor_list')
+    success_message = "Proveedor '%(nombre)s' creado con éxito."
 
 class ProveedorUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Proveedor
+    form_class = forms.ProveedorForm
     template_name = 'core/proveedor_form.html'
-    fields = ['nombre', 'contacto', 'telefono', 'email', 'direccion']
     success_url = reverse_lazy('core:proveedor_list')
     success_message = "Proveedor '%(nombre)s' actualizado con éxito."
 
@@ -3971,23 +3915,15 @@ class InsumoListView(TenantLoginRequiredMixin, ListView):
 
 class InsumoCreateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, CreateView):
     model = models.Insumo
+    form_class = forms.InsumoForm
     template_name = 'core/insumo_form.html'
-    fields = [
-        'nombre', 'descripcion', 'proveedor', 'unidad_medida',
-        'unidad_empaque', 'cantidad_por_empaque',
-        'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
-    ]
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' creado con éxito."
 
 class InsumoUpdateView(TenantSuccessUrlMixin, TenantLoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = models.Insumo
+    form_class = forms.InsumoForm
     template_name = 'core/insumo_form.html'
-    fields = [
-        'nombre', 'descripcion', 'proveedor', 'unidad_medida',
-        'unidad_empaque', 'cantidad_por_empaque',
-        'stock_minimo', 'requiere_lote_caducidad', 'registro_sanitario'
-    ]
     success_url = reverse_lazy('core:insumo_list')
     success_message = "Insumo '%(nombre)s' actualizado con éxito."
 
@@ -4717,12 +4653,14 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
         return context
         
     def post(self, request, *args, **kwargs):
-        """Manejar registro de tratamientos y entradas de historial clínico"""
+        """Manejar registro de tratamientos, entradas de historial clínico y agregar servicios"""
         cita = self.get_object()
         action = request.POST.get('action', 'tratamiento')
-        
+
         if action == 'historial':
             return self._handle_historial_entry(request, cita)
+        elif action == 'agregar_servicios':
+            return self._handle_agregar_servicios(request, cita)
         else:
             return self._handle_tratamiento(request, cita)
     
@@ -4765,7 +4703,66 @@ class CitaManageView(TenantLoginRequiredMixin, DetailView):
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
-    
+
+    def _handle_agregar_servicios(self, request, cita):
+        """Manejar la administración completa de servicios de una cita (reemplazar servicios_planeados)"""
+        # Verificar permisos: Dentista asignado, Administrador o Recepcionista
+        autorizado = False
+        perfil_dentista = None
+        try:
+            perfil_dentista = models.PerfilDentista.objects.get(usuario=request.user)
+            autorizado = (cita.dentista == perfil_dentista)
+        except models.PerfilDentista.DoesNotExist:
+            autorizado = False
+        if request.user.is_superuser or request.user.groups.filter(name__in=['Administrador','Recepcionista']).exists():
+            autorizado = True
+        if not autorizado:
+            return JsonResponse({'success': False, 'error': 'Sin permisos para administrar servicios'}, status=403)
+
+        try:
+            # Obtener servicios seleccionados (todos los que están en la lista de seleccionados)
+            servicios_ids = request.POST.getlist('servicios')
+
+            # Validar que los servicios existen
+            servicios = models.Servicio.objects.filter(id__in=servicios_ids, activo=True)
+
+            if servicios_ids and not servicios.exists():
+                return JsonResponse({'success': False, 'error': 'Servicios no encontrados'}, status=400)
+
+            # Reemplazar completamente los servicios planeados
+            with transaction.atomic():
+                # Limpiar servicios actuales
+                cita.servicios_planeados.clear()
+
+                # Agregar los nuevos servicios seleccionados
+                if servicios.exists():
+                    cita.servicios_planeados.set(servicios)
+
+                # Recalcular costo y saldo
+                cita.save()  # Esto dispara el recálculo automático en el modelo
+
+            # Preparar respuesta con datos actualizados
+            servicios_planeados_list = [
+                {'id': s.id, 'nombre': s.nombre, 'precio': float(s.precio)}
+                for s in cita.servicios_planeados.all()
+            ]
+
+            count_servicios = servicios.count()
+            mensaje = f'Servicios actualizados: {count_servicios} servicio(s) asignado(s) a la cita'
+
+            return JsonResponse({
+                'success': True,
+                'message': mensaje,
+                'nuevo_costo': float(cita.costo_real),
+                'nuevo_saldo': float(cita.saldo_pendiente),
+                'servicios_planeados': servicios_planeados_list
+            })
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
     def _handle_tratamiento(self, request, cita):
         """Manejar registro de tratamientos en la cita"""
         # Verificar permisos: Dentista asignado, Administrador o Recepcionista
@@ -6184,3 +6181,53 @@ def configuracion_clinica(request):
     }
 
     return render(request, 'core/configuracion_clinica.html', context)
+
+# === GALERÍA DE COMPARACIÓN DE ODONTOGRAMAS ===
+
+@tenant_login_required
+def odontograma_comparacion_view(request):
+    """
+    Vista de demostración para comparar todas las variantes de odontograma.
+    Permite visualizar y probar todas las implementaciones disponibles.
+    """
+    import os
+    from django.conf import settings
+
+    # Obtener todas las variantes de odontograma disponibles
+    partials_dir = os.path.join(settings.BASE_DIR, 'core', 'templates', 'core', 'partials')
+    all_files = os.listdir(partials_dir)
+
+    # Filtrar solo archivos de odontograma (excluir backups)
+    odontograma_files = [
+        f for f in all_files
+        if f.startswith('odontograma_')
+        and f.endswith('.html')
+        and 'backup' not in f.lower()
+    ]
+
+    # Crear lista de variantes con metadata
+    variantes = []
+    for filename in sorted(odontograma_files):
+        variant_key = filename.replace('odontograma_', '').replace('.html', '')
+        variantes.append({
+            'key': variant_key,
+            'filename': filename,
+            'template_path': f'core/partials/{filename}',
+            'nombre_display': variant_key.replace('_', ' ').title()
+        })
+
+    # Obtener un paciente de prueba para cargar datos
+    paciente_demo = models.Paciente.objects.first()
+
+    # Obtener diagnósticos disponibles
+    diagnosticos = models.Diagnostico.objects.all().order_by('nombre')
+
+    context = {
+        'variantes': variantes,
+        'total_variantes': len(variantes),
+        'paciente_demo': paciente_demo,
+        'diagnosticos': diagnosticos,
+        'variante_actual': request.GET.get('variante', 'movil_optimizado'),
+    }
+
+    return render(request, 'core/odontograma_comparacion.html', context)

@@ -1588,3 +1588,199 @@ class TrabajoLaboratorioFiltroForm(forms.Form):
         }),
         label='Hasta'
     )
+
+
+class InsumoForm(forms.ModelForm):
+    """Formulario mejorado para gestión de insumos"""
+
+    UNIDADES_MEDIDA_CHOICES = [
+        ('pieza', 'Pieza'),
+        ('caja', 'Caja'),
+        ('paquete', 'Paquete'),
+        ('litro', 'Litro (L)'),
+        ('mililitro', 'Mililitro (mL)'),
+        ('kilogramo', 'Kilogramo (kg)'),
+        ('gramo', 'Gramo (g)'),
+        ('metro', 'Metro (m)'),
+        ('centímetro', 'Centímetro (cm)'),
+        ('unidad', 'Unidad'),
+        ('rollo', 'Rollo'),
+        ('frasco', 'Frasco'),
+        ('tubo', 'Tubo'),
+        ('ampolleta', 'Ampolleta'),
+        ('sobre', 'Sobre'),
+    ]
+
+    UNIDADES_EMPAQUE_CHOICES = [
+        ('', '--- Sin empaque (venta individual) ---'),
+        ('caja', 'Caja'),
+        ('paquete', 'Paquete'),
+        ('bulto', 'Bulto'),
+        ('display', 'Display'),
+        ('pack', 'Pack'),
+        ('estuche', 'Estuche'),
+        ('bolsa', 'Bolsa'),
+        ('contenedor', 'Contenedor'),
+    ]
+
+    unidad_medida = forms.ChoiceField(
+        choices=UNIDADES_MEDIDA_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Unidad de Medida',
+        help_text='Unidad individual del insumo'
+    )
+
+    unidad_empaque = forms.ChoiceField(
+        choices=UNIDADES_EMPAQUE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        label='Unidad de Empaque',
+        help_text='Tipo de empaque en el que viene (dejar vacío si se vende por unidad)'
+    )
+
+    class Meta:
+        model = models.Insumo
+        fields = [
+            'nombre',
+            'descripcion',
+            'proveedor',
+            'unidad_medida',
+            'unidad_empaque',
+            'cantidad_por_empaque',
+            'stock_minimo',
+            'precio_unitario',
+            'requiere_lote_caducidad',
+            'registro_sanitario',
+        ]
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Guantes de látex'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción detallada del insumo...'
+            }),
+            'proveedor': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'cantidad_por_empaque': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'value': '1'
+            }),
+            'stock_minimo': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'value': '10'
+            }),
+            'precio_unitario': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'step': '0.01',
+                'placeholder': '0.00'
+            }),
+            'requiere_lote_caducidad': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'registro_sanitario': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Número de registro COFEPRIS'
+            }),
+        }
+        labels = {
+            'nombre': 'Nombre del Insumo',
+            'descripcion': 'Descripción',
+            'proveedor': 'Proveedor Principal',
+            'cantidad_por_empaque': 'Cantidad por Empaque',
+            'stock_minimo': 'Stock Mínimo de Alerta',
+            'precio_unitario': 'Precio Unitario de Referencia',
+            'requiere_lote_caducidad': 'Requiere Control de Lote y Caducidad (COFEPRIS)',
+            'registro_sanitario': 'Registro Sanitario',
+        }
+        help_texts = {
+            'nombre': 'Nombre descriptivo del insumo',
+            'proveedor': 'Proveedor habitual (opcional)',
+            'cantidad_por_empaque': 'Cuántas unidades vienen por empaque (Ej: 100 guantes por caja)',
+            'stock_minimo': 'Nivel de stock para generar alertas',
+            'precio_unitario': 'Precio de referencia por unidad (opcional)',
+            'requiere_lote_caducidad': 'Marcar si este insumo necesita seguimiento sanitario',
+            'registro_sanitario': 'Número de registro COFEPRIS si aplica',
+        }
+
+
+class ProveedorForm(forms.ModelForm):
+    """Formulario mejorado para gestión de proveedores"""
+
+    class Meta:
+        model = models.Proveedor
+        fields = ['nombre', 'rfc', 'nombre_contacto', 'telefono', 'email', 'direccion_fiscal']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Dental Supply SA de CV'
+            }),
+            'rfc': forms.TextInput(attrs={
+                'class': 'form-control text-uppercase',
+                'placeholder': 'Ej: DSU1234567AB',
+                'maxlength': '13',
+                'pattern': '[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}'
+            }),
+            'nombre_contacto': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Juan Pérez López'
+            }),
+            'telefono': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 5512345678',
+                'type': 'tel'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: ventas@proveedor.com'
+            }),
+            'direccion_fiscal': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Calle, Número, Colonia, Ciudad, Estado, CP'
+            }),
+        }
+        labels = {
+            'nombre': 'Nombre o Razón Social',
+            'rfc': 'RFC (Registro Federal de Contribuyentes)',
+            'nombre_contacto': 'Nombre del Contacto',
+            'telefono': 'Teléfono',
+            'email': 'Correo Electrónico',
+            'direccion_fiscal': 'Dirección Fiscal Completa',
+        }
+        help_texts = {
+            'nombre': 'Nombre comercial o razón social del proveedor',
+            'rfc': 'RFC a 13 caracteres (opcional)',
+            'nombre_contacto': 'Persona de contacto principal',
+            'telefono': 'Número telefónico de contacto',
+            'email': 'Correo electrónico para comunicaciones',
+            'direccion_fiscal': 'Dirección completa para facturación',
+        }
+
+    def clean_rfc(self):
+        """Validar formato de RFC mexicano"""
+        rfc = self.cleaned_data.get('rfc', '')
+        if rfc:
+            rfc = rfc.strip().upper()
+            # Validar longitud (12 para personas morales, 13 para físicas)
+            if len(rfc) not in [12, 13]:
+                raise ValidationError('El RFC debe tener 12 o 13 caracteres')
+        return rfc
+
+    def clean_telefono(self):
+        """Limpiar formato de teléfono"""
+        telefono = self.cleaned_data.get('telefono', '')
+        if telefono:
+            # Remover caracteres no numéricos
+            telefono = ''.join(filter(str.isdigit, telefono))
+        return telefono

@@ -316,18 +316,7 @@ urlpatterns = [
     path('api/permisos/clonar/', clonar_permisos_rol, name='api_clonar_permisos'),
     path('api/permisos/matriz/obtener/', obtener_matriz_permisos_ajax, name='admin_permisos_obtener_matriz'),
     path('api/permisos/matriz/guardar/', guardar_matriz_permisos_ajax, name='admin_permisos_guardar_matriz'),
-    
-    
-    # Vista de prueba super simple
-    path('test/simple/', lambda r: HttpResponse(f'<h1>Test OK</h1><p>Usuario: {r.user}</p><p>Autenticado: {r.user.is_authenticated}</p>'), name='test_simple'),
-    path('test/dashboard/', lambda r: HttpResponse(f'<h1>Dashboard Test OK</h1><p>Usuario: {r.user}</p><p>Autenticado: {r.user.is_authenticated}</p>'), name='test_dashboard'),
-    
-    # === RUTAS DE PRUEBA PARA ODONTOGRAMAS ===
-    path('prueba/odontograma-anatomico/', prueba_odontograma_anatomico, name='prueba_odontograma_anatomico'),
-    path('api/prueba/diagnostico/', prueba_aplicar_diagnostico, name='prueba_aplicar_diagnostico'),
-    path('prueba/boca-abierta/', views.prueba_boca_abierta, name='prueba_boca_abierta'),
-    path('prueba/fdi-universal/', views.prueba_fdi_universal, name='prueba_fdi_universal'),
-    
+
     # === RUTAS PARA CONSENTIMIENTO INFORMADO ===
     
     # Gestión de documentos de consentimiento
@@ -369,3 +358,15 @@ urlpatterns = [
     path('api/trabajos-laboratorio/obtener-costo/', trabajo_laboratorio_obtener_costo_api, name='trabajo_laboratorio_obtener_costo_api'),
     path('api/pacientes/<int:paciente_id>/citas/', obtener_citas_paciente_api, name='obtener_citas_paciente_api'),
 ]
+
+# ============================================================================
+# RUTAS DE DEBUG Y DESARROLLO
+# ============================================================================
+# Solo incluir en modo desarrollo (DEBUG=True)
+# Estas rutas NO deben estar disponibles en producción
+
+from django.conf import settings
+
+if settings.DEBUG:
+    from .urls_debug import debug_patterns
+    urlpatterns += debug_patterns

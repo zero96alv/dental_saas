@@ -76,15 +76,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const formsetContainer = document.getElementById('detalle-formset');
     const addButton = document.getElementById('add-form');
     const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
-    const totalForms = document.getElementById('id_detalles-TOTAL_FORMS');
-    let formNum = {{ formset.total_form_count }};
+
+    // Buscar el campo TOTAL_FORMS de manera más robusta
+    const totalForms = document.querySelector('[name$="-TOTAL_FORMS"]');
+
+    if (!totalForms) {
+        console.error('No se encontró el campo TOTAL_FORMS del formset');
+        return;
+    }
+
+    let formNum = parseInt(totalForms.value) || 0;
 
     addButton.addEventListener('click', function() {
         const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formNum);
         const newForm = document.createElement('div');
         newForm.innerHTML = newFormHtml;
         formsetContainer.appendChild(newForm.firstElementChild);
-        totalForms.value = ++formNum;
+        formNum++;
+        totalForms.value = formNum;
     });
 
     formsetContainer.addEventListener('click', function(e) {

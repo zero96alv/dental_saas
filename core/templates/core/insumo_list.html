@@ -4,386 +4,110 @@
 
 {% block title %}Gestión de Inventario{% endblock %}
 
-{% block extra_css %}
-<style>
-/* === SISTEMA DE BADGES DE STOCK === */
-.stock-badge {
-    font-size: 0.8em;
-    padding: 0.3rem 0.6rem;
-    border-radius: 0.4rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.stock-critico {
-    background-color: #dc3545;
-    color: white;
-    animation: pulse-critical 2s infinite;
-}
-
-.stock-bajo {
-    background-color: #ffc107;
-    color: #000;
-}
-
-.stock-normal {
-    background-color: #198754;
-    color: white;
-}
-
-@keyframes pulse-critical {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-/* === TABLA HÍBRIDA === */
-.inventory-table {
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    overflow: hidden;
-}
-
-.table-hover tbody tr:hover {
-    background-color: #f8f9ff;
-    transition: background-color 0.2s ease;
-}
-
-.inventory-row {
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.inventory-row:hover {
-    border-left-color: #0d6efd;
-}
-
-.inventory-row.stock-critico-row {
-    border-left-color: #dc3545;
-    background-color: #fff5f5;
-}
-
-.inventory-row.stock-bajo-row {
-    border-left-color: #ffc107;
-    background-color: #fffbf0;
-}
-
-.inventory-row.stock-normal-row {
-    border-left-color: #198754;
-}
-
-.expand-btn {
-    transition: transform 0.3s ease;
-    color: #6c757d;
-    border: none;
-    background: none;
-    padding: 0.25rem;
-}
-
-.expand-btn:hover {
-    color: #0d6efd;
-    transform: scale(1.1);
-}
-
-.expand-btn.expanded {
-    transform: rotate(90deg);
-    color: #0d6efd;
-}
-
-/* === FILA DE DETALLES EXPANDIBLE === */
-.details-row {
-    display: none;
-    background: #f8f9fa;
-    border-left: 3px solid #e9ecef;
-}
-
-.details-row.show {
-    display: table-row;
-    animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.details-content {
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-}
-
-.detail-card {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.detail-card:last-child {
-    margin-bottom: 0;
-}
-
-/* === ESTADÍSTICAS === */
-.estadisticas-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 1rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.metric-card {
-    background: white;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
-}
-
-.metric-card:hover {
-    transform: translateY(-3px);
-}
-
-.metric-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    line-height: 1;
-}
-
-/* === FILTROS === */
-.filtros-avanzados {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* === BADGES Y ELEMENTOS === */
-.precio-badge {
-    background: #e3f2fd;
-    color: #1565c0;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.85em;
-    font-weight: 500;
-}
-
-.proveedor-badge {
-    background: #f3e5f5;
-    color: #7b1fa2;
-    padding: 0.2rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.8em;
-}
-
-.cofepris-alert {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 0.25rem;
-    padding: 0.5rem;
-    font-size: 0.85em;
-}
-
-.progress-stock {
-    height: 8px;
-    border-radius: 4px;
-    background-color: #e9ecef;
-    overflow: hidden;
-    margin: 0.25rem 0;
-}
-
-.progress-stock .progress-bar {
-    transition: width 0.6s ease;
-}
-
-/* === ACCIONES RÁPIDAS === */
-.action-buttons .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8em;
-    border-radius: 0.25rem;
-    margin: 0 0.1rem;
-}
-
-/* === RESPONSIVO === */
-@media (max-width: 768px) {
-    .inventory-table {
-        font-size: 0.9em;
-    }
-    
-    .metric-number {
-        font-size: 2rem;
-    }
-    
-    .details-content {
-        padding: 1rem;
-    }
-}
-
-/* === UTILIDADES === */
-.text-nowrap-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-
-.fade-in {
-    animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="text-primary mb-1">
-                <i class="fas fa-boxes me-2"></i>Gestión de Inventario
+                <i class="bi bi-boxes me-2"></i>Gestión de Inventario
             </h1>
-            <p class="text-muted mb-0">Control integral de insumos, stock y caducidades</p>
+            <p class="text-muted mb-0">Control de insumos y stock</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% tenant_url 'core:inventario_exportar' %}" class="btn btn-outline-success">
-                <i class="bi bi-download me-2"></i>Exportar Excel
-            </a>
-            <a href="{% tenant_url 'core:inventario_importar' %}" class="btn btn-outline-primary">
-                <i class="bi bi-upload me-2"></i>Importar Excel
+            <a href="{% tenant_url 'core:inventario_exportar' %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-download me-1"></i>Exportar
             </a>
             <a href="{% tenant_url 'core:insumo_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Nuevo Insumo
+                <i class="bi bi-plus-circle me-1"></i>Nuevo Insumo
             </a>
             <a href="{% tenant_url 'core:compra_create' %}" class="btn btn-success">
-                <i class="fas fa-shopping-cart me-2"></i>Nueva Compra
+                <i class="bi bi-cart-plus me-1"></i>Nueva Compra
             </a>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtros-collapse">
-                <i class="fas fa-filter me-2"></i>Filtros
-            </button>
         </div>
     </div>
 
     <!-- Alertas de Caducidad -->
-    {% if lotes_vencidos_count > 0 or lotes_proximos_vencer_count > 0 %}
-    <div class="row mb-4">
-        {% if lotes_vencidos_count > 0 %}
-        <div class="col-md-6">
-            <div class="alert alert-danger fade-in">
-                <h5 class="alert-heading">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Lotes Vencidos ({{ lotes_vencidos_count }})
-                </h5>
-                <ul class="mb-0">
-                    {% for lote in lotes_vencidos|slice:":5" %}
-                    <li>
-                        <strong>{{ lote.insumo.nombre }}</strong> - {{ lote.unidad_dental.nombre }}
-                        - Lote: {{ lote.numero_lote|default:"S/N" }}
-                        - Caducó: {{ lote.fecha_caducidad|date:"d/m/Y" }}
-                        - Cantidad: {{ lote.cantidad }}
-                    </li>
-                    {% endfor %}
-                    {% if lotes_vencidos_count > 5 %}
-                    <li class="text-muted">... y {{ lotes_vencidos_count|add:"-5" }} más</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
+    {% if lotes_vencidos_count > 0 %}
+    <div class="alert alert-danger mb-3">
+        <h5 class="alert-heading">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ lotes_vencidos_count }} Lote(s) Vencido(s)
+        </h5>
+        <p class="mb-0">Revisar inventario para retirar productos vencidos.</p>
+    </div>
+    {% endif %}
 
-        {% if lotes_proximos_vencer_count > 0 %}
-        <div class="col-md-6">
-            <div class="alert alert-warning fade-in">
-                <h5 class="alert-heading">
-                    <i class="bi bi-clock-fill"></i> Próximos a Vencer (60 días) - {{ lotes_proximos_vencer_count }}
-                </h5>
-                <ul class="mb-0">
-                    {% for lote in lotes_proximos_vencer|slice:":5" %}
-                    <li>
-                        <strong>{{ lote.insumo.nombre }}</strong> - {{ lote.unidad_dental.nombre }}
-                        - Lote: {{ lote.numero_lote|default:"S/N" }}
-                        - Caduca: {{ lote.fecha_caducidad|date:"d/m/Y" }}
-                        - Cantidad: {{ lote.cantidad }}
-                    </li>
-                    {% endfor %}
-                    {% if lotes_proximos_vencer_count > 5 %}
-                    <li class="text-muted">... y {{ lotes_proximos_vencer_count|add:"-5" }} más</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
+    {% if lotes_proximos_vencer_count > 0 %}
+    <div class="alert alert-warning mb-3">
+        <h5 class="alert-heading">
+            <i class="bi bi-clock-fill"></i> {{ lotes_proximos_vencer_count }} Lote(s) Próximo(s) a Vencer (60 días)
+        </h5>
+        <p class="mb-0">Planificar uso prioritario de estos productos.</p>
     </div>
     {% endif %}
 
     <!-- Estadísticas -->
-    <div class="estadisticas-card p-4 mb-4">
-        <div class="row text-center">
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-primary">{{ insumos.count }}</div>
-                    <div class="text-muted mt-2">Total Insumos</div>
+    <div class="row mb-4">
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary mb-0">{{ insumos.count }}</h3>
+                    <small class="text-muted">Insumos</small>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-danger">{{ stock_critico_count }}</div>
-                    <div class="text-muted mt-2">Stock Crítico</div>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-0">{{ stock_critico_count }}</h3>
+                    <small class="text-muted">Stock Crítico</small>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-warning">{{ stock_bajo_count }}</div>
-                    <div class="text-muted mt-2">Stock Bajo</div>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning mb-0">{{ stock_bajo_count }}</h3>
+                    <small class="text-muted">Stock Bajo</small>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-danger">{{ lotes_vencidos_count }}</div>
-                    <div class="text-muted mt-2">Lotes Vencidos</div>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-0">{{ lotes_vencidos_count }}</h3>
+                    <small class="text-muted">Vencidos</small>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-warning">{{ lotes_proximos_vencer_count }}</div>
-                    <div class="text-muted mt-2">Por Vencer</div>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning mb-0">{{ lotes_proximos_vencer_count }}</h3>
+                    <small class="text-muted">Por Vencer</small>
                 </div>
             </div>
-            <div class="col-6 col-md-2">
-                <div class="metric-card">
-                    <div class="metric-number text-success">${{ valor_total_inventario|floatformat:2 }}</div>
-                    <div class="text-muted mt-2">Valor Total</div>
+        </div>
+        <div class="col-md-2 col-6 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success mb-0">${{ valor_total_inventario|floatformat:0 }}</h3>
+                    <small class="text-muted">Valor Total</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filtros Avanzados -->
-    <div class="collapse" id="filtros-collapse">
-        <div class="filtros-avanzados">
-            <form method="get" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Buscar insumo</label>
-                    <input type="text" name="busqueda" class="form-control" 
-                           placeholder="Nombre del insumo..." 
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2">
+                <div class="col-md-4">
+                    <input type="text" name="busqueda" class="form-control"
+                           placeholder="Buscar insumo..."
                            value="{{ request.GET.busqueda }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Proveedor</label>
                     <select name="proveedor" class="form-select">
                         <option value="">Todos los proveedores</option>
                         {% for proveedor in proveedores %}
@@ -394,862 +118,196 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Estado de Stock</label>
                     <select name="estado_stock" class="form-select">
-                        <option value="">Todos</option>
+                        <option value="">Todos los estados</option>
                         <option value="critico" {% if request.GET.estado_stock == 'critico' %}selected{% endif %}>Stock Crítico</option>
                         <option value="bajo" {% if request.GET.estado_stock == 'bajo' %}selected{% endif %}>Stock Bajo</option>
                         <option value="normal" {% if request.GET.estado_stock == 'normal' %}selected{% endif %}>Stock Normal</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-outline-primary me-2">
-                        <i class="fas fa-search"></i> Buscar
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Buscar
                     </button>
-                    <a href="{% tenant_url 'core:insumo_list' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times"></i> Limpiar
-                    </a>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Tabla Híbrida de Inventario -->
-    <div class="inventory-table">
-        {% if insumos %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th width="5%"></th>
-                            <th width="25%">
-                                <i class="fas fa-box me-2"></i>Insumo
-                            </th>
-                            <th width="15%" class="text-center">
-                                <i class="fas fa-layer-group me-2"></i>Stock
-                            </th>
-                            <th width="15%" class="text-center">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Estado
-                            </th>
-                            <th width="20%">
-                                <i class="fas fa-truck me-2"></i>Proveedor
-                            </th>
-                            <th width="15%" class="text-center">
-                                <i class="fas fa-dollar-sign me-2"></i>Precio
-                            </th>
-                            <th width="5%" class="text-center">
-                                <i class="fas fa-cogs"></i>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for insumo in insumos %}
-                            <!-- Fila Principal -->
-                            <tr class="inventory-row 
-                                {% if insumo.stock == 0 %}stock-critico-row
-                                {% elif insumo.stock <= insumo.stock_minimo %}stock-bajo-row
-                                {% else %}stock-normal-row{% endif %}" 
-                                data-insumo-id="{{ insumo.pk }}">
-                                
-                                <!-- Botón Expandir -->
-                                <td class="text-center">
-                                    <button class="expand-btn" data-bs-toggle="tooltip" title="Ver detalles">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </td>
-                                
-                                <!-- Nombre del Insumo -->
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            <i class="fas fa-cube fa-lg text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold text-nowrap-truncate">{{ insumo.nombre }}</div>
-                                            {% if insumo.descripcion %}
-                                                <small class="text-muted text-nowrap-truncate">
-                                                    {{ insumo.descripcion|truncatewords:5 }}
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </td>
-                                
-                                <!-- Stock -->
-                                <td class="text-center">
-                                    <div class="d-flex flex-column align-items-center">
-                                        <span class="stock-badge 
-                                            {% if insumo.stock == 0 %}stock-critico
-                                            {% elif insumo.stock <= insumo.stock_minimo %}stock-bajo
-                                            {% else %}stock-normal{% endif %}">
-                                            <i class="fas fa-layer-group"></i>
-                                            {{ insumo.stock }}
-                                            {% if insumo.unidad_medida %}{{ insumo.unidad_medida }}{% endif %}
-                                        </span>
-                                        <small class="text-muted mt-1">
-                                            Mín: {{ insumo.stock_minimo }}
-                                        </small>
-                                    </div>
-                                </td>
-                                
-                                <!-- Estado -->
-                                <td class="text-center">
-                                    {% if insumo.stock == 0 %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>
-                                            Sin Stock
-                                        </span>
-                                    {% elif insumo.stock <= insumo.stock_minimo %}
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-exclamation-circle me-1"></i>
-                                            Stock Bajo
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>
-                                            Normal
-                                        </span>
+    <!-- Lista de Insumos con Cards -->
+    <div class="row g-3">
+        {% for insumo in insumos %}
+        <div class="col-12">
+            <div class="card shadow-sm h-100
+                {% if insumo.stock == 0 %}border-danger
+                {% elif insumo.stock <= insumo.stock_minimo %}border-warning
+                {% endif %}">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Columna principal: Info del insumo -->
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="card-title mb-1">
+                                        <i class="bi bi-box-seam me-1"></i>
+                                        {{ insumo.nombre }}
+                                    </h5>
+                                    {% if insumo.descripcion %}
+                                    <small class="text-muted">{{ insumo.descripcion|truncatewords:15 }}</small>
                                     {% endif %}
-                                </td>
-                                
-                                <!-- Proveedor -->
-                                <td>
-                                    {% if insumo.proveedor %}
-                                        <span class="proveedor-badge">
-                                            <i class="fas fa-truck me-1"></i>
-                                            {{ insumo.proveedor.nombre|truncatechars:20 }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">
-                                            <i class="fas fa-minus-circle me-1"></i>
-                                            Sin proveedor
-                                        </span>
-                                    {% endif %}
-                                </td>
-                                
-                                <!-- Precio -->
-                                <td class="text-center">
-                                    {% if insumo.precio_unitario %}
-                                        <span class="precio-badge">
-                                            <i class="fas fa-dollar-sign"></i>
-                                            {{ insumo.precio_unitario|floatformat:2 }}
-                                        </span>
-                                        {% if insumo.unidad_medida %}
-                                            <br><small class="text-muted">/ {{ insumo.unidad_medida }}</small>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                
-                                <!-- Acciones -->
-                                <td class="text-center">
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
-                                                data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{% tenant_url 'core:insumo_edit' insumo.pk %}">
-                                                    <i class="fas fa-edit me-2"></i>Editar
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item text-danger" href="{% tenant_url 'core:insumo_delete' insumo.pk %}">
-                                                    <i class="fas fa-trash me-2"></i>Eliminar
-                                                </a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#lotesModal{{ insumo.pk }}">
-                                                    <i class="fas fa-list me-2"></i>Ver Lotes
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" href="#">
-                                                    <i class="fas fa-history me-2"></i>Historial
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </td>
-                            </tr>
-                            
-                            <!-- Fila de Detalles Expandible -->
-                            <tr class="details-row" data-insumo-id="{{ insumo.pk }}">
-                                <td colspan="7">
-                                    <div class="details-content">
-                                        <div class="row">
-                                            <!-- Stock Detallado -->
-                                            <div class="col-md-4">
-                                                <div class="detail-card">
-                                                    <h6 class="text-primary mb-3">
-                                                        <i class="fas fa-chart-line me-2"></i>Control de Stock
-                                                    </h6>
-                                                    
-                                                    <!-- Barra de progreso -->
-                                                    {% if insumo.stock_minimo > 0 %}
-                                                        {% widthratio insumo.stock insumo.stock_minimo 100 as porcentaje %}
-                                                        <div class="progress-stock">
-                                                            <div class="progress-bar 
-                                                                {% if porcentaje < 25 %}bg-danger
-                                                                {% elif porcentaje < 50 %}bg-warning
-                                                                {% else %}bg-success{% endif %}" 
-                                                                 style="width: {% if porcentaje < 10 %}10{% else %}{{ porcentaje }}{% endif %}%">
-                                                            </div>
-                                                        </div>
-                                                        <small class="text-muted">Nivel: {{ porcentaje }}% del mínimo</small>
-                                                    {% endif %}
-                                                    
-                                                    <div class="mt-3">
-                                                        <div class="d-flex justify-content-between mb-2">
-                                                            <span>Stock actual:</span>
-                                                            <strong>{{ insumo.stock }} {{ insumo.unidad_medida|default:"unidades" }}</strong>
-                                                        </div>
-                                                        <div class="d-flex justify-content-between mb-2">
-                                                            <span>Stock mínimo:</span>
-                                                            <strong>{{ insumo.stock_minimo }}</strong>
-                                                        </div>
-                                                        {% if insumo.precio_unitario %}
-                                                            <div class="d-flex justify-content-between">
-                                                                <span>Valor total:</span>
-                                                                <strong class="text-success">
-                                                                    ${% widthratio insumo.precio_unitario insumo.stock insumo.stock as valor_total %}{{ valor_total|floatformat:2 }}
-                                                                </strong>
-                                                            </div>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Información del Producto -->
-                                            <div class="col-md-4">
-                                                <div class="detail-card">
-                                                    <h6 class="text-primary mb-3">
-                                                        <i class="fas fa-info-circle me-2"></i>Información del Producto
-                                                    </h6>
-                                                    
-                                                    {% if insumo.descripcion %}
-                                                        <div class="mb-3">
-                                                            <strong>Descripción:</strong>
-                                                            <p class="mb-2">{{ insumo.descripcion }}</p>
-                                                        </div>
-                                                    {% endif %}
-                                                    
-                                                    {% if insumo.unidad_medida %}
-                                                        <div class="mb-2">
-                                                            <strong>Unidad de medida:</strong>
-                                                            <span class="ms-2">{{ insumo.unidad_medida }}</span>
-                                                        </div>
-                                                    {% endif %}
-                                                    
-                                                    {% if insumo.fecha_creacion %}
-                                                        <div class="mb-2">
-                                                            <strong>Fecha de registro:</strong>
-                                                            <span class="ms-2">{{ insumo.fecha_creacion|date:'d/m/Y' }}</span>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- COFEPRIS y Lotes -->
-                                            <div class="col-md-4">
-                                                <div class="detail-card">
-                                                    <h6 class="text-primary mb-3">
-                                                        <i class="fas fa-shield-alt me-2"></i>Control Sanitario
-                                                    </h6>
-                                                    
-                                                    {% if insumo.requiere_lote_caducidad %}
-                                                        <div class="cofepris-alert mb-3">
-                                                            <i class="fas fa-shield-alt text-warning me-2"></i>
-                                                            <strong>COFEPRIS:</strong> Requiere control de lotes
-                                                            {% if insumo.registro_sanitario %}
-                                                                <br><small>Registro: {{ insumo.registro_sanitario }}</small>
-                                                            {% endif %}
-                                                        </div>
-                                                    {% endif %}
-                                                    
-                                                    <!-- Resumen de lotes -->
-                                                    {% if insumo.lotes.all %}
-                                                        <div class="mt-3">
-                                                            <strong>Lotes registrados:</strong>
-                                                            <div class="mt-2">
-                                                                {% for lote in insumo.lotes.all|slice:":3" %}
-                                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                                        <small>{{ lote.numero_lote|default:'Sin número' }}</small>
-                                                                        <span class="badge badge-light">{{ lote.cantidad }}</span>
-                                                                    </div>
-                                                                {% endfor %}
-                                                                {% if insumo.lotes.count > 3 %}
-                                                                    <small class="text-muted">... y {{ insumo.lotes.count|add:-3 }} más</small>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Acciones Rápidas -->
-                                        <div class="row mt-3">
-                                            <div class="col-12">
-                                                <div class="action-buttons text-end">
-                                                    <a href="{% tenant_url 'core:insumo_edit' insumo.pk %}" class="btn btn-outline-primary btn-sm">
-                                                        <i class="fas fa-edit me-1"></i>Editar
-                                                    </a>
-                                                    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#lotesModal{{ insumo.pk }}">
-                                                        <i class="fas fa-list me-1"></i>Ver Lotes
-                                                    </button>
-                                                    <button class="btn btn-outline-success btn-sm">
-                                                        <i class="fas fa-plus me-1"></i>Añadir Stock
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            
-                            <!-- Modal de Lotes (mantenido igual) -->
-                            <div class="modal fade" id="lotesModal{{ insumo.pk }}" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">
-                                                <i class="fas fa-list me-2"></i>Lotes de {{ insumo.nombre }}
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            {% if insumo.lotes.all %}
-                                                <div class="table-responsive">
-                                                    <table class="table table-sm">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Lote</th>
-                                                                <th>Cantidad</th>
-                                                                <th>Caducidad</th>
-                                                                <th>Ubicación</th>
-                                                                <th width="100px">Acciones</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% for lote in insumo.lotes.all %}
-                                                            <tr>
-                                                                <td>{{ lote.numero_lote|default:'Sin número' }}</td>
-                                                                <td><strong>{{ lote.cantidad }}</strong></td>
-                                                                <td>
-                                                                    {% if lote.fecha_caducidad %}
-                                                                        <span class="{% if lote.fecha_caducidad < fecha_actual %}text-danger{% else %}text-success{% endif %}">
-                                                                            {{ lote.fecha_caducidad|date:'d/m/Y' }}
-                                                                        </span>
-                                                                    {% else %}
-                                                                        <span class="text-muted">Sin fecha</span>
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td>
-                                                                    {% if lote.unidad_dental %}
-                                                                        <span class="badge bg-light text-dark">{{ lote.unidad_dental.nombre }}</span>
-                                                                    {% else %}
-                                                                        <span class="text-muted">-</span>
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td>
-                                                                    <button class="btn btn-warning btn-sm btn-ajustar-stock"
-                                                                            data-lote-id="{{ lote.id }}"
-                                                                            data-insumo-nombre="{{ insumo.nombre }}"
-                                                                            data-cantidad-actual="{{ lote.cantidad }}"
-                                                                            data-unidad-dental="{{ lote.unidad_dental.nombre|default:'N/A' }}"
-                                                                            data-numero-lote="{{ lote.numero_lote|default:'S/N' }}">
-                                                                        <i class="bi bi-pencil-square"></i> Ajustar
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                            {% endfor %}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            {% else %}
-                                                <div class="text-center py-4">
-                                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                                                    <p class="text-muted">No hay lotes registrados para este insumo</p>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
-                        {% endfor %}
-                    </tbody>
-                </table>
+
+                            <!-- Stock visual -->
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge fs-5
+                                        {% if insumo.stock == 0 %}bg-danger
+                                        {% elif insumo.stock <= insumo.stock_minimo %}bg-warning text-dark
+                                        {% else %}bg-success
+                                        {% endif %}">
+                                        <i class="bi bi-box"></i>
+                                        {{ insumo.stock }} {{ insumo.unidad_medida|default:"unidades" }}
+                                    </span>
+                                    <small class="text-muted">Mínimo: {{ insumo.stock_minimo }}</small>
+                                </div>
+
+                                <!-- Barra de progreso -->
+                                {% if insumo.stock_minimo > 0 %}
+                                    {% widthratio insumo.stock insumo.stock_minimo 100 as porcentaje %}
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar
+                                            {% if porcentaje < 25 %}bg-danger
+                                            {% elif porcentaje < 50 %}bg-warning
+                                            {% else %}bg-success{% endif %}"
+                                             style="width: {% if porcentaje < 5 %}5{% else %}{{ porcentaje }}{% endif %}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ porcentaje }}% del mínimo</small>
+                                {% endif %}
+                            </div>
+
+                            <!-- Información adicional -->
+                            <div class="mb-2">
+                                {% if insumo.proveedor %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-truck"></i>
+                                        {{ insumo.proveedor.nombre }}
+                                    </span>
+                                {% endif %}
+
+                                {% if insumo.precio_unitario %}
+                                    <span class="badge bg-info text-dark">
+                                        <i class="bi bi-currency-dollar"></i>
+                                        ${{ insumo.precio_unitario|floatformat:2 }} / {{ insumo.unidad_medida|default:"unidad" }}
+                                    </span>
+                                {% endif %}
+
+                                {% if insumo.requiere_lote_caducidad %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-shield-check"></i>
+                                        COFEPRIS
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Columna de lotes -->
+                        <div class="col-md-4">
+                            <h6 class="mb-2">
+                                <i class="bi bi-list-ul"></i> Distribución por Unidad Dental
+                            </h6>
+                            {% if insumo.lotes.all %}
+                                <div class="d-flex flex-column gap-1">
+                                    {% for lote in insumo.lotes.all %}
+                                        <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                            <div>
+                                                <strong>{{ lote.unidad_dental.nombre|default:"Sin ubicación" }}</strong>
+                                                {% if lote.numero_lote %}
+                                                    <br><small class="text-muted">Lote: {{ lote.numero_lote }}</small>
+                                                {% endif %}
+                                                {% if lote.fecha_caducidad %}
+                                                    <br><small class="
+                                                        {% if lote.fecha_caducidad < fecha_actual %}text-danger
+                                                        {% else %}text-muted{% endif %}">
+                                                        <i class="bi bi-calendar-event"></i> {{ lote.fecha_caducidad|date:"d/m/Y" }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-light text-dark fs-6">{{ lote.cantidad }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Sin lotes registrados</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Columna de acciones -->
+                        <div class="col-md-2 d-flex flex-column justify-content-between">
+                            <div class="btn-group-vertical w-100" role="group">
+                                <a href="{% tenant_url 'core:insumo_edit' insumo.pk %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <a href="{% tenant_url 'core:insumo_delete' insumo.pk %}" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        {% else %}
-            <!-- Estado vacío -->
-            <div class="text-center py-5">
-                <i class="fas fa-box-open fa-4x text-muted mb-4"></i>
-                <h4 class="text-muted">No hay insumos registrados</h4>
-                <p class="text-muted">Empiece registrando sus primeros insumos para llevar control del inventario</p>
-                <a href="{% tenant_url 'core:insumo_create' %}" class="btn btn-primary mt-3">
-                    <i class="fas fa-plus me-2"></i>Registrar Primer Insumo
-                </a>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>
+                No hay insumos registrados.
+                <a href="{% tenant_url 'core:insumo_create' %}" class="alert-link">¡Crea el primer insumo!</a>
             </div>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     <!-- Paginación -->
     {% if is_paginated %}
-    <div class="d-flex justify-content-center mt-4">
-        <nav aria-label="Paginación de insumos">
-            <ul class="pagination">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            <i class="fas fa-angle-double-left"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            <i class="fas fa-angle-left"></i>
-                        </a>
-                    </li>
+    <nav aria-label="Paginación" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">&laquo;</a></li>
+            {% endif %}
+
+            {% for i in paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
                 {% endif %}
-                
-                <li class="page-item active">
-                    <span class="page-link">
-                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
-                    </span>
-                </li>
-                
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            <i class="fas fa-angle-right"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                            <i class="fas fa-angle-double-right"></i>
-                        </a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
     {% endif %}
-
-<!-- Modal de Ajuste de Stock -->
-<div class="modal fade" id="modalAjustarStock" tabindex="-1" aria-labelledby="modalAjustarStockLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="modalAjustarStockLabel">
-                    <i class="bi bi-pencil-square"></i> Ajustar Stock
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <strong id="ajuste-insumo-nombre"></strong>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label"><strong>Unidad Dental:</strong></label>
-                        <p id="ajuste-unidad-dental" class="mb-0"></p>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label"><strong>Lote:</strong></label>
-                        <p id="ajuste-numero-lote" class="mb-0"></p>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label"><strong>Stock Actual:</strong></label>
-                    <p class="h4 text-primary mb-0" id="ajuste-cantidad-actual"></p>
-                </div>
-
-                <div class="mb-3">
-                    <label for="ajuste-nueva-cantidad" class="form-label"><strong>Nueva Cantidad: *</strong></label>
-                    <input type="number"
-                           class="form-control form-control-lg"
-                           id="ajuste-nueva-cantidad"
-                           min="0"
-                           required
-                           placeholder="Ingrese la nueva cantidad">
-                    <small class="form-text text-muted">Escriba la cantidad final después del conteo</small>
-                </div>
-
-                <div class="mb-3">
-                    <label for="ajuste-motivo" class="form-label"><strong>Motivo: *</strong></label>
-                    <select class="form-select" id="ajuste-motivo" required>
-                        <option value="">Seleccione un motivo...</option>
-                        <option value="CONTEO_FISICO">Conteo Físico</option>
-                        <option value="VENCIMIENTO">Producto Vencido</option>
-                        <option value="MERMA">Merma/Desperdicio</option>
-                        <option value="ERROR_REGISTRO">Error en Registro Anterior</option>
-                        <option value="OTRO">Otro Motivo</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label for="ajuste-notas" class="form-label">Observaciones:</label>
-                    <textarea class="form-control"
-                              id="ajuste-notas"
-                              rows="3"
-                              placeholder="Notas adicionales (opcional)"></textarea>
-                </div>
-
-                <div id="ajuste-diferencia-preview" class="alert alert-secondary d-none">
-                    <strong>Diferencia: <span id="ajuste-diferencia-valor"></span></strong>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <button type="button" class="btn btn-warning" id="btn-confirmar-ajuste">
-                    <i class="bi bi-check-circle"></i> Guardar Ajuste
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // === FUNCIONALIDAD DE EXPANSIÓN DE FILAS ===
-    const expandButtons = document.querySelectorAll('.expand-btn');
-    const inventoryRows = document.querySelectorAll('.inventory-row');
-    
-    // Manejar clicks en los botones de expansión
-    expandButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const row = this.closest('.inventory-row');
-            const insumoId = row.dataset.insumoId;
-            const detailsRow = document.querySelector(`.details-row[data-insumo-id="${insumoId}"]`);
-            const icon = this.querySelector('i');
-            
-            // Toggle la fila de detalles
-            if (detailsRow.classList.contains('show')) {
-                // Cerrar detalles
-                detailsRow.classList.remove('show');
-                this.classList.remove('expanded');
-                icon.className = 'fas fa-chevron-right';
-                
-                // Animación suave
-                setTimeout(() => {
-                    detailsRow.style.display = 'none';
-                }, 300);
-            } else {
-                // Abrir detalles
-                detailsRow.style.display = 'table-row';
-                setTimeout(() => {
-                    detailsRow.classList.add('show');
-                }, 10);
-                
-                this.classList.add('expanded');
-                icon.className = 'fas fa-chevron-down';
-            }
-        });
-    });
-    
-    // Hacer las filas clickeables para expandir
-    inventoryRows.forEach(row => {
-        row.addEventListener('click', function(e) {
-            // No expandir si se clickea en dropdown o botones
-            if (e.target.closest('.dropdown') || e.target.closest('button') || e.target.closest('a')) {
-                return;
-            }
-            
-            const expandBtn = this.querySelector('.expand-btn');
-            if (expandBtn) {
-                expandBtn.click();
-            }
-        });
-        
-        // Cambiar cursor para indicar que es clickeable
-        row.style.cursor = 'pointer';
-    });
-    
-    // === AUTO-SUBMIT DE BÚSQUEDA CON DEBOUNCE ===
-    const searchInput = document.querySelector('input[name="busqueda"]');
-    if (searchInput) {
-        let timeout;
-        searchInput.addEventListener('input', function() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                this.form.submit();
-            }, 800); // Incrementado para mejor UX
-        });
-        
-        // Indicador visual de búsqueda
-        searchInput.addEventListener('input', function() {
-            this.classList.add('searching');
-            setTimeout(() => {
-                this.classList.remove('searching');
-            }, 1000);
-        });
-    }
-    
-    // === ANIMACIÓN DE ENTRADA PARA LAS FILAS ===
-    const tableRows = document.querySelectorAll('.inventory-row');
-    tableRows.forEach((row, index) => {
-        row.style.animationDelay = `${index * 0.05}s`;
-        row.classList.add('fade-in');
-    });
-    
-    // === TOOLTIPS ===
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // === TECLADO SHORTCUTS ===
-    document.addEventListener('keydown', function(e) {
-        // Ctrl + F para enfocar búsqueda
-        if (e.ctrlKey && e.key === 'f') {
-            e.preventDefault();
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.select();
-            }
-        }
-        
-        // ESC para colapsar todas las filas expandidas
-        if (e.key === 'Escape') {
-            const expandedRows = document.querySelectorAll('.details-row.show');
-            expandedRows.forEach(row => {
-                const insumoId = row.dataset.insumoId;
-                const expandBtn = document.querySelector(`.inventory-row[data-insumo-id="${insumoId}"] .expand-btn`);
-                if (expandBtn) {
-                    expandBtn.click();
-                }
-            });
-        }
-    });
-    
-    // === FILTROS DINÁMICOS ===
-    const filterSelects = document.querySelectorAll('select[name="proveedor"], select[name="estado_stock"]');
-    filterSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            // Mostrar indicador de carga
-            this.style.opacity = '0.7';
-            
-            // Auto-submit el formulario
-            this.form.submit();
-        });
-    });
-    
-    // === INDICADORES VISUALES ===
-    // Highlighting de filas críticas
-    const criticalRows = document.querySelectorAll('.stock-critico-row');
-    if (criticalRows.length > 0) {
-        // Pequeña animación para llamar la atención a stock crítico
-        setInterval(() => {
-            criticalRows.forEach(row => {
-                row.style.animation = 'none';
-                setTimeout(() => {
-                    row.style.animation = 'pulse-critical 2s ease-in-out';
-                }, 100);
-            });
-        }, 5000); // Cada 5 segundos
-    }
-    
-    // === FUNCIONALIDAD ADICIONAL ===
-    // Auto-colapsar otras filas cuando se expande una nueva (opcional)
-    let autoCollapseEnabled = false; // Cambiar a true si se desea este comportamiento
-    
-    if (autoCollapseEnabled) {
-        expandButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                if (!this.classList.contains('expanded')) {
-                    // Colapsar otras filas expandidas
-                    const otherExpandedButtons = document.querySelectorAll('.expand-btn.expanded');
-                    otherExpandedButtons.forEach(otherBtn => {
-                        if (otherBtn !== this) {
-                            otherBtn.click();
-                        }
-                    });
-                }
-            });
-        });
-    }
-    
-    // === MEJORAS DE ACCESIBILIDAD ===
-    // ARIA labels dinámicos
-    expandButtons.forEach(button => {
-        const updateAriaLabel = () => {
-            const isExpanded = button.classList.contains('expanded');
-            button.setAttribute('aria-label', isExpanded ? 'Colapsar detalles' : 'Expandir detalles');
-            button.setAttribute('aria-expanded', isExpanded);
-        };
-        
-        updateAriaLabel();
-        
-        button.addEventListener('click', () => {
-            setTimeout(updateAriaLabel, 100);
-        });
-    });
-    
-    // Focus management para teclado
-    inventoryRows.forEach(row => {
-        row.setAttribute('tabindex', '0');
-        
-        row.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const expandBtn = this.querySelector('.expand-btn');
-                if (expandBtn) {
-                    expandBtn.click();
-                }
-            }
-        });
-    });
-    
-    console.log('🎉 Vista híbrida de inventario cargada exitosamente');
-    console.log(`📊 Total de insumos mostrados: ${inventoryRows.length}`);
+// Auto-submit filtros
+document.querySelector('select[name="proveedor"]')?.addEventListener('change', function() {
+    this.form.submit();
 });
-
-// === CSS DINÁMICO ADICIONAL ===
-const additionalStyles = `
-    .searching {
-        border-color: #0d6efd !important;
-        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
-    }
-    
-    @keyframes pulse-critical {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.8; }
-    }
-    
-    .inventory-row:focus {
-        outline: 2px solid #0d6efd;
-        outline-offset: -2px;
-    }
-`;
-
-// Inyectar estilos adicionales
-const styleSheet = document.createElement('style');
-styleSheet.textContent = additionalStyles;
-document.head.appendChild(styleSheet);
-
-// === AJUSTE RÁPIDO DE STOCK ===
-const modalAjustarStock = new bootstrap.Modal(document.getElementById('modalAjustarStock'));
-let loteIdActual = null;
-
-// Manejar click en botones de ajustar
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('btn-ajustar-stock') || e.target.closest('.btn-ajustar-stock')) {
-        const btn = e.target.classList.contains('btn-ajustar-stock') ? e.target : e.target.closest('.btn-ajustar-stock');
-
-        loteIdActual = btn.dataset.loteId;
-        const insumoNombre = btn.dataset.insumoNombre;
-        const cantidadActual = parseInt(btn.dataset.cantidadActual);
-        const unidadDental = btn.dataset.unidadDental;
-        const numeroLote = btn.dataset.numeroLote;
-
-        // Llenar modal
-        document.getElementById('ajuste-insumo-nombre').textContent = insumoNombre;
-        document.getElementById('ajuste-cantidad-actual').textContent = cantidadActual;
-        document.getElementById('ajuste-unidad-dental').textContent = unidadDental;
-        document.getElementById('ajuste-numero-lote').textContent = numeroLote;
-        document.getElementById('ajuste-nueva-cantidad').value = cantidadActual;
-        document.getElementById('ajuste-motivo').value = '';
-        document.getElementById('ajuste-notas').value = '';
-        document.getElementById('ajuste-diferencia-preview').classList.add('d-none');
-
-        modalAjustarStock.show();
-    }
-});
-
-// Calcular diferencia en tiempo real
-document.getElementById('ajuste-nueva-cantidad').addEventListener('input', function() {
-    const cantidadActual = parseInt(document.getElementById('ajuste-cantidad-actual').textContent);
-    const nuevaCantidad = parseInt(this.value) || 0;
-    const diferencia = nuevaCantidad - cantidadActual;
-
-    if (diferencia !== 0) {
-        const previewDiv = document.getElementById('ajuste-diferencia-preview');
-        const diferenciaSpan = document.getElementById('ajuste-diferencia-valor');
-
-        previewDiv.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-secondary');
-
-        if (diferencia > 0) {
-            previewDiv.classList.add('alert-success');
-            diferenciaSpan.textContent = `+${diferencia} (Entrada)`;
-        } else {
-            previewDiv.classList.add('alert-danger');
-            diferenciaSpan.textContent = `${diferencia} (Salida)`;
-        }
-    } else {
-        document.getElementById('ajuste-diferencia-preview').classList.add('d-none');
-    }
-});
-
-// Confirmar ajuste
-document.getElementById('btn-confirmar-ajuste').addEventListener('click', async function() {
-    const nuevaCantidad = document.getElementById('ajuste-nueva-cantidad').value;
-    const motivo = document.getElementById('ajuste-motivo').value;
-    const notas = document.getElementById('ajuste-notas').value;
-
-    // Validaciones
-    if (!nuevaCantidad || nuevaCantidad === '') {
-        alert('Por favor ingrese la nueva cantidad');
-        return;
-    }
-
-    if (!motivo) {
-        alert('Por favor seleccione un motivo');
-        return;
-    }
-
-    const btnConfirmar = this;
-    btnConfirmar.disabled = true;
-    btnConfirmar.innerHTML = '<i class="spinner-border spinner-border-sm"></i> Guardando...';
-
-    try {
-        const response = await fetch(`/demo/insumos/lote/${loteIdActual}/ajustar/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({
-                nueva_cantidad: parseInt(nuevaCantidad),
-                motivo: motivo,
-                notas: notas
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            modalAjustarStock.hide();
-            // Mostrar mensaje de éxito
-            alert(`✅ ${data.message}\n\nStock total del insumo: ${data.stock_total}`);
-            // Recargar página para ver cambios
-            window.location.reload();
-        } else {
-            alert('❌ Error: ' + data.error);
-            btnConfirmar.disabled = false;
-            btnConfirmar.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Ajuste';
-        }
-    } catch (error) {
-        alert('❌ Error al guardar: ' + error.message);
-        btnConfirmar.disabled = false;
-        btnConfirmar.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Ajuste';
-    }
+document.querySelector('select[name="estado_stock"]')?.addEventListener('change', function() {
+    this.form.submit();
 });
 </script>
 {% endblock %}
